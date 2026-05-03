@@ -42,3 +42,7 @@ android {
 flutter {
     source = "../.."
 }
+
+defaultConfig {
+    minSdkVersion 21  // ← minimal 21 untuk Mapbox Maps SDK
+}
