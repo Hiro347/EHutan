@@ -21,6 +21,7 @@ context.md
 **/macos/Flutter/ephemeral/
 **/windows/flutter/ephemeral/
 **/linux/flutter/ephemeral/
+frontend/android/gradle.properties
 
 # Dependencies / Packages cache
 **/ios/Pods/

@@ -104,51 +104,50 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  Future<void> _setup3DBuildings() async {
-    // ✅ Guard di awal — kalau null, langsung return
-    if (_mapboxMap == null) return;
+Future<void> _setup3DBuildings() async {
+  final map = _mapboxMap;
+  if (map == null) return;
 
-    try {
-      final layerPos = LayerPosition.above('road-label');
-      await _mapboxMap!.style.addLayerAt(
-        FillExtrusionLayer(
-          id: 'building-extrusion',
-          sourceId: 'composite',
-          sourceLayer: 'building',
-          minZoom: 15,
-        ),
-        layerPos!,
-      );
+  try {
+    final layerPos = LayerPosition(above: 'road-label');
 
-      await _mapboxMap?.style.setStyleLayerProperty(
-        'building-extrusion',
-        'fill-extrusion-color',
-        '#d6c9b0',
-      );
+    await map.style.addLayerAt(
+      FillExtrusionLayer(
+        id: 'building-extrusion',
+        sourceId: 'composite',
+        sourceLayer: 'building',
+        minZoom: 15,
+      ),
+      layerPos,
+    );
 
-      // ✅ Fix: ekspresi harus string JSON, bukan List Dart
-      await _mapboxMap?.style.setStyleLayerProperty(
-        'building-extrusion',
-        'fill-extrusion-height',
-        '["get", "height"]',
-      );
+    await map.style.setStyleLayerProperty(
+      'building-extrusion',
+      'fill-extrusion-color',
+      '#d6c9b0',
+    );
 
-      await _mapboxMap?.style.setStyleLayerProperty(
-        'building-extrusion',
-        'fill-extrusion-base',
-        '["get", "min_height"]',
-      );
+    await map.style.setStyleLayerProperty(
+      'building-extrusion',
+      'fill-extrusion-height',
+      '["get", "height"]',
+    );
 
-      await _mapboxMap?.style.setStyleLayerProperty(
-        'building-extrusion',
-        'fill-extrusion-opacity',
-        0.7,
-      );
-    } catch (_) {
-      // Layer sudah ada, skip
-    }
+    await map.style.setStyleLayerProperty(
+      'building-extrusion',
+      'fill-extrusion-base',
+      '["get", "min_height"]',
+    );
+
+    await map.style.setStyleLayerProperty(
+      'building-extrusion',
+      'fill-extrusion-opacity',
+      0.7,
+    );
+  } catch (_) {
+    // Layer sudah ada, skip
   }
-
+}
   Future<void> _addObservationMarkers() async {
     _annotationManager = await _mapboxMap?.annotations
         .createPointAnnotationManager();
