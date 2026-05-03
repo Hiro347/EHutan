@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/sqlite_service.dart';
+import '../services/sync_service.dart';
 
 // 1. Provider dasar untuk SqliteService
 final sqliteServiceProvider = Provider<SqliteService>((ref) {
@@ -40,4 +41,10 @@ class LocalObservationNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
 final localObservationProvider = 
     AsyncNotifierProvider<LocalObservationNotifier, List<Map<String, dynamic>>>(() {
   return LocalObservationNotifier();
+});
+
+// Provider untuk SyncService, meng-inject SqliteService ke dalamnya
+final syncServiceProvider = Provider<SyncService>((ref) {
+  final sqliteService = ref.read(sqliteServiceProvider);
+  return SyncService(sqliteService);
 });
