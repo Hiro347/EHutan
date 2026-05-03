@@ -21,35 +21,57 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   final List<Observation> _dummyObservations = [
     Observation(
-      id: '1', idPetugas: 'user-1',
-      namaSpesies: 'Panthera tigris sumatrae', kategoriTakson: 'Mamalia',
-      latitude: -6.5744, longitude: 106.7892, fotoUrl: '',
-      waktuPengamatan: DateTime.now(), createdAt: DateTime.now(), updatedAt: DateTime.now(),
+      id: '1',
+      idPetugas: 'user-1',
+      namaSpesies: 'Panthera tigris sumatrae',
+      kategoriTakson: 'Mamalia',
+      latitude: -6.5744,
+      longitude: 106.7892,
+      fotoUrl: '',
+      waktuPengamatan: DateTime.now(),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
     Observation(
-      id: '2', idPetugas: 'user-1',
-      namaSpesies: 'Rafflesia arnoldii', kategoriTakson: 'Flora',
-      latitude: -6.5710, longitude: 106.7940, fotoUrl: '',
-      waktuPengamatan: DateTime.now(), createdAt: DateTime.now(), updatedAt: DateTime.now(),
+      id: '2',
+      idPetugas: 'user-1',
+      namaSpesies: 'Rafflesia arnoldii',
+      kategoriTakson: 'Flora',
+      latitude: -6.5710,
+      longitude: 106.7940,
+      fotoUrl: '',
+      waktuPengamatan: DateTime.now(),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
     Observation(
-      id: '3', idPetugas: 'user-2',
-      namaSpesies: 'Buceros rhinoceros', kategoriTakson: 'Burung',
-      latitude: -6.5780, longitude: 106.7850, fotoUrl: '',
-      waktuPengamatan: DateTime.now(), createdAt: DateTime.now(), updatedAt: DateTime.now(),
+      id: '3',
+      idPetugas: 'user-2',
+      namaSpesies: 'Buceros rhinoceros',
+      kategoriTakson: 'Burung',
+      latitude: -6.5780,
+      longitude: 106.7850,
+      fotoUrl: '',
+      waktuPengamatan: DateTime.now(),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
   ];
 
-  final Position _userPosition = const Position(106.7892, -6.5744);
+  final Position _userPosition = Position(106.7892, -6.5744);
   Observation? _selectedObservation;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
-    _pulseAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeOut),
-    );
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+    _pulseAnimation = Tween<double>(
+      begin: 0.5,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeOut));
   }
 
   @override
@@ -67,36 +89,69 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _setup3DTerrain() async {
-    await _mapboxMap?.style.addSource(RasterDemSource(
-      id: 'mapbox-dem',
-      url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-      tileSize: 512,
-      maxzoom: 14.0,
-    ));
-    await _mapboxMap?.style.setTerrain('{"source": "mapbox-dem", "exaggeration": 1.3}');
+    await _mapboxMap?.style.addSource(
+      RasterDemSource(
+        id: 'mapbox-dem',
+        url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+        tileSize: 512,
+        maxzoom: 14.0,
+      ),
+    );
+
+    // ✅ Fix: setStyleTerrain, bukan setTerrain
+    await _mapboxMap?.style.setStyleTerrain(
+      '{"source": "mapbox-dem", "exaggeration": 1.3}',
+    );
   }
 
   Future<void> _setup3DBuildings() async {
+    // ✅ Guard di awal — kalau null, langsung return
+    if (_mapboxMap == null) return;
+
     try {
-      await _mapboxMap?.style.addLayerAt(
+      final layerPos = LayerPosition.above('road-label');
+      await _mapboxMap!.style.addLayerAt(
         FillExtrusionLayer(
           id: 'building-extrusion',
           sourceId: 'composite',
           sourceLayer: 'building',
           minZoom: 15,
         ),
-        LayerPosition.above('road-label'),
+        layerPos!,
       );
-      await _mapboxMap?.style.setStyleLayerProperty('building-extrusion', 'fill-extrusion-color', '#d6c9b0');
-      await _mapboxMap?.style.setStyleLayerProperty('building-extrusion', 'fill-extrusion-height', ['get', 'height']);
-      await _mapboxMap?.style.setStyleLayerProperty('building-extrusion', 'fill-extrusion-opacity', 0.7);
+
+      await _mapboxMap?.style.setStyleLayerProperty(
+        'building-extrusion',
+        'fill-extrusion-color',
+        '#d6c9b0',
+      );
+
+      // ✅ Fix: ekspresi harus string JSON, bukan List Dart
+      await _mapboxMap?.style.setStyleLayerProperty(
+        'building-extrusion',
+        'fill-extrusion-height',
+        '["get", "height"]',
+      );
+
+      await _mapboxMap?.style.setStyleLayerProperty(
+        'building-extrusion',
+        'fill-extrusion-base',
+        '["get", "min_height"]',
+      );
+
+      await _mapboxMap?.style.setStyleLayerProperty(
+        'building-extrusion',
+        'fill-extrusion-opacity',
+        0.7,
+      );
     } catch (_) {
-      // Layer mungkin sudah ada, skip
+      // Layer sudah ada, skip
     }
   }
 
   Future<void> _addObservationMarkers() async {
-    _annotationManager = await _mapboxMap?.annotations.createPointAnnotationManager();
+    _annotationManager = await _mapboxMap?.annotations
+        .createPointAnnotationManager();
 
     for (final obs in _dummyObservations) {
       final imageBytes = await _emojiToImageBytes(
@@ -140,7 +195,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   Future<void> _flyToObservation(Observation obs) async {
     await _mapboxMap?.flyTo(
       CameraOptions(
-        center: Point(coordinates: Position(obs.longitude, obs.latitude - 0.002)),
+        center: Point(
+          coordinates: Position(obs.longitude, obs.latitude - 0.002),
+        ),
         zoom: 17.0,
         pitch: 55.0,
         bearing: 15.0,
@@ -156,13 +213,18 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
     // Background circle
     canvas.drawCircle(
-      const Offset(size / 2, size / 2), size / 2,
+      const Offset(size / 2, size / 2),
+      size / 2,
       Paint()..color = color.withOpacity(0.2),
     );
     // Border
     canvas.drawCircle(
-      const Offset(size / 2, size / 2), size / 2 - 2,
-      Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 3,
+      const Offset(size / 2, size / 2),
+      size / 2 - 2,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
     );
     // Emoji
     final tp = TextPainter(
@@ -189,14 +251,15 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             cameraOptions: CameraOptions(
               center: Point(coordinates: _userPosition),
               zoom: 16.0,
-              pitch: 50.0,   // ← 3D tilt kamera
+              pitch: 50.0, // ← 3D tilt kamera
               bearing: 0.0,
             ),
           ),
 
           _buildBottomSheet(),
           _buildTopOverlay(),
-          if (_selectedObservation != null) _buildDetailCard(_selectedObservation!),
+          if (_selectedObservation != null)
+            _buildDetailCard(_selectedObservation!),
           _buildRecenterButton(),
         ],
       ),
@@ -213,30 +276,50 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            boxShadow: [BoxShadow(color: Color(0x1A000000), blurRadius: 20, offset: Offset(0, -4))],
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x1A000000),
+                blurRadius: 20,
+                offset: Offset(0, -4),
+              ),
+            ],
           ),
           child: Column(
             children: [
               Container(
                 margin: const EdgeInsets.only(top: 10, bottom: 4),
-                width: 40, height: 4,
-                decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2)),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     const Text('Di Sekitar', style: AppTextStyles.heading2),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Text(
                         '${_dummyObservations.length} observasi',
-                        style: const TextStyle(fontSize: 12, color: AppColors.primaryDark, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primaryDark,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -247,7 +330,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   controller: scrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   itemCount: _dummyObservations.length,
-                  itemBuilder: (_, i) => _buildObservationCard(_dummyObservations[i]),
+                  itemBuilder: (_, i) =>
+                      _buildObservationCard(_dummyObservations[i]),
                 ),
               ),
             ],
@@ -263,7 +347,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final isSelected = _selectedObservation?.id == obs.id;
 
     return GestureDetector(
-      onTap: () { setState(() => _selectedObservation = obs); _flyToObservation(obs); },
+      onTap: () {
+        setState(() => _selectedObservation = obs);
+        _flyToObservation(obs);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.only(bottom: 8),
@@ -271,28 +358,50 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         decoration: BoxDecoration(
           color: isSelected ? color.withOpacity(0.08) : Colors.white,
           borderRadius: BorderRadius.circular(AppSizes.radiusCard),
-          border: Border.all(color: isSelected ? color : const Color(0xFFE5E7EB), width: isSelected ? 1.5 : 1),
+          border: Border.all(
+            color: isSelected ? color : const Color(0xFFE5E7EB),
+            width: isSelected ? 1.5 : 1,
+          ),
         ),
         child: Row(
           children: [
             Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
-              child: Center(child: Text(emoji, style: const TextStyle(fontSize: 20))),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 20)),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(obs.namaSpesies, style: AppTextStyles.species),
-                const SizedBox(height: 2),
-                Text(obs.kategoriTakson, style: AppTextStyles.caption),
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(obs.namaSpesies, style: AppTextStyles.species),
+                  const SizedBox(height: 2),
+                  Text(obs.kategoriTakson, style: AppTextStyles.caption),
+                ],
+              ),
             ),
             if (!obs.isSynced)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: AppColors.statusMenunggu.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                child: const Text('Draft', style: TextStyle(fontSize: 10, color: AppColors.statusMenunggu, fontWeight: FontWeight.w600)),
+                decoration: BoxDecoration(
+                  color: AppColors.statusMenunggu.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Draft',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppColors.statusMenunggu,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
           ],
         ),
@@ -304,7 +413,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final color = markerColorForTakson(obs.kategoriTakson);
     final emoji = markerEmojiForTakson(obs.kategoriTakson);
     return Positioned(
-      bottom: 100, left: 16, right: 16,
+      bottom: 100,
+      left: 16,
+      right: 16,
       child: Material(
         elevation: 8,
         borderRadius: BorderRadius.circular(AppSizes.radiusCard),
@@ -318,21 +429,37 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           child: Row(
             children: [
               Container(
-                width: 52, height: 52,
-                decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
-                child: Center(child: Text(emoji, style: const TextStyle(fontSize: 26))),
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: Text(emoji, style: const TextStyle(fontSize: 26)),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(obs.namaSpesies, style: AppTextStyles.species),
-                  const SizedBox(height: 2),
-                  Text('${obs.kategoriTakson} • ${obs.latitude.toStringAsFixed(4)}, ${obs.longitude.toStringAsFixed(4)}', style: AppTextStyles.caption),
-                ]),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(obs.namaSpesies, style: AppTextStyles.species),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${obs.kategoriTakson} • ${obs.latitude.toStringAsFixed(4)}, ${obs.longitude.toStringAsFixed(4)}',
+                      style: AppTextStyles.caption,
+                    ),
+                  ],
+                ),
               ),
               IconButton(
                 onPressed: () => setState(() => _selectedObservation = null),
-                icon: const Icon(Icons.close, size: 18, color: Color(0xFF9CA3AF)),
+                icon: const Icon(
+                  Icons.close,
+                  size: 18,
+                  color: Color(0xFF9CA3AF),
+                ),
               ),
             ],
           ),
@@ -345,21 +472,50 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final unsyncedCount = _dummyObservations.where((o) => !o.isSynced).length;
     return Positioned(
       top: MediaQuery.of(context).padding.top + 12,
-      left: 16, right: 16,
+      left: 16,
+      right: 16,
       child: Row(
         children: [
-          _glassChip(child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.forest, color: AppColors.primary, size: 16),
-            SizedBox(width: 6),
-            Text('E-Hutan', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primaryDark, fontSize: 14)),
-          ])),
+          _glassChip(
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.forest, color: AppColors.primary, size: 16),
+                SizedBox(width: 6),
+                Text(
+                  'E-Hutan',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryDark,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
           const Spacer(),
           if (unsyncedCount > 0)
-            _glassChip(child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.cloud_off, color: AppColors.statusMenunggu, size: 14),
-              const SizedBox(width: 4),
-              Text('$unsyncedCount belum sync', style: const TextStyle(fontSize: 12, color: AppColors.statusMenunggu, fontWeight: FontWeight.w500)),
-            ])),
+            _glassChip(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.cloud_off,
+                    color: AppColors.statusMenunggu,
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$unsyncedCount belum sync',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.statusMenunggu,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -379,14 +535,20 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   Widget _buildRecenterButton() {
     return Positioned(
-      right: 16, bottom: 160,
+      right: 16,
+      bottom: 160,
       child: FloatingActionButton.small(
         heroTag: 'recenter',
         backgroundColor: Colors.white,
         foregroundColor: AppColors.primary,
         elevation: 4,
         onPressed: () => _mapboxMap?.flyTo(
-          CameraOptions(center: Point(coordinates: _userPosition), zoom: 16.0, pitch: 50.0, bearing: 0.0),
+          CameraOptions(
+            center: Point(coordinates: _userPosition),
+            zoom: 16.0,
+            pitch: 50.0,
+            bearing: 0.0,
+          ),
           MapAnimationOptions(duration: 800),
         ),
         child: const Icon(Icons.my_location),
@@ -405,7 +567,9 @@ class _MarkerClickListener extends OnPointAnnotationClickListener {
     final lon = annotation.geometry.coordinates.lng;
     final lat = annotation.geometry.coordinates.lat;
     final matched = observations.firstWhere(
-      (o) => (o.longitude - lon).abs() < 0.0001 && (o.latitude - lat).abs() < 0.0001,
+      (o) =>
+          (o.longitude - lon).abs() < 0.0001 &&
+          (o.latitude - lat).abs() < 0.0001,
       orElse: () => observations.first,
     );
     onTap(matched);
