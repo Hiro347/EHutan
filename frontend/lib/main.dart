@@ -30,6 +30,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'E-Hutan',
       debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.light,
       theme: ThemeData(
         primaryColor: const Color(0xFF609008),
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),

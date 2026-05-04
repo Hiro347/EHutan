@@ -82,6 +82,15 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   Future<void> _onMapCreated(MapboxMap mapboxMap) async {
     _mapboxMap = mapboxMap;
+
+    // Tambahkan baris ini untuk memaksa mode terang (day)
+    try {
+      await _mapboxMap?.style.setStyleImportConfigProperty('basemap', 'lightPreset', 'day');
+    } catch (e) {
+      // Abaikan jika base style ternyata bukan mapbox standard
+      print("Base style bukan mapbox standard, skip lightPreset: $e");
+    }
+
     await _addObservationMarkers();
     await _setupLocationIndicator();
   }
