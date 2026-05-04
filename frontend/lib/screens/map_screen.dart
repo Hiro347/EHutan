@@ -1,9 +1,14 @@
 import 'dart:ui' as ui;
 import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import '../utils/constants.dart';
 import '../models/observation.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -64,6 +69,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    // Request permission saat screen pertama dibuka
+    _requestLocationPermission();
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -80,84 +87,130 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  // ─────────────────────────────────────────────────────────
+  // MAP CREATED
+  // ─────────────────────────────────────────────────────────
   Future<void> _onMapCreated(MapboxMap mapboxMap) async {
     _mapboxMap = mapboxMap;
 
-    // Tambahkan baris ini untuk memaksa mode terang (day)
     try {
-      await _mapboxMap?.style.setStyleImportConfigProperty('basemap', 'lightPreset', 'day');
+      await _mapboxMap?.style.setStyleImportConfigProperty(
+        'basemap',
+        'lightPreset',
+        'day',
+      );
     } catch (e) {
-      // Abaikan jika base style ternyata bukan mapbox standard
-      print("Base style bukan mapbox standard, skip lightPreset: $e");
+      print('Skip lightPreset: $e');
     }
 
     await _addObservationMarkers();
+    await _setupPetugasModel();
     await _setupLocationIndicator();
   }
 
-  Future<void> _setup3DTerrain() async {
-    await _mapboxMap?.style.addSource(
-      RasterDemSource(
-        id: 'mapbox-dem',
-        url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-        tileSize: 512,
-        maxzoom: 14.0,
-      ),
-    );
+  // ─────────────────────────────────────────────────────────
+  // EXTRACT GLB → TEMP FILE (selalu overwrite agar tidak stale)
+  // ─────────────────────────────────────────────────────────
+  Future<String> _extractGlbToTemp(String assetPath) async {
+    final byteData = await rootBundle.load(assetPath);
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/petugas.glb');
 
-    // ✅ Fix: setStyleTerrain, bukan setTerrain
-    await _mapboxMap?.style.setStyleTerrain(
-      '{"source": "mapbox-dem", "exaggeration": 1.3}',
-    );
+    // Selalu overwrite agar file tidak stale saat GLB diganti
+    await file.writeAsBytes(byteData.buffer.asUint8List());
+
+    return file.path;
   }
 
-Future<void> _setup3DBuildings() async {
-  final map = _mapboxMap;
-  if (map == null) return;
+  // ─────────────────────────────────────────────────────────
+  // SETUP 3D MODEL PETUGAS
+  // ─────────────────────────────────────────────────────────
+  Future<void> _setupPetugasModel() async {
+    final map = _mapboxMap;
+    if (map == null) return;
 
-  try {
-    final layerPos = LayerPosition(above: 'road-label');
+    try {
+      // 1. Extract GLB ke temp, pakai file:// agar native bisa baca
+      final glbPath = await _extractGlbToTemp('lib/assets/petugas.glb');
+      final glbUri = 'file://$glbPath';
 
-    await map.style.addLayerAt(
-      FillExtrusionLayer(
-        id: 'building-extrusion',
-        sourceId: 'composite',
-        sourceLayer: 'building',
-        minZoom: 15,
-      ),
-      layerPos,
-    );
+      // 2. Daftarkan model ke style
+      await map.style.addStyleModel('petugas-model', glbUri);
 
-    await map.style.setStyleLayerProperty(
-      'building-extrusion',
-      'fill-extrusion-color',
-      '#d6c9b0',
-    );
+      // 3. GeoJSON source — posisi karakter
+      await map.style.addSource(
+        GeoJsonSource(
+          id: 'petugas-location-source',
+          data: jsonEncode({
+            'type': 'FeatureCollection',
+            'features': [
+              {
+                'type': 'Feature',
+                'geometry': {
+                  'type': 'Point',
+                  'coordinates': [_userPosition.lng, _userPosition.lat],
+                },
+              },
+            ],
+          }),
+        ),
+      );
 
-    await map.style.setStyleLayerProperty(
-      'building-extrusion',
-      'fill-extrusion-height',
-      '["get", "height"]',
-    );
+      // 4. Tambahkan ModelLayer dulu (tanpa properties)
+      await map.style.addLayer(
+        ModelLayer(
+          id: 'petugas-model-layer',
+          sourceId: 'petugas-location-source',
+        ),
+      );
 
-    await map.style.setStyleLayerProperty(
-      'building-extrusion',
-      'fill-extrusion-base',
-      '["get", "min_height"]',
-    );
-
-    await map.style.setStyleLayerProperty(
-      'building-extrusion',
-      'fill-extrusion-opacity',
-      0.7,
-    );
-  } catch (_) {
-    // Layer sudah ada, skip
+      // 5. Set properties via expression (required di v2.x)
+      await map.style.setStyleLayerProperty(
+        'petugas-model-layer',
+        'model-id',
+        ['literal', 'petugas-model'],
+      );
+      await map.style.setStyleLayerProperty(
+        'petugas-model-layer',
+        'model-scale',
+        [10.0, 10.0, 10.0], // sesuaikan skala model kamu
+      );
+      await map.style.setStyleLayerProperty(
+        'petugas-model-layer',
+        'model-rotation',
+        [0.0, 0.0, 90.0], // pitch, roll, bearing
+      );
+      await map.style.setStyleLayerProperty(
+        'petugas-model-layer',
+        'model-translation',
+        [0.0, 0.0, 9.0],
+      );
+      await map.style.setStyleLayerProperty(
+        'petugas-model-layer',
+        'model-type',
+        'common-3d',
+      );
+      await map.style.setStyleLayerProperty(
+        'petugas-model-layer',
+        'model-cast-shadows',
+        true,
+      );
+      await map.style.setStyleLayerProperty(
+        'petugas-model-layer',
+        'model-receive-shadows',
+        true,
+      );
+    } catch (e) {
+      print('Setup petugas model error: $e');
+    }
   }
-}
+
+  // ─────────────────────────────────────────────────────────
+  // OBSERVATION MARKERS (emoji pinpoint)
+  // ─────────────────────────────────────────────────────────
   Future<void> _addObservationMarkers() async {
-    _annotationManager = await _mapboxMap?.annotations
-        .createPointAnnotationManager();
+    _annotationManager =
+        await _mapboxMap?.annotations.createPointAnnotationManager();
 
     for (final obs in _dummyObservations) {
       final imageBytes = await _emojiToImageBytes(
@@ -185,19 +238,29 @@ Future<void> _setup3DBuildings() async {
     );
   }
 
+  // ─────────────────────────────────────────────────────────
+  // LOCATION INDICATOR (pulsing dot)
+  // ─────────────────────────────────────────────────────────
   Future<void> _setupLocationIndicator() async {
-    await _mapboxMap?.location.updateSettings(
-      LocationComponentSettings(
-        enabled: true,
-        pulsingEnabled: true,
-        pulsingColor: AppColors.locationDot.value,
-        pulsingMaxRadius: 50.0,
-        showAccuracyRing: true,
-        accuracyRingColor: AppColors.locationAccuracy.value,
-      ),
-    );
+    try {
+      await _mapboxMap?.location.updateSettings(
+        LocationComponentSettings(
+          enabled: true,
+          pulsingEnabled: true,
+          pulsingColor: AppColors.locationDot.value,
+          pulsingMaxRadius: 50.0,
+          showAccuracyRing: true,
+          accuracyRingColor: AppColors.locationAccuracy.value,
+        ),
+      );
+    } catch (e) {
+      print('Location indicator error (non-fatal): $e');
+    }
   }
 
+  // ─────────────────────────────────────────────────────────
+  // CAMERA
+  // ─────────────────────────────────────────────────────────
   Future<void> _flyToObservation(Observation obs) async {
     await _mapboxMap?.flyTo(
       CameraOptions(
@@ -212,18 +275,29 @@ Future<void> _setup3DBuildings() async {
     );
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Location
+  // ─────────────────────────────────────────────────────────
+  Future<void> _requestLocationPermission() async {
+  final status = await Permission.locationWhenInUse.request();
+    if (status.isDenied || status.isPermanentlyDenied) {
+      print('Izin lokasi ditolak');
+    } 
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // EMOJI → IMAGE BYTES (untuk marker)
+  // ─────────────────────────────────────────────────────────
   Future<Uint8List> _emojiToImageBytes(String emoji, Color color) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     const size = 80.0;
 
-    // Background circle
     canvas.drawCircle(
       const Offset(size / 2, size / 2),
       size / 2,
       Paint()..color = color.withOpacity(0.2),
     );
-    // Border
     canvas.drawCircle(
       const Offset(size / 2, size / 2),
       size / 2 - 2,
@@ -232,7 +306,7 @@ Future<void> _setup3DBuildings() async {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3,
     );
-    // Emoji
+
     final tp = TextPainter(
       text: TextSpan(text: emoji, style: const TextStyle(fontSize: 36)),
       textDirection: TextDirection.ltr,
@@ -245,23 +319,24 @@ Future<void> _setup3DBuildings() async {
     return byteData!.buffer.asUint8List();
   }
 
+  // ─────────────────────────────────────────────────────────
+  // BUILD
+  // ─────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // ── Mapbox Map ─────────────────────────────────────────────
           MapWidget(
             onMapCreated: _onMapCreated,
             styleUri: AppMapbox.styleUrl,
             cameraOptions: CameraOptions(
               center: Point(coordinates: _userPosition),
               zoom: 16.0,
-              pitch: 50.0, // ← 3D tilt kamera
+              pitch: 50.0,
               bearing: 0.0,
             ),
           ),
-
           _buildBottomSheet(),
           _buildTopOverlay(),
           if (_selectedObservation != null)
@@ -272,6 +347,9 @@ Future<void> _setup3DBuildings() async {
     );
   }
 
+  // ─────────────────────────────────────────────────────────
+  // BOTTOM SHEET
+  // ─────────────────────────────────────────────────────────
   Widget _buildBottomSheet() {
     return DraggableScrollableSheet(
       initialChildSize: 0.13,
@@ -347,6 +425,9 @@ Future<void> _setup3DBuildings() async {
     );
   }
 
+  // ─────────────────────────────────────────────────────────
+  // OBSERVATION CARD
+  // ─────────────────────────────────────────────────────────
   Widget _buildObservationCard(Observation obs) {
     final color = markerColorForTakson(obs.kategoriTakson);
     final emoji = markerEmojiForTakson(obs.kategoriTakson);
@@ -395,7 +476,8 @@ Future<void> _setup3DBuildings() async {
             ),
             if (!obs.isSynced)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.statusMenunggu.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(6),
@@ -415,6 +497,9 @@ Future<void> _setup3DBuildings() async {
     );
   }
 
+  // ─────────────────────────────────────────────────────────
+  // DETAIL CARD
+  // ─────────────────────────────────────────────────────────
   Widget _buildDetailCard(Observation obs) {
     final color = markerColorForTakson(obs.kategoriTakson);
     final emoji = markerEmojiForTakson(obs.kategoriTakson);
@@ -474,6 +559,9 @@ Future<void> _setup3DBuildings() async {
     );
   }
 
+  // ─────────────────────────────────────────────────────────
+  // TOP OVERLAY
+  // ─────────────────────────────────────────────────────────
   Widget _buildTopOverlay() {
     final unsyncedCount = _dummyObservations.where((o) => !o.isSynced).length;
     return Positioned(
@@ -533,12 +621,17 @@ Future<void> _setup3DBuildings() async {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.92),
         borderRadius: BorderRadius.circular(99),
-        boxShadow: const [BoxShadow(color: Color(0x1A000000), blurRadius: 10)],
+        boxShadow: const [
+          BoxShadow(color: Color(0x1A000000), blurRadius: 10),
+        ],
       ),
       child: child,
     );
   }
 
+  // ─────────────────────────────────────────────────────────
+  // RECENTER BUTTON
+  // ─────────────────────────────────────────────────────────
   Widget _buildRecenterButton() {
     return Positioned(
       right: 16,
@@ -563,9 +656,13 @@ Future<void> _setup3DBuildings() async {
   }
 }
 
+// ─────────────────────────────────────────────────────────
+// MARKER CLICK LISTENER
+// ─────────────────────────────────────────────────────────
 class _MarkerClickListener extends OnPointAnnotationClickListener {
   final List<Observation> observations;
   final void Function(Observation) onTap;
+
   _MarkerClickListener({required this.observations, required this.onTap});
 
   @override
