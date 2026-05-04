@@ -82,8 +82,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   Future<void> _onMapCreated(MapboxMap mapboxMap) async {
     _mapboxMap = mapboxMap;
-    await _setup3DTerrain();
-    await _setup3DBuildings();
     await _addObservationMarkers();
     await _setupLocationIndicator();
   }
@@ -246,7 +244,7 @@ Future<void> _setup3DBuildings() async {
           // ── Mapbox Map ─────────────────────────────────────────────
           MapWidget(
             onMapCreated: _onMapCreated,
-            styleUri: MapboxStyles.OUTDOORS,
+            styleUri: AppMapbox.styleUrl,
             cameraOptions: CameraOptions(
               center: Point(coordinates: _userPosition),
               zoom: 16.0,

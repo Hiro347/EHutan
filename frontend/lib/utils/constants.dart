@@ -53,6 +53,11 @@ class AppStrings {
   ];
 }
 
+class AppMapbox {
+  static const String styleUrl = 
+    'mapbox://styles/arya347/cmoq35vej001t01qr8yjgfkx8';
+}
+
 class AppSizes {
   static const double radiusCard = 16.0;
   static const double radiusButton = 12.0;
