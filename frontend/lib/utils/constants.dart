@@ -55,7 +55,16 @@ class AppStrings {
 
 class AppMapbox {
   static const String styleUrl = 
-    'mapbox://styles/arya347/cmoq35vej001t01qr8yjgfkx8';
+    'mapbox://styles/arya347/cmoq35vej001t01qr8yjgfkx8/draft';
+
+  // Bounding box wilayah Bogor
+  static const double boundsMinLat = -6.75;
+  static const double boundsMaxLat = -6.45;
+  static const double boundsMinLng = 106.65;
+  static const double boundsMaxLng = 106.95;
+
+  static const double minZoom = 11.0;
+  static const double maxZoom = 20.0;
 }
 
 class AppSizes {

@@ -93,6 +93,20 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   Future<void> _onMapCreated(MapboxMap mapboxMap) async {
     _mapboxMap = mapboxMap;
 
+    // Batasi area peta hanya ke daerah Bogor untuk optimasi performa
+    try {
+      await _mapboxMap?.setBounds(CameraBoundsOptions(
+        bounds: CoordinateBounds(
+          southwest: Point(coordinates: Position(106.65, -6.75)),
+          northeast: Point(coordinates: Position(107.05, -6.45)),
+          infiniteBounds: false,
+        ),
+        minZoom: 10.0,
+      ));
+    } catch (e) {
+      print('Set bounds error: $e');
+    }
+
     try {
       await _mapboxMap?.style.setStyleImportConfigProperty(
         'basemap',
@@ -173,7 +187,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       await map.style.setStyleLayerProperty(
         'petugas-model-layer',
         'model-scale',
-        [10.0, 10.0, 10.0], // sesuaikan skala model kamu
+        [4.0, 4.0, 4.0], // sesuaikan skala model kamu
       );
       await map.style.setStyleLayerProperty(
         'petugas-model-layer',
@@ -183,7 +197,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       await map.style.setStyleLayerProperty(
         'petugas-model-layer',
         'model-translation',
-        [0.0, 0.0, 9.0],
+        [0.0, 0.0, 3.6],
       );
       await map.style.setStyleLayerProperty(
         'petugas-model-layer',
@@ -644,8 +658,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         onPressed: () => _mapboxMap?.flyTo(
           CameraOptions(
             center: Point(coordinates: _userPosition),
-            zoom: 16.0,
-            pitch: 50.0,
+            zoom: 19.5,
+            pitch: 80.0,
             bearing: 0.0,
           ),
           MapAnimationOptions(duration: 800),
