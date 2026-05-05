@@ -39,6 +39,7 @@ dependencies:
   sqflite: ^2.4.2+1
   path: ^1.9.1
   mapbox_maps_flutter: ^2.4.0
+  geolocator: ^13.0.1
   path_provider: ^2.1.5  # tambahkan ini
   permission_handler: ^11.3.1
   connectivity_plus: ^6.1.0   # deteksi online/offline

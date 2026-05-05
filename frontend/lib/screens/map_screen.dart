@@ -2,9 +2,11 @@ import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:path_provider/path_provider.dart';
 import '../utils/constants.dart';
 import '../models/observation.dart';
@@ -63,13 +65,14 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     ),
   ];
 
-  final Position _userPosition = Position(106.7892, -6.5744);
+  Position _userPosition = Position(106.7892, -6.5744);
   Observation? _selectedObservation;
+  StreamSubscription<geo.Position>? _locationSubscription;
+  bool _firstLocationFixed = false;
 
   @override
   void initState() {
     super.initState();
-    // Request permission saat screen pertama dibuka
     _requestLocationPermission();
     _pulseController = AnimationController(
       vsync: this,
@@ -83,6 +86,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _locationSubscription?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -293,10 +297,66 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // Location
   // ─────────────────────────────────────────────────────────
   Future<void> _requestLocationPermission() async {
-  final status = await Permission.locationWhenInUse.request();
-    if (status.isDenied || status.isPermanentlyDenied) {
+    final status = await Permission.locationWhenInUse.request();
+    if (status.isGranted) {
+      _startLocationTracking();
+    } else {
       print('Izin lokasi ditolak');
-    } 
+    }
+  }
+
+  void _startLocationTracking() {
+    _locationSubscription?.cancel();
+    _locationSubscription = geo.Geolocator.getPositionStream(
+      locationSettings: const geo.LocationSettings(
+        accuracy: geo.LocationAccuracy.high,
+        distanceFilter: 2, // update setiap 2 meter
+      ),
+    ).listen((geo.Position position) {
+      _updateUserPosition(position.latitude, position.longitude);
+    });
+  }
+
+  Future<void> _updateUserPosition(double lat, double lng) async {
+    if (!mounted) return;
+
+    setState(() {
+      _userPosition = Position(lng, lat);
+    });
+
+    final map = _mapboxMap;
+    if (map == null) return;
+
+    // Pindahkan kamera ke lokasi user saat pertama kali didapat
+    if (!_firstLocationFixed) {
+      _firstLocationFixed = true;
+      map.setCamera(CameraOptions(
+        center: Point(coordinates: Position(lng, lat)),
+        zoom: 16.0,
+      ));
+    }
+
+    // Update GeoJSON source untuk model 3D petugas
+    try {
+      await map.style.setStyleSourceProperty(
+        'petugas-location-source',
+        'data',
+        jsonEncode({
+          'type': 'FeatureCollection',
+          'features': [
+            {
+              'type': 'Feature',
+              'geometry': {
+                'type': 'Point',
+                'coordinates': [lng, lat],
+              },
+            },
+          ],
+        }),
+      );
+    } catch (e) {
+      print('Update source error: $e');
+    }
   }
 
   // ─────────────────────────────────────────────────────────
