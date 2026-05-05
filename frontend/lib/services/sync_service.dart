@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'sqlite_service.dart';
 
@@ -7,36 +8,53 @@ class SyncService {
 
   SyncService(this._sqliteService);
 
-  // Fungsi utama untuk sinkronisasi
   Future<void> syncData() async {
     try {
-      // 1. Ambil data yang berstatus "draft lokal" (is_synced = 0)
       final unsyncedData = await _sqliteService.getUnsyncedObservasi();
-      
-      if (unsyncedData.isEmpty) {
-        print('Tidak ada data yang perlu disinkronisasi.');
-        return; 
-      }
 
-      // 2. Loop setiap data dan lempar ke Supabase
+      if (unsyncedData.isEmpty) return;
+
       for (var item in unsyncedData) {
-        // Buat copy data untuk memanipulasi isinya
         final dataToPush = Map<String, dynamic>.from(item);
-        
-        // Hapus kolom is_synced karena tidak ada di tabel Supabase
-        dataToPush.remove('is_synced');
 
-        // Gunakan upsert agar jika id sudah ada, data di-update (menghindari duplikasi)
+        // 1. Upload foto lokal ke Supabase Storage dulu
+        final localFotoPath = dataToPush['local_foto_path'] as String?;
+        String storageUrl = dataToPush['foto_url'] ?? '';
+
+        if (localFotoPath != null && localFotoPath.isNotEmpty) {
+          final fotoFile = File(localFotoPath);
+
+          if (await fotoFile.exists()) {
+            final userId = _supabase.auth.currentUser!.id;
+            final ext = localFotoPath.split('.').last;
+            final storagePath = 'observasi/$userId/${item['id']}.$ext';
+
+            await _supabase.storage
+                .from('Foto_Observasi') // ← sesuai nama bucket kamu
+                .upload(storagePath, fotoFile);
+
+            storageUrl = storagePath;
+
+            // Hapus foto lokal setelah berhasil upload
+            await fotoFile.delete();
+          }
+        }
+
+        // 2. Bersihkan kolom yang tidak ada di Supabase
+        dataToPush.remove('is_synced');
+        dataToPush.remove('local_foto_path');
+        dataToPush['foto_url'] = storageUrl; // ← pakai storage path
+
+        // 3. Push ke Supabase
         await _supabase.from('data_observasi').upsert(dataToPush);
-        
-        // 3. Jika berhasil terkirim tanpa error, update status di lokal
-        await _sqliteService.markAsSynced(item['id']);
+
+        // 4. Tandai sudah sync + simpan storage URL ke SQLite
+        await _sqliteService.markAsSynced(item['id'], storageUrl);
       }
-      
-      print("Sinkronisasi berhasil!");
+
+      print('Sinkronisasi berhasil: ${unsyncedData.length} data');
     } catch (e) {
-      // Jangan panik jika gagal, data masih aman di SQLite dan akan diulang di sync berikutnya
-      print("Sinkronisasi gagal. Menunggu koneksi internet... Error: $e");
+      print('Sinkronisasi gagal: $e');
     }
   }
 }

@@ -16,13 +16,13 @@ class SqliteService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // ← naik dari 1 ke 2
       onCreate: _createDB,
+      onUpgrade: _upgradeDB, // ← tambah ini
     );
   }
 
   Future<void> _createDB(Database db, int version) async {
-    // Tabel lokal mirror dari Supabase dengan tambahan kolom is_synced
     await db.execute('''
       CREATE TABLE data_observasi (
         id TEXT PRIMARY KEY,
@@ -32,18 +32,27 @@ class SqliteService {
         kategori_takson TEXT,
         latitude REAL,
         longitude REAL,
-        foto_url TEXT,          -- Menyimpan path lokal gambar saat offline
+        foto_url TEXT,           -- storage path Supabase (diisi setelah sync)
+        local_foto_path TEXT,    -- path foto lokal di device (hanya saat offline)
         catatan_habitat TEXT,
-        waktu_pengamatan TEXT,  -- Simpan dalam format ISO8601 String
+        waktu_pengamatan TEXT,
         status_approval TEXT,
-        is_synced INTEGER DEFAULT 0, -- 0 = Belum Sync, 1 = Sudah Sync
+        is_synced INTEGER DEFAULT 0,
         created_at TEXT,
         updated_at TEXT
       )
     ''');
   }
 
-  // Insert data baru (selalu simpan ke lokal dulu)
+  // Migrasi database dari versi lama
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE data_observasi ADD COLUMN local_foto_path TEXT',
+      );
+    }
+  }
+
   Future<void> insertObservasi(Map<String, dynamic> data) async {
     final db = await database;
     await db.insert(
@@ -53,7 +62,6 @@ class SqliteService {
     );
   }
 
-  // Mengambil data yang belum di-sync untuk dilempar ke Supabase nanti
   Future<List<Map<String, dynamic>>> getUnsyncedObservasi() async {
     final db = await database;
     return await db.query(
@@ -63,12 +71,15 @@ class SqliteService {
     );
   }
 
-  // Update status sync setelah berhasil masuk ke Supabase
-  Future<void> markAsSynced(String id) async {
+  Future<void> markAsSynced(String id, String storageUrl) async {
     final db = await database;
     await db.update(
       'data_observasi',
-      {'is_synced': 1},
+      {
+        'is_synced': 1,
+        'foto_url': storageUrl,      // ← simpan storage path setelah sync
+        'local_foto_path': null,     // ← bersihkan path lokal
+      },
       where: 'id = ?',
       whereArgs: [id],
     );
