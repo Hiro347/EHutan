@@ -1,8 +1,17 @@
+// lib/models/observation.dart
+// Update: tambah namaLokal, jumlahIndividu, aktivitasTermati
+// SQL Migration (Supabase):
+//   ALTER TABLE data_observasi
+//     ADD COLUMN IF NOT EXISTS nama_lokal TEXT,
+//     ADD COLUMN IF NOT EXISTS jumlah_individu INTEGER,
+//     ADD COLUMN IF NOT EXISTS aktivitas_termati TEXT;
+
 class Observation {
   final String id;
   final String idPetugas;
   final int? idKegiatan;
   final String namaSpesies;
+  final String? namaLokal;         // ← Baru
   final String kategoriTakson;
   final double latitude;
   final double longitude;
@@ -15,6 +24,8 @@ class Observation {
   final DateTime? waktuVerifikasi;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final int? jumlahIndividu;       // ← Baru
+  final String? aktivitasTermati;  // ← Baru
 
   // Hanya ada di SQLite lokal — tidak dikirim ke Supabase
   final bool isSynced;
@@ -24,6 +35,7 @@ class Observation {
     required this.idPetugas,
     this.idKegiatan,
     required this.namaSpesies,
+    this.namaLokal,
     required this.kategoriTakson,
     required this.latitude,
     required this.longitude,
@@ -36,23 +48,26 @@ class Observation {
     this.waktuVerifikasi,
     required this.createdAt,
     required this.updatedAt,
+    this.jumlahIndividu,
+    this.aktivitasTermati,
     this.isSynced = false,
   });
 
-  // Dari Map SQLite lokal
   factory Observation.fromSQLite(Map<String, dynamic> map) {
     return Observation(
       id: map['id'] as String,
       idPetugas: map['id_petugas'] as String,
       idKegiatan: map['id_kegiatan'] as int?,
       namaSpesies: map['nama_spesies'] as String,
+      namaLokal: map['nama_lokal'] as String?,
       kategoriTakson: map['kategori_takson'] as String,
-      latitude: map['latitude'] as double,
-      longitude: map['longitude'] as double,
-      fotoUrl: map['foto_url'] as String,
+      latitude: (map['latitude'] as num).toDouble(),
+      longitude: (map['longitude'] as num).toDouble(),
+      fotoUrl: map['foto_url'] as String? ?? '',
       catatanHabitat: map['catatan_habitat'] as String?,
       waktuPengamatan: DateTime.parse(map['waktu_pengamatan'] as String),
-      statusApproval: map['status_approval'] as String? ?? 'MENUNGGU_VERIFIKASI',
+      statusApproval:
+          map['status_approval'] as String? ?? 'MENUNGGU_VERIFIKASI',
       idKordinator: map['id_kordinator'] as String?,
       catatanRevisi: map['catatan_revisi'] as String?,
       waktuVerifikasi: map['waktu_verifikasi'] != null
@@ -60,24 +75,27 @@ class Observation {
           : null,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
+      jumlahIndividu: map['jumlah_individu'] as int?,
+      aktivitasTermati: map['aktivitas_termati'] as String?,
       isSynced: (map['is_synced'] as int? ?? 0) == 1,
     );
   }
 
-  // Dari Map JSON Supabase
   factory Observation.fromSupabase(Map<String, dynamic> map) {
     return Observation(
       id: map['id'] as String,
       idPetugas: map['id_petugas'] as String,
       idKegiatan: map['id_kegiatan'] as int?,
       namaSpesies: map['nama_spesies'] as String,
+      namaLokal: map['nama_lokal'] as String?,
       kategoriTakson: map['kategori_takson'] as String,
       latitude: (map['latitude'] as num).toDouble(),
       longitude: (map['longitude'] as num).toDouble(),
-      fotoUrl: map['foto_url'] as String,
+      fotoUrl: map['foto_url'] as String? ?? '',
       catatanHabitat: map['catatan_habitat'] as String?,
       waktuPengamatan: DateTime.parse(map['waktu_pengamatan'] as String),
-      statusApproval: map['status_approval'] as String? ?? 'MENUNGGU_VERIFIKASI',
+      statusApproval:
+          map['status_approval'] as String? ?? 'MENUNGGU_VERIFIKASI',
       idKordinator: map['id_kordinator'] as String?,
       catatanRevisi: map['catatan_revisi'] as String?,
       waktuVerifikasi: map['waktu_verifikasi'] != null
@@ -85,17 +103,19 @@ class Observation {
           : null,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
-      isSynced: true, // Data dari Supabase = sudah tersinkron
+      jumlahIndividu: map['jumlah_individu'] as int?,
+      aktivitasTermati: map['aktivitas_termati'] as String?,
+      isSynced: true,
     );
   }
 
-  // Ke Map untuk disimpan ke SQLite
   Map<String, dynamic> toSQLite() {
     return {
       'id': id,
       'id_petugas': idPetugas,
       'id_kegiatan': idKegiatan,
       'nama_spesies': namaSpesies,
+      'nama_lokal': namaLokal,
       'kategori_takson': kategoriTakson,
       'latitude': latitude,
       'longitude': longitude,
@@ -108,23 +128,27 @@ class Observation {
       'waktu_verifikasi': waktuVerifikasi?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'jumlah_individu': jumlahIndividu,
+      'aktivitas_termati': aktivitasTermati,
       'is_synced': isSynced ? 1 : 0,
     };
   }
 
-  // Ke Map untuk dikirim ke Supabase (tanpa is_synced)
   Map<String, dynamic> toSupabase() {
     final map = toSQLite();
     map.remove('is_synced');
+    map.remove('local_foto_path');
     return map;
   }
 
-  // copyWith untuk update sebagian field
   Observation copyWith({
+    String? namaLokal,
     String? statusApproval,
     String? idKordinator,
     String? catatanRevisi,
     DateTime? waktuVerifikasi,
+    int? jumlahIndividu,
+    String? aktivitasTermati,
     bool? isSynced,
     DateTime? updatedAt,
   }) {
@@ -133,6 +157,7 @@ class Observation {
       idPetugas: idPetugas,
       idKegiatan: idKegiatan,
       namaSpesies: namaSpesies,
+      namaLokal: namaLokal ?? this.namaLokal,
       kategoriTakson: kategoriTakson,
       latitude: latitude,
       longitude: longitude,
@@ -145,6 +170,8 @@ class Observation {
       waktuVerifikasi: waktuVerifikasi ?? this.waktuVerifikasi,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      jumlahIndividu: jumlahIndividu ?? this.jumlahIndividu,
+      aktivitasTermati: aktivitasTermati ?? this.aktivitasTermati,
       isSynced: isSynced ?? this.isSynced,
     );
   }

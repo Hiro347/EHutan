@@ -12,6 +12,11 @@ import '../utils/constants.dart';
 import '../models/observation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/observation_provider.dart';
+import 'koleksi_screen.dart';
+import 'form_screen.dart';
+
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -416,6 +421,47 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           if (_selectedObservation != null)
             _buildDetailCard(_selectedObservation!),
           _buildRecenterButton(),
+
+          // --- 1. TOMBOL KOLEKSI (KIRI BAWAH) ---
+          Positioned(
+            left: 16,
+            bottom: 32,
+            child: FloatingActionButton.extended(
+              heroTag: 'btn_koleksi',
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.primary,
+              icon: const Icon(Icons.collections_bookmark_rounded),
+              label: const Text('Koleksi', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const KoleksiScreen()));
+              },
+            ),
+          ),
+
+// --- 2. TOMBOL PROTOTYPE SUBMIT (KANAN BAWAH) ---
+          Positioned(
+            right: 16,
+            bottom: 32,
+            child: FloatingActionButton.extended(
+              heroTag: 'btn_lapor',
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add_a_photo_rounded),
+              label: const Text('Lapor!', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () {
+                // BUKA LAYAR FORM YANG BARU DIBUAT
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FormScreen(
+                      lat: _userPosition.lat.toDouble(),
+                      lng: _userPosition.lng.toDouble(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -709,7 +755,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   Widget _buildRecenterButton() {
     return Positioned(
       right: 16,
-      bottom: 160,
+      bottom: 160, // Angkat sedikit karena ada tombol lapor di bawah
       child: FloatingActionButton.small(
         heroTag: 'recenter',
         backgroundColor: Colors.white,

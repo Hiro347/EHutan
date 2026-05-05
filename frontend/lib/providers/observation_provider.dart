@@ -1,3 +1,6 @@
+// lib/providers/observation_provider.dart
+// Update: tambah namaLokal, jumlahIndividu, aktivitasTermati ke addObservation()
+
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -44,7 +47,6 @@ class LocalObservationNotifier
     );
     if (picked == null) return null;
 
-    // Simpan ke folder permanen (bukan temp, supaya tidak dihapus OS)
     final dir = await getApplicationDocumentsDirectory();
     final id = const Uuid().v4();
     final ext = picked.path.split('.').last;
@@ -52,19 +54,22 @@ class LocalObservationNotifier
     await dest.parent.create(recursive: true);
     await File(picked.path).copy(dest.path);
 
-    return dest.path; // kembalikan local path
+    return dest.path;
   }
 
   /// Submit observasi baru — simpan lokal dulu, sync kalau online
   Future<void> addObservation({
     required String namaSpesies,
+    String? namaLokal,              // ← Baru
     required String kategoriTakson,
     required double latitude,
     required double longitude,
     required String idPetugas,
-    required String localFotoPath, // dari pickAndSaveFoto()
+    String localFotoPath = '',
     int? idKegiatan,
     String? catatanHabitat,
+    int? jumlahIndividu,            // ← Baru
+    String? aktivitasTermati,       // ← Baru
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
@@ -77,14 +82,17 @@ class LocalObservationNotifier
         'id_petugas': idPetugas,
         'id_kegiatan': idKegiatan,
         'nama_spesies': namaSpesies,
+        'nama_lokal': namaLokal,
         'kategori_takson': kategoriTakson,
         'latitude': latitude,
         'longitude': longitude,
-        'foto_url': '',             // ← kosong dulu, diisi setelah sync
-        'local_foto_path': localFotoPath, // ← path lokal foto
+        'foto_url': '',
+        'local_foto_path': localFotoPath.isNotEmpty ? localFotoPath : null,
         'catatan_habitat': catatanHabitat,
         'waktu_pengamatan': now,
         'status_approval': 'MENUNGGU_VERIFIKASI',
+        'jumlah_individu': jumlahIndividu,
+        'aktivitas_termati': aktivitasTermati,
         'is_synced': 0,
         'created_at': now,
         'updated_at': now,
@@ -96,6 +104,15 @@ class LocalObservationNotifier
         await ref.read(syncServiceProvider).syncData();
       }
 
+      return _fetchUnsyncedData();
+    });
+  }
+
+  //delete observation
+  Future<void> deleteObservation(String id) async {
+    state = await AsyncValue.guard(() async {
+      final sqliteService = ref.read(sqliteServiceProvider);
+      await sqliteService.deleteObservasi(id);
       return _fetchUnsyncedData();
     });
   }

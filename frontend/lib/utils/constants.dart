@@ -108,43 +108,30 @@ class AppTextStyles {
 }
 
 // Helper: ambil warna marker berdasarkan kategori takson
+// Helper: ambil warna marker berdasarkan kategori takson
 Color markerColorForTakson(String takson) {
-  switch (takson.toLowerCase()) {
-    case 'mamalia':
-      return AppColors.markerMamalia;
-    case 'burung':
-      return AppColors.markerBurung;
-    case 'flora':
-      return AppColors.markerFlora;
-    case 'reptil':
-      return AppColors.markerReptil;
-    case 'amfibi':
-    case 'ikan':
-    case 'serangga':
-      return AppColors.markerFauna;
-    default:
-      return AppColors.markerDefault;
+  switch (takson) {
+    case 'DK Karnivora': return const Color(0xFFD84315); // Oranye Buas
+    case 'DK Herbivora': return const Color(0xFF7CB342); // Hijau Daun
+    case 'DK Primata': return const Color(0xFF8D6E4A);   // Coklat
+    case 'DK Burung': return const Color(0xFF039BE5);    // Biru Langit
+    case 'DK Reptil Amfibi': return const Color(0xFF2E7D32); // Hijau Gelap
+    case 'DK Insekta': return const Color(0xFFF9A825);   // Emas Serangga
+    case 'DK Fauna Perairan': return const Color(0xFF1565C0); // Biru Air Laut
+    default: return AppColors.markerDefault;
   }
 }
 
-// Helper: emoji icon per takson (untuk marker sederhana)
+// Helper: emoji icon per takson
 String markerEmojiForTakson(String takson) {
-  switch (takson.toLowerCase()) {
-    case 'mamalia':
-      return '🦎';
-    case 'burung':
-      return '🦅';
-    case 'flora':
-      return '🌿';
-    case 'reptil':
-      return '🐍';
-    case 'amfibi':
-      return '🐸';
-    case 'ikan':
-      return '🐟';
-    case 'serangga':
-      return '🦋';
-    default:
-      return '📍';
+  switch (takson) {
+    case 'DK Karnivora': return '🐯';
+    case 'DK Herbivora': return '🦌';
+    case 'DK Primata': return '🐒';
+    case 'DK Burung': return '🦅';
+    case 'DK Reptil Amfibi': return '🦎';
+    case 'DK Insekta': return '🦋';
+    case 'DK Fauna Perairan': return '🐟';
+    default: return '📍';
   }
 }
