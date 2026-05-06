@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import '../utils/constants.dart';
 import '../models/observation.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../widgets/navbar.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -20,6 +21,7 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
+  int _currentIndex = 0;
   MapboxMap? _mapboxMap;
   PointAnnotationManager? _annotationManager;
 
@@ -416,6 +418,21 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           if (_selectedObservation != null)
             _buildDetailCard(_selectedObservation!),
           _buildRecenterButton(),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Navbar(
+              currentIndex: _currentIndex,
+              onTap: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              onAddTap: () {
+                // TODO: Implement add observation action
+                print('Tombol Add ditekan dari Map Screen!');
+              },
+            ),
+          ),
         ],
       ),
     );
