@@ -71,6 +71,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   Observation? _selectedObservation;
   StreamSubscription<geo.Position>? _locationSubscription;
   bool _firstLocationFixed = false;
+  bool _is3DPov = true;
+  final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.28);
 
   @override
   void initState() {
@@ -193,7 +195,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       await map.style.setStyleLayerProperty(
         'petugas-model-layer',
         'model-scale',
-        [4.0, 4.0, 4.0], // sesuaikan skala model kamu
+        [8.0, 8.0, 8.0], // sesuaikan skala model kamu
       );
       await map.style.setStyleLayerProperty(
         'petugas-model-layer',
@@ -408,8 +410,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             styleUri: AppMapbox.styleUrl,
             cameraOptions: CameraOptions(
               center: Point(coordinates: _userPosition),
-              zoom: 16.0,
-              pitch: 50.0,
+              zoom: _is3DPov ? 18.5 : 16.0, // <-- Samakan nilai defaultnya
+              pitch: _is3DPov ? 65.0 : 0.0, // <-- Samakan nilai defaultnya
               bearing: 0.0,
             ),
           ),
@@ -417,7 +419,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           _buildTopOverlay(),
           if (_selectedObservation != null)
             _buildDetailCard(_selectedObservation!),
-          _buildRecenterButton(),
+          _buildMapControls(),
           Align(
             alignment: Alignment.bottomCenter,
             child: Navbar(
@@ -438,83 +440,134 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ─────────────────────────────────────────────────────────
-  // BOTTOM SHEET
-  // ─────────────────────────────────────────────────────────
-  Widget _buildBottomSheet() {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.13,
-      minChildSize: 0.08,
-      maxChildSize: 0.50,
+// ─────────────────────────────────────────────────────────
+// BOTTOM SHEET
+// ─────────────────────────────────────────────────────────
+Widget _buildBottomSheet() {
+  return NotificationListener<DraggableScrollableNotification>(
+    onNotification: (notification) {
+      _sheetExtent.value = notification.extent;
+      return false; 
+    },
+child: DraggableScrollableSheet(
+      initialChildSize: 0.15, // Ukuran awal saat tertutup (collapse)
+      minChildSize: 0.15,     // Batas paling bawah
+      maxChildSize: 0.40,     // Batas paling atas (0.40 berarti hanya 40% layar)
+      snap: true,             // <-- TAMBAHKAN INI: Memaksa sheet untuk snap
+      snapSizes: const [0.15, 0.40], // <-- TAMBAHKAN INI: Sheet HANYA akan berhenti di 15% atau 40%
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.95),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             boxShadow: [
               BoxShadow(
-                color: Color(0x1A000000),
+                color: Colors.black.withOpacity(0.15),
                 blurRadius: 20,
-                offset: Offset(0, -4),
+                offset: const Offset(0, -4),
               ),
             ],
           ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 10, bottom: 4),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE5E7EB),
-                  borderRadius: BorderRadius.circular(2),
+          // PERUBAHAN: Gunakan SingleChildScrollView agar seluruh area bisa didrag
+          child: SingleChildScrollView(
+            controller: scrollController, // Berikan controller di sini!
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 16),
+                    width: 48,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE5E7EB),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    const Text('Di Sekitar', style: AppTextStyles.heading2),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Di Sekitar',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E3A2B),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Dalam radius 100 meter',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
                       ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                      child: Text(
-                        '${_dummyObservations.length} observasi',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.primaryDark,
-                          fontWeight: FontWeight.w500,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F3ED),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on_outlined,
+                              size: 14,
+                              color: Color(0xFF2E604A),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${_dummyObservations.length} titik',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E604A),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: _dummyObservations.length,
-                  itemBuilder: (_, i) =>
-                      _buildObservationCard(_dummyObservations[i]),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 160,
+                  // PERUBAHAN: Hilangkan controller dari ListView horizontal ini
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _dummyObservations.length,
+                    itemBuilder: (_, i) =>
+                        _buildObservationCard(_dummyObservations[i]),
+                  ),
                 ),
-              ),
-            ],
+                // Jika kamu ingin menambahkan konten lain saat di-expand,
+                // bisa ditambahkan di bawah sini.
+                // Contoh:
+                // const SizedBox(height: 20),
+                // Padding(padding: EdgeInsets.all(16), child: Text("Detail Lainnya")),
+              ],
+            ),
           ),
         );
       },
-    );
-  }
+    ),
+  );
+}
 
   // ─────────────────────────────────────────────────────────
   // OBSERVATION CARD
@@ -524,6 +577,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final emoji = markerEmojiForTakson(obs.kategoriTakson);
     final isSelected = _selectedObservation?.id == obs.id;
 
+    // Simulate distance
+    final int distance = (10 + (obs.id.hashCode % 90));
+
     return GestureDetector(
       onTap: () {
         setState(() => _selectedObservation = obs);
@@ -531,58 +587,139 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
+        width: 140,
+        margin: const EdgeInsets.only(right: 12, bottom: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.08) : Colors.white,
-          borderRadius: BorderRadius.circular(AppSizes.radiusCard),
+          color: isSelected ? color.withOpacity(0.1) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : const Color(0xFFE5E7EB),
-            width: isSelected ? 1.5 : 1,
+            color: isSelected ? color : Colors.transparent,
+            width: isSelected ? 2 : 0,
           ),
+          boxShadow: [
+            if (!isSelected)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+          ],
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(emoji, style: const TextStyle(fontSize: 20)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(obs.namaSpesies, style: AppTextStyles.species),
-                  const SizedBox(height: 2),
-                  Text(obs.kategoriTakson, style: AppTextStyles.caption),
-                ],
-              ),
-            ),
-            if (!obs.isSynced)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.statusMenunggu.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(6),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            children: [
+              // Image Background
+              if (obs.fotoUrl.isNotEmpty)
+                Positioned.fill(
+                  child: Image.network(
+                    obs.fotoUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildPlaceholder(color, emoji),
+                  ),
+                )
+              else
+                Positioned.fill(
+                  child: _buildPlaceholder(color, emoji),
                 ),
-                child: const Text(
-                  'Draft',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: AppColors.statusMenunggu,
-                    fontWeight: FontWeight.w600,
+
+              // Gradient Overlay for text readability
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.7),
+                      ],
+                    ),
                   ),
                 ),
               ),
-          ],
+
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Tag type
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            obs.kategoriTakson.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        if (!obs.isSynced)
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const Spacer(),
+                    // Species name
+                    Text(
+                      obs.namaSpesies,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        height: 1.1,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    // Distance
+                    Row(
+                      children: [
+                        const Icon(Icons.directions_walk, size: 12, color: Colors.white70),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$distance m',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(Color color, String emoji) {
+    return Container(
+      color: color.withOpacity(0.2),
+      child: Center(
+        child: Text(
+          emoji,
+          style: const TextStyle(fontSize: 40),
         ),
       ),
     );
@@ -720,29 +857,67 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ─────────────────────────────────────────────────────────
-  // RECENTER BUTTON
-  // ─────────────────────────────────────────────────────────
-  Widget _buildRecenterButton() {
-    return Positioned(
-      right: 16,
-      bottom: 160,
-      child: FloatingActionButton.small(
-        heroTag: 'recenter',
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.primary,
-        elevation: 4,
-        onPressed: () => _mapboxMap?.flyTo(
-          CameraOptions(
-            center: Point(coordinates: _userPosition),
-            zoom: 19.5,
-            pitch: 80.0,
-            bearing: 0.0,
-          ),
-          MapAnimationOptions(duration: 800),
-        ),
-        child: const Icon(Icons.my_location),
+  void _togglePov() {
+    setState(() {
+      _is3DPov = !_is3DPov;
+    });
+
+    _mapboxMap?.flyTo(
+      CameraOptions(
+        zoom: _is3DPov ? 18.5 : 16.0, // <-- UBAH: Zoom level lebih ideal (18.5)
+        pitch: _is3DPov ? 65.0 : 0.0, // <-- UBAH: Pitch diturunkan ke 65.0 agar mirip PoGo
       ),
+      MapAnimationOptions(duration: 800),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // MAP CONTROLS (POV & RECENTER)
+  // ─────────────────────────────────────────────────────────
+  Widget _buildMapControls() {
+    return ValueListenableBuilder<double>(
+      valueListenable: _sheetExtent,
+      builder: (context, extent, child) {
+        // Calculate bottom padding based on sheet extent
+        // The sheet height is screenHeight * extent.
+        // We add some extra padding (e.g., 16) to sit above the sheet.
+        final bottomPadding = (MediaQuery.of(context).size.height * extent) + 16;
+        
+        return Positioned(
+          right: 16,
+          bottom: bottomPadding,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FloatingActionButton.small(
+                heroTag: 'pov',
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.primary,
+                elevation: 4,
+                onPressed: _togglePov,
+                child: Icon(_is3DPov ? Icons.map_outlined : Icons.view_in_ar),
+              ),
+              const SizedBox(height: 12),
+              FloatingActionButton.small(
+                heroTag: 'recenter',
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.primary,
+                elevation: 4,
+                onPressed: () => _mapboxMap?.flyTo(
+                  CameraOptions(
+                    center: Point(coordinates: _userPosition),
+                    zoom: _is3DPov ? 19.5 : 16.0,
+                    pitch: _is3DPov ? 80.0 : 0.0,
+                    bearing: 0.0,
+                  ),
+                  MapAnimationOptions(duration: 800),
+                ),
+                child: const Icon(Icons.my_location),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
