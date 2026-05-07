@@ -78,7 +78,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   StreamSubscription<geo.Position>? _locationSubscription;
   bool _firstLocationFixed = false;
   bool _is3DPov = true;
-  final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.28);
+  final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.15);
 
   // ─────────────────────────────────────────────────────────
   // LIFECYCLE
@@ -260,9 +260,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         center: Point(
           coordinates: Position(obs.longitude, obs.latitude - 0.002),
         ),
-        zoom: 17.0,
-        pitch: 55.0,
-        bearing: 15.0,
+        zoom: _is3DPov ? 18.5 : 16.0,
+        pitch: _is3DPov ? 65.0 : 0.0,
+        bearing: 0.0,
       ),
       MapAnimationOptions(duration: 1200),
     );
@@ -303,8 +303,18 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _startLocationTracking() {
+  void _startLocationTracking() async {
     _locationSubscription?.cancel();
+    
+    try {
+      final initialPosition = await geo.Geolocator.getCurrentPosition(
+        desiredAccuracy: geo.LocationAccuracy.high,
+      );
+      _updateUserPosition(initialPosition.latitude, initialPosition.longitude);
+    } catch (e) {
+      print('Gagal mendapatkan lokasi awal: $e');
+    }
+
     _locationSubscription = geo.Geolocator.getPositionStream(
       locationSettings: const geo.LocationSettings(
         accuracy: geo.LocationAccuracy.high,
@@ -326,7 +336,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       _firstLocationFixed = true;
       map.setCamera(CameraOptions(
         center: Point(coordinates: Position(lng, lat)),
-        zoom: 16.0,
+        zoom: _is3DPov ? 18.5 : 16.0,
+        pitch: _is3DPov ? 65.0 : 0.0,
+        bearing: 0.0,
       ));
     }
 
