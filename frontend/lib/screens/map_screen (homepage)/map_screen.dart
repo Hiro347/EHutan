@@ -9,6 +9,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 
 import '../../utils/constants.dart';
 import '../../models/observation.dart';
@@ -76,6 +77,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   Position _userPosition = Position(106.7892, -6.5744);
   Observation? _selectedObservation;
   StreamSubscription<geo.Position>? _locationSubscription;
+  StreamSubscription<CompassEvent>? _compassSubscription;
+  double _heading = 0.0;
   bool _firstLocationFixed = false;
   bool _is3DPov = true;
   final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.15);
@@ -99,6 +102,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _locationSubscription?.cancel();
+    _compassSubscription?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -274,6 +278,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       CameraOptions(
         zoom: _is3DPov ? 18.5 : 16.0,
         pitch: _is3DPov ? 65.0 : 0.0,
+        bearing: 0.0,
       ),
       MapAnimationOptions(duration: 800),
     );
@@ -305,6 +310,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   void _startLocationTracking() async {
     _locationSubscription?.cancel();
+    _compassSubscription?.cancel();
     
     try {
       final initialPosition = await geo.Geolocator.getCurrentPosition(
@@ -323,6 +329,29 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     ).listen((geo.Position position) {
       _updateUserPosition(position.latitude, position.longitude);
     });
+
+    _compassSubscription = FlutterCompass.events?.listen((CompassEvent event) {
+      final heading = event.heading ?? 0.0;
+      _updateHeading(heading);
+    });
+  }
+
+  Future<void> _updateHeading(double heading) async {
+    if (!mounted) return;
+    setState(() => _heading = heading);
+
+    final map = _mapboxMap;
+    if (map == null) return;
+
+    try {
+      await map.style.setStyleLayerProperty(
+        'petugas-model-layer',
+        'model-rotation',
+        [0.0, 0.0, heading + 90.0],
+      );
+    } catch (e) {
+      print('Update heading error: $e');
+    }
   }
 
   Future<void> _updateUserPosition(double lat, double lng) async {
@@ -338,7 +367,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         center: Point(coordinates: Position(lng, lat)),
         zoom: _is3DPov ? 18.5 : 16.0,
         pitch: _is3DPov ? 65.0 : 0.0,
-        bearing: 0.0,
+        bearing: _is3DPov ? _heading : 0.0,
       ));
     }
 
@@ -410,12 +439,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final unsyncedCount = _dummyObservations.where((o) => !o.isSynced).length;
 
     return Scaffold(
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: Stack(
-          children: [
-            MapWidget(
+      body: Stack(
+        children: [
+          MapWidget(
             onMapCreated: _onMapCreated,
             styleUri: AppMapbox.styleUrl,
             cameraOptions: CameraOptions(
@@ -456,7 +482,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-    ),
     );
   }
 }

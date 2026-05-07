@@ -8,15 +8,13 @@ class MapTopOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Positioned must be a descendant of a Stack widget
     return Positioned(
-      top: 0,
+      top: MediaQuery.of(context).padding.top + 24,
       left: 16,
       right: 16,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 12.0),
-          child: Row(
-            children: [
+      child: Row(
+        children: [
           _glassChip(
             child: const Row(
               mainAxisSize: MainAxisSize.min,
@@ -69,7 +67,11 @@ class MapTopOverlay extends StatelessWidget {
         color: Colors.white.withOpacity(0.92),
         borderRadius: BorderRadius.circular(99),
         boxShadow: const [
-          BoxShadow(color: Color(0x1A000000), blurRadius: 10),
+          BoxShadow(
+            color: Color(0x1A000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: child,
