@@ -6,11 +6,11 @@ class Navbar extends StatelessWidget {
   final VoidCallback onAddTap;
 
   const Navbar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
     required this.onAddTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

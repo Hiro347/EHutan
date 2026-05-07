@@ -8,10 +8,10 @@ import 'package:flutter/services.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:path_provider/path_provider.dart';
-import '../utils/constants.dart';
-import '../models/observation.dart';
+import '../../utils/constants.dart';
+import '../../models/observation.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../widgets/navbar.dart';
+import '../../widgets/navbar.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -205,7 +205,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       await map.style.setStyleLayerProperty(
         'petugas-model-layer',
         'model-translation',
-        [0.0, 0.0, 3.6],
+        [0.0, 0.0, 5.0],
       );
       await map.style.setStyleLayerProperty(
         'petugas-model-layer',
@@ -615,7 +615,7 @@ child: DraggableScrollableSheet(
                   child: Image.network(
                     obs.fotoUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _buildPlaceholder(color, emoji),
+                    errorBuilder: (_, _, _) => _buildPlaceholder(color, emoji),
                   ),
                 )
               else
