@@ -9,11 +9,14 @@ class MapTopOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      top: MediaQuery.of(context).padding.top + 12,
+      top: 0,
       left: 16,
       right: 16,
-      child: Row(
-        children: [
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 12.0),
+          child: Row(
+            children: [
           _glassChip(
             child: const Row(
               mainAxisSize: MainAxisSize.min,

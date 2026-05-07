@@ -410,9 +410,12 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final unsyncedCount = _dummyObservations.where((o) => !o.isSynced).length;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          MapWidget(
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: Stack(
+          children: [
+            MapWidget(
             onMapCreated: _onMapCreated,
             styleUri: AppMapbox.styleUrl,
             cameraOptions: CameraOptions(
@@ -453,6 +456,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
+    ),
     );
   }
 }
