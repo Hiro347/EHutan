@@ -284,17 +284,17 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _recenterCamera() {
-    _mapboxMap?.flyTo(
-      CameraOptions(
-        center: Point(coordinates: _userPosition),
-        zoom: _is3DPov ? 19.5 : 16.0,
-        pitch: _is3DPov ? 80.0 : 0.0,
-        bearing: 0.0,
-      ),
-      MapAnimationOptions(duration: 800),
-    );
-  }
+void _recenterCamera() {
+  _mapboxMap?.flyTo(
+    CameraOptions(
+      center: Point(coordinates: _userPosition),
+      zoom: _is3DPov ? 17.5 : 16.0, 
+      pitch: _is3DPov ? 70.0 : 0.0, 
+      bearing: 0.0,
+    ),
+    MapAnimationOptions(duration: 800),
+  );
+}
 
   // ─────────────────────────────────────────────────────────
   // LOCATION TRACKING
