@@ -27,13 +27,10 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
+class _MapScreenState extends State<MapScreen> {
   int _currentIndex = 0;
   MapboxMap? _mapboxMap;
   PointAnnotationManager? _annotationManager;
-
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
 
   final List<Observation> _dummyObservations = [
     Observation(
@@ -90,20 +87,12 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _requestLocationPermission();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat();
-    _pulseAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeOut),
-    );
   }
 
   @override
   void dispose() {
     _locationSubscription?.cancel();
     _compassSubscription?.cancel();
-    _pulseController.dispose();
     super.dispose();
   }
 
@@ -434,7 +423,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   Future<void> _updateHeading(double heading) async {
   if (!mounted) return;
-  setState(() => _heading = heading);
+  
+  // Optimisasi: Batasi pembaruan visual agar tidak dipanggil terlalu sering (misal 60fps)
+  double diff = (_heading - heading).abs();
+  if (diff > 180) diff = 360 - diff;
+  if (diff < 2.0) return; // Hanya update jika perubahan > 2 derajat
+
+  _heading = heading; // Tanpa setState untuk mencegah rebuild UI berulang kali
 
   final map = _mapboxMap;
   if (map == null) return;
@@ -476,7 +471,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   Future<void> _updateUserPosition(double lat, double lng) async {
     if (!mounted) return;
-    setState(() => _userPosition = Position(lng, lat));
+    
+    // Optimisasi: Tanpa setState untuk mencegah rebuild Scaffold dan widget lain 
+    // secara berulang setiap kali ada perubahan lokasi kecil.
+    _userPosition = Position(lng, lat);
 
     final map = _mapboxMap;
     if (map == null) return;
