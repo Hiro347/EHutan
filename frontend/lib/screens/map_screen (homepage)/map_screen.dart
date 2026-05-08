@@ -1,5 +1,4 @@
 import 'dart:ui' as ui;
-import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
@@ -18,7 +17,8 @@ import '../../widgets/map_bottom_sheet.dart';
 import '../../widgets/detail_card.dart';
 import '../../widgets/top_overlay.dart';
 import '../../widgets/map_controls.dart';
-import '_marker_click_listener.dart'; 
+import '_marker_click_listener.dart';
+import 'dart:math' as math;
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -137,7 +137,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     }
 
     await _addObservationMarkers();
-    await _setupPetugasModel();
+    await _setupBeamEffect();      // ← tambahkan ini SEBELUM setupPetugasModel
+    await _setupPetugasModel();    // supaya model 3D render di atas beam
     await _setupLocationIndicator();
   }
 
@@ -167,8 +168,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         GeoJsonSource(
           id: 'petugas-location-source',
           data: _buildGeoJsonPoint(
-            _userPosition.lng.toDouble(),  // ← tambah .toDouble()
-            _userPosition.lat.toDouble(),  // ← tambah .toDouble()
+            _userPosition.lng.toDouble(),
+            _userPosition.lat.toDouble(),
           ),
         ),
       );
@@ -183,7 +184,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       final props = {
         'model-id': ['literal', 'petugas-model'],
         'model-scale': [8.0, 8.0, 8.0],
-        'model-rotation': [0.0, 0.0, 90.0],
+        'model-rotation': [0.0, 0.0, -180.0],
         'model-translation': [0.0, 0.0, 5.0],
         'model-type': 'common-3d',
         'model-cast-shadows': true,
@@ -256,6 +257,101 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   // ─────────────────────────────────────────────────────────
+  // BEAM EFFECT SETUP
+  // ─────────────────────────────────────────────────────────
+  Future<void> _setupBeamEffect() async {
+    final map = _mapboxMap;
+    if (map == null) return;
+
+    try {
+      final lng = _userPosition.lng.toDouble();
+      final lat = _userPosition.lat.toDouble();
+
+      // ── Layer 1: Outer glow (lebar, sangat transparan) ──
+      await map.style.addSource(GeoJsonSource(
+        id: 'beam-outer-source',
+        data: _buildBeamGeoJson(lng, lat, _heading, 0.0012),
+      ));
+      await map.style.addLayer(FillLayer(
+        id: 'beam-outer-layer',
+        sourceId: 'beam-outer-source',
+      ));
+      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-color', '#B3E5FC');
+      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-opacity', 0.08);
+
+      // ── Layer 2: Mid beam ──
+      await map.style.addSource(GeoJsonSource(
+        id: 'beam-mid-source',
+        data: _buildBeamGeoJson(lng, lat, _heading, 0.0007),
+      ));
+      await map.style.addLayer(FillLayer(
+        id: 'beam-mid-layer',
+        sourceId: 'beam-mid-source',
+      ));
+      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-color', '#E1F5FE');
+      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-opacity', 0.14);
+
+      // ── Layer 3: Inner core (sempit, paling terang) ──
+      await map.style.addSource(GeoJsonSource(
+        id: 'beam-inner-source',
+        data: _buildBeamGeoJson(lng, lat, _heading, 0.0004),
+      ));
+      await map.style.addLayer(FillLayer(
+        id: 'beam-inner-layer',
+        sourceId: 'beam-inner-source',
+      ));
+      await map.style.setStyleLayerProperty('beam-inner-layer', 'fill-color', '#FFFFFF');
+      await map.style.setStyleLayerProperty('beam-inner-layer', 'fill-opacity', 0.22);
+
+      // ── Line edge: tepi beam ──
+      await map.style.addLayer(LineLayer(
+        id: 'beam-edge-layer',
+        sourceId: 'beam-inner-source',
+      ));
+      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-color', '#90CAF9');
+      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-opacity', 0.35);
+      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-width', 1.0);
+
+    } catch (e) {
+      print('Beam setup error: $e');
+    }
+  }
+
+  String _buildBeamGeoJson(double lng, double lat, double headingDeg, double radiusDeg) {
+  const int segments = 20;
+  const double beamWidth = 45.0; // Total lebar sorotan (derajat)
+
+  // Konversi heading kompas ke standar matematika (0° = Timur)
+  // Formula: MathAngle = 90 - CompassHeading
+  final double centerRad = (90.0 - headingDeg) * math.pi / 180.0;
+  final double halfRad = (beamWidth / 2) * math.pi / 180.0;
+
+  final List<List<double>> ring = [[lng, lat]]; // Titik pusat di posisi user
+  
+  for (int i = 0; i <= segments; i++) {
+    // Kita iterasi dari sisi kiri beam ke sisi kanan
+    final double angle = (centerRad + halfRad) - (i * (2 * halfRad) / segments);
+    ring.add([
+      lng + radiusDeg * math.cos(angle),
+      lat + radiusDeg * math.sin(angle),
+    ]);
+  }
+  
+  ring.add([lng, lat]); // Tutup kembali ke pusat
+
+  return jsonEncode({
+    'type': 'FeatureCollection',
+    'features': [{
+      'type': 'Feature',
+      'geometry': {
+        'type': 'Polygon',
+        'coordinates': [ring],
+      },
+    }],
+  });
+}
+
+  // ─────────────────────────────────────────────────────────
   // CAMERA
   // ─────────────────────────────────────────────────────────
   Future<void> _flyToObservation(Observation obs) async {
@@ -284,17 +380,17 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-void _recenterCamera() {
-  _mapboxMap?.flyTo(
-    CameraOptions(
-      center: Point(coordinates: _userPosition),
-      zoom: _is3DPov ? 17.5 : 16.0, 
-      pitch: _is3DPov ? 70.0 : 0.0, 
-      bearing: 0.0,
-    ),
-    MapAnimationOptions(duration: 800),
-  );
-}
+  void _recenterCamera() {
+    _mapboxMap?.flyTo(
+      CameraOptions(
+        center: Point(coordinates: _userPosition),
+        zoom: _is3DPov ? 17.5 : 16.0, 
+        pitch: _is3DPov ? 70.0 : 0.0, 
+        bearing: 0.0,
+      ),
+      MapAnimationOptions(duration: 800),
+    );
+  }
 
   // ─────────────────────────────────────────────────────────
   // LOCATION TRACKING
@@ -337,22 +433,46 @@ void _recenterCamera() {
   }
 
   Future<void> _updateHeading(double heading) async {
-    if (!mounted) return;
-    setState(() => _heading = heading);
+  if (!mounted) return;
+  setState(() => _heading = heading);
 
-    final map = _mapboxMap;
-    if (map == null) return;
+  final map = _mapboxMap;
+  if (map == null) return;
 
-    try {
-      await map.style.setStyleLayerProperty(
-        'petugas-model-layer',
-        'model-rotation',
-        [0.0, 0.0, heading + 90.0],
-      );
-    } catch (e) {
-      print('Update heading error: $e');
-    }
+  try {
+    // Jika muka karakter masih tidak pas, ubah angka 0.0 di bawah ini (offset).
+    // Misal: heading + 180 jika model menghadap ke belakang.
+    double modelYaw = heading; 
+
+    await map.style.setStyleLayerProperty(
+      'petugas-model-layer',
+      'model-rotation',
+      [0.0, 0.0, heading - 180.0], 
+    );
+  } catch (e) {
+    print('Update heading model error: $e');
   }
+
+  // Update Beam (posisi tetap di user, arah mengikuti heading)
+  final lng = _userPosition.lng.toDouble();
+  final lat = _userPosition.lat.toDouble();
+  
+  final layers = {
+    'beam-outer-source': 0.0012,
+    'beam-mid-source': 0.0007,
+    'beam-inner-source': 0.0004,
+  };
+
+  for (var entry in layers.entries) {
+    try {
+      await map.style.setStyleSourceProperty(
+        entry.key, 
+        'data',
+        _buildBeamGeoJson(lng, lat, heading, entry.value),
+      );
+    } catch (_) {}
+  }
+}
 
   Future<void> _updateUserPosition(double lat, double lng) async {
     if (!mounted) return;
@@ -379,6 +499,26 @@ void _recenterCamera() {
       );
     } catch (e) {
       print('Update source error: $e');
+    }
+
+    // Update beam position ketika GPS bergerak
+    try {
+      final beamLng = _userPosition.lng.toDouble();
+      final beamLat = _userPosition.lat.toDouble();
+      await map.style.setStyleSourceProperty(
+        'beam-outer-source', 'data',
+        _buildBeamGeoJson(beamLng, beamLat, _heading, 0.0012),
+      );
+      await map.style.setStyleSourceProperty(
+        'beam-mid-source', 'data',
+        _buildBeamGeoJson(beamLng, beamLat, _heading, 0.0007),
+      );
+      await map.style.setStyleSourceProperty(
+        'beam-inner-source', 'data',
+        _buildBeamGeoJson(beamLng, beamLat, _heading, 0.0004),
+      );
+    } catch (e) {
+      print('Update beam position error: $e');
     }
   }
 

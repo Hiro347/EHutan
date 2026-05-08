@@ -54,7 +54,7 @@ class ObservationCard extends StatelessWidget {
                   child: Image.network(
                     obs.fotoUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
+                    errorBuilder: (_, _, _) =>
                         _buildPlaceholder(color, emoji),
                   ),
                 )
