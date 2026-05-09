@@ -37,7 +37,7 @@ class _MapScreenState extends State<MapScreen> {
   List<Observation> _observations = [];
   bool _isLoadingData = true;
 
-  Position _userPosition = Position(106.7892, -6.5744);
+  Position? _userPosition;
   Observation? _selectedObservation;
   StreamSubscription<geo.Position>? _locationSubscription;
   StreamSubscription<CompassEvent>? _compassSubscription;
@@ -52,7 +52,11 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    _requestLocationPermission();
+    _initializeLocation();
+  }
+
+  Future<void> _initializeLocation() async {
+    await _requestLocationPermission();
   }
 
   @override
@@ -153,8 +157,8 @@ class _MapScreenState extends State<MapScreen> {
         GeoJsonSource(
           id: 'petugas-location-source',
           data: _buildGeoJsonPoint(
-            _userPosition.lng.toDouble(),
-            _userPosition.lat.toDouble(),
+            _userPosition!.lng.toDouble(),
+            _userPosition!.lat.toDouble(),
           ),
         ),
       );
@@ -250,8 +254,8 @@ class _MapScreenState extends State<MapScreen> {
     if (map == null) return;
 
     try {
-      final lng = _userPosition.lng.toDouble();
-      final lat = _userPosition.lat.toDouble();
+      final lng = _userPosition!.lng.toDouble();
+      final lat = _userPosition!.lat.toDouble();
 
       // ── Layer 1: Outer glow (lebar, sangat transparan) ──
       await map.style.addSource(GeoJsonSource(
@@ -367,9 +371,10 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _recenterCamera() {
+    if (_userPosition == null) return;
     _mapboxMap?.flyTo(
       CameraOptions(
-        center: Point(coordinates: _userPosition),
+        center: Point(coordinates: _userPosition!),
         zoom: _is3DPov ? 17.5 : 16.0, 
         pitch: _is3DPov ? 70.0 : 0.0, 
         bearing: 0.0,
@@ -446,8 +451,9 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   // Update Beam (posisi tetap di user, arah mengikuti heading)
-  final lng = _userPosition.lng.toDouble();
-  final lat = _userPosition.lat.toDouble();
+  if (_userPosition == null) return;
+  final lng = _userPosition!.lng.toDouble();
+  final lat = _userPosition!.lat.toDouble();
   
   final layers = {
     'beam-outer-source': 0.0012,
@@ -468,6 +474,15 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _updateUserPosition(double lat, double lng) async {
     if (!mounted) return;
+
+    if (_userPosition == null) {
+      setState(() {
+        _userPosition = Position(lng, lat);
+      });
+      // Skip the rest for the first fix because MapWidget is just about to be created
+      // and _onMapCreated will initialize everything at this _userPosition.
+      return;
+    }
     
     // Optimisasi: Tanpa setState untuk mencegah rebuild Scaffold dan widget lain 
     // secara berulang setiap kali ada perubahan lokasi kecil.
@@ -498,8 +513,8 @@ class _MapScreenState extends State<MapScreen> {
 
     // Update beam position ketika GPS bergerak
     try {
-      final beamLng = _userPosition.lng.toDouble();
-      final beamLat = _userPosition.lat.toDouble();
+      final beamLng = _userPosition!.lng.toDouble();
+      final beamLat = _userPosition!.lat.toDouble();
       await map.style.setStyleSourceProperty(
         'beam-outer-source', 'data',
         _buildBeamGeoJson(beamLng, beamLat, _heading, 0.0012),
@@ -691,37 +706,55 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          MapWidget(
-            onMapCreated: _onMapCreated,
-            styleUri: AppMapbox.styleUrl,
-            cameraOptions: CameraOptions(
-              center: Point(coordinates: _userPosition),
-              zoom: _is3DPov ? 18.5 : 16.0,
-              pitch: _is3DPov ? 65.0 : 0.0,
-              bearing: 0.0,
+          if (_userPosition == null)
+            const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: AppColors.primary),
+                  SizedBox(height: 16),
+                  Text(
+                    'Mencari lokasi Anda...',
+                    style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            )
+          else
+            MapWidget(
+              onMapCreated: _onMapCreated,
+              styleUri: AppMapbox.styleUrl,
+              cameraOptions: CameraOptions(
+                center: Point(coordinates: _userPosition!),
+                zoom: _is3DPov ? 18.5 : 16.0,
+                pitch: _is3DPov ? 65.0 : 0.0,
+                bearing: 0.0,
+              ),
             ),
-          ),
-          MapBottomSheet(
-            observations: _observations,
-            selectedObservationId: _selectedObservation?.id,
-            sheetExtent: _sheetExtent,
-            onObservationTap: (obs) {
-              setState(() => _selectedObservation = obs);
-              _flyToObservation(obs);
-            },
-          ),
-          MapTopOverlay(unsyncedCount: unsyncedCount),
+          if (_userPosition != null)
+            MapBottomSheet(
+              observations: _observations,
+              selectedObservationId: _selectedObservation?.id,
+              sheetExtent: _sheetExtent,
+              onObservationTap: (obs) {
+                setState(() => _selectedObservation = obs);
+                _flyToObservation(obs);
+              },
+            ),
+          if (_userPosition != null)
+            MapTopOverlay(unsyncedCount: unsyncedCount),
           if (_selectedObservation != null)
             ObservationDetailCard(
               obs: _selectedObservation!,
               onClose: () => setState(() => _selectedObservation = null),
             ),
-          MapControls(
-            sheetExtent: _sheetExtent,
-            is3DPov: _is3DPov,
-            onTogglePov: _togglePov,
-            onRecenter: _recenterCamera,
-          ),
+          if (_userPosition != null)
+            MapControls(
+              sheetExtent: _sheetExtent,
+              is3DPov: _is3DPov,
+              onTogglePov: _togglePov,
+              onRecenter: _recenterCamera,
+            ),
           Align(
             alignment: Alignment.bottomCenter,
             child: Navbar(
