@@ -7,7 +7,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'screens/map_screen (homepage)/map_screen.dart';
 import 'services/sync_service.dart';
 import 'services/sqlite_service.dart';
-
+import 'screens/login_screen/login_screen.dart'; 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
@@ -46,7 +46,7 @@ class MyApp extends StatelessWidget {
           seedColor: const Color(0xFF609008),
         ),
       ),
-      home: const MapScreen(),
+      home: const LoginScreen(),
     );
   }
 }
