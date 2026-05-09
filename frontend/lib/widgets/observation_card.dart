@@ -25,7 +25,7 @@ class ObservationCard extends StatelessWidget {
         return Image.file(
           file,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _buildPlaceholder(color, emoji),
+          errorBuilder: (_, _, _) => _buildPlaceholder(color, emoji),
         );
       }
     }
@@ -43,7 +43,7 @@ class ObservationCard extends StatelessWidget {
       return Image.network(
         imageUrl,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildPlaceholder(color, emoji),
+        errorBuilder: (_, _, _) => _buildPlaceholder(color, emoji),
       );
     }
 

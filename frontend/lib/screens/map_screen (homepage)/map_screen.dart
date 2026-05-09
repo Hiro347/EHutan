@@ -364,7 +364,7 @@ class _MapScreenState extends State<MapScreen> {
       CameraOptions(
         zoom: _is3DPov ? 18.5 : 16.0,
         pitch: _is3DPov ? 65.0 : 0.0,
-        bearing: 0.0,
+        bearing: _is3DPov ? _heading : 0.0,
       ),
       MapAnimationOptions(duration: 800),
     );
@@ -377,7 +377,7 @@ class _MapScreenState extends State<MapScreen> {
         center: Point(coordinates: _userPosition!),
         zoom: _is3DPov ? 17.5 : 16.0, 
         pitch: _is3DPov ? 70.0 : 0.0, 
-        bearing: 0.0,
+        bearing: _is3DPov ? _heading : 0.0,
       ),
       MapAnimationOptions(duration: 800),
     );

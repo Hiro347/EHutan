@@ -4,7 +4,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'screens/map_screen (homepage)/map_screen.dart';
 import 'services/sync_service.dart';
 import 'services/sqlite_service.dart';
 import 'screens/login_screen/login_screen.dart'; 
