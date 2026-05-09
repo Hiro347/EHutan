@@ -1,4 +1,6 @@
+import 'dart:io'; // <-- Tambahan untuk membaca file lokal
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // <-- Tambahan untuk Supabase Storage
 import '../../../models/observation.dart';
 import '../../../utils/constants.dart';
 
@@ -13,6 +15,41 @@ class ObservationCard extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
   });
+
+  // Fungsi khusus untuk menangani logika gambar (Lokal vs Supabase)
+  Widget _buildBackgroundImage(Color color, String emoji) {
+    // 1. Cek apakah ada foto offline di memori lokal HP (belum di-sync)
+    if (obs.localFotoPath != null && obs.localFotoPath!.isNotEmpty) {
+      final file = File(obs.localFotoPath!);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildPlaceholder(color, emoji),
+        );
+      }
+    }
+
+    // 2. Jika tersinkron dan memiliki path Supabase
+    if (obs.fotoUrl.isNotEmpty) {
+      // Generate Public URL dari path storage Supabase
+      String imageUrl = obs.fotoUrl;
+      if (!imageUrl.startsWith('http')) {
+        imageUrl = Supabase.instance.client.storage
+            .from('Foto_Observasi') // Sesuai nama bucket Supabase Anda
+            .getPublicUrl(obs.fotoUrl);
+      }
+
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildPlaceholder(color, emoji),
+      );
+    }
+
+    // 3. Fallback jika tidak ada foto sama sekali
+    return _buildPlaceholder(color, emoji);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,20 +85,9 @@ class ObservationCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           child: Stack(
             children: [
-              // Image Background
-              if (obs.fotoUrl.isNotEmpty)
-                Positioned.fill(
-                  child: Image.network(
-                    obs.fotoUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) =>
-                        _buildPlaceholder(color, emoji),
-                  ),
-                )
-              else
-                Positioned.fill(
-                  child: _buildPlaceholder(color, emoji),
-                ),
+              Positioned.fill(
+                child: _buildBackgroundImage(color, emoji),
+              ),
 
               // Gradient overlay for text readability
               Positioned.fill(

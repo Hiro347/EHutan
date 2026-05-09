@@ -7,6 +7,7 @@ class Observation {
   final double latitude;
   final double longitude;
   final String fotoUrl;
+  final String? localFotoPath;
   final String? catatanHabitat;
   final DateTime waktuPengamatan;
   final String statusApproval;
@@ -28,6 +29,7 @@ class Observation {
     required this.latitude,
     required this.longitude,
     required this.fotoUrl,
+    this.localFotoPath,
     this.catatanHabitat,
     required this.waktuPengamatan,
     this.statusApproval = 'MENUNGGU_VERIFIKASI',
@@ -50,6 +52,7 @@ class Observation {
       latitude: map['latitude'] as double,
       longitude: map['longitude'] as double,
       fotoUrl: map['foto_url'] as String,
+      localFotoPath: map['local_foto_path'] as String?,
       catatanHabitat: map['catatan_habitat'] as String?,
       waktuPengamatan: DateTime.parse(map['waktu_pengamatan'] as String),
       statusApproval: map['status_approval'] as String? ?? 'MENUNGGU_VERIFIKASI',
@@ -75,6 +78,7 @@ class Observation {
       latitude: (map['latitude'] as num).toDouble(),
       longitude: (map['longitude'] as num).toDouble(),
       fotoUrl: map['foto_url'] as String,
+      localFotoPath: null,
       catatanHabitat: map['catatan_habitat'] as String?,
       waktuPengamatan: DateTime.parse(map['waktu_pengamatan'] as String),
       statusApproval: map['status_approval'] as String? ?? 'MENUNGGU_VERIFIKASI',
@@ -100,6 +104,7 @@ class Observation {
       'latitude': latitude,
       'longitude': longitude,
       'foto_url': fotoUrl,
+      'local_foto_path': localFotoPath,
       'catatan_habitat': catatanHabitat,
       'waktu_pengamatan': waktuPengamatan.toIso8601String(),
       'status_approval': statusApproval,
