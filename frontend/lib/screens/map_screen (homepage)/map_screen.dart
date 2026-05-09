@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart' as geo;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_compass/flutter_compass.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; 
 
 import '../../utils/constants.dart';
 import '../../models/observation.dart';
@@ -32,44 +33,8 @@ class _MapScreenState extends State<MapScreen> {
   MapboxMap? _mapboxMap;
   PointAnnotationManager? _annotationManager;
 
-  final List<Observation> _dummyObservations = [
-    Observation(
-      id: '1',
-      idPetugas: 'user-1',
-      namaSpesies: 'Panthera tigris sumatrae',
-      kategoriTakson: 'Mamalia',
-      latitude: -6.5744,
-      longitude: 106.7892,
-      fotoUrl: '',
-      waktuPengamatan: DateTime.now(),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-    Observation(
-      id: '2',
-      idPetugas: 'user-1',
-      namaSpesies: 'Rafflesia arnoldii',
-      kategoriTakson: 'Flora',
-      latitude: -6.5710,
-      longitude: 106.7940,
-      fotoUrl: '',
-      waktuPengamatan: DateTime.now(),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-    Observation(
-      id: '3',
-      idPetugas: 'user-2',
-      namaSpesies: 'Buceros rhinoceros',
-      kategoriTakson: 'Burung',
-      latitude: -6.5780,
-      longitude: 106.7850,
-      fotoUrl: '',
-      waktuPengamatan: DateTime.now(),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-  ];
+  List<Observation> _observations = [];
+  bool _isLoadingData = true;
 
   Position _userPosition = Position(106.7892, -6.5744);
   Observation? _selectedObservation;
@@ -94,6 +59,36 @@ class _MapScreenState extends State<MapScreen> {
     _locationSubscription?.cancel();
     _compassSubscription?.cancel();
     super.dispose();
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // FETCH DATA DARI SUPABASE
+  // ─────────────────────────────────────────────────────────
+  Future<void> _fetchObservations() async {
+    try {
+      // Melakukan SELECT ALL dari tabel data_observasi
+      final response = await Supabase.instance.client
+          .from('data_observasi')
+          .select();
+
+      // Mapping data JSON ke model Observation
+      final List<Observation> fetchedData = response
+          .map((data) => Observation.fromSupabase(data))
+          .toList();
+
+      setState(() {
+        _observations = fetchedData;
+        _isLoadingData = false;
+      });
+
+      // Setelah data didapat, tambahkan marker ke peta
+      if (_mapboxMap != null) {
+        await _addObservationMarkers();
+      }
+    } catch (e) {
+      print('Gagal mengambil data dari Supabase: $e');
+      setState(() => _isLoadingData = false);
+    }
   }
 
   // ─────────────────────────────────────────────────────────
@@ -125,7 +120,7 @@ class _MapScreenState extends State<MapScreen> {
       print('Skip lightPreset: $e');
     }
 
-    await _addObservationMarkers();
+    await _fetchObservations();
     await _setupBeamEffect();      // ← tambahkan ini SEBELUM setupPetugasModel
     await _setupPetugasModel();    // supaya model 3D render di atas beam
     await _setupLocationIndicator();
@@ -196,10 +191,14 @@ class _MapScreenState extends State<MapScreen> {
   // OBSERVATION MARKERS
   // ─────────────────────────────────────────────────────────
   Future<void> _addObservationMarkers() async {
-    _annotationManager =
-        await _mapboxMap?.annotations.createPointAnnotationManager();
+  // Hapus marker lama jika ada (mencegah duplikat kalau fetch diulang)
+    if (_annotationManager != null) {
+      await _annotationManager?.deleteAll();
+    } else {
+      _annotationManager = await _mapboxMap?.annotations.createPointAnnotationManager();
+    }
 
-    for (final obs in _dummyObservations) {
+    for (final obs in _observations) {
       final imageBytes = await _emojiToImageBytes(
         markerEmojiForTakson(obs.kategoriTakson),
         markerColorForTakson(obs.kategoriTakson),
@@ -216,7 +215,7 @@ class _MapScreenState extends State<MapScreen> {
 
     _annotationManager?.addOnPointAnnotationClickListener(
       MarkerClickListener(
-        observations: _dummyObservations,
+        observations: _observations,
         onTap: (obs) {
           setState(() => _selectedObservation = obs);
           _flyToObservation(obs);
@@ -574,7 +573,7 @@ class _MapScreenState extends State<MapScreen> {
   // ─────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final unsyncedCount = _dummyObservations.where((o) => !o.isSynced).length;
+    final unsyncedCount = _observations.where((o) => !o.isSynced).length;
 
     return Scaffold(
       body: Stack(
@@ -590,7 +589,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
           MapBottomSheet(
-            observations: _dummyObservations,
+            observations: _observations,
             selectedObservationId: _selectedObservation?.id,
             sheetExtent: _sheetExtent,
             onObservationTap: (obs) {
