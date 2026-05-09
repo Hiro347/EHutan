@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart' as geo;
@@ -199,10 +200,7 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     for (final obs in _observations) {
-      final imageBytes = await _emojiToImageBytes(
-        markerEmojiForTakson(obs.kategoriTakson),
-        markerColorForTakson(obs.kategoriTakson),
-      );
+      final imageBytes = await _createCustomMarkerImage(obs);
       await _annotationManager?.create(
         PointAnnotationOptions(
           geometry: Point(coordinates: Position(obs.longitude, obs.latitude)),
@@ -535,6 +533,121 @@ class _MapScreenState extends State<MapScreen> {
         },
       ],
     });
+  }
+
+  Future<Uint8List> _createCustomMarkerImage(Observation obs) async {
+    final color = markerColorForTakson(obs.kategoriTakson);
+    final emoji = markerEmojiForTakson(obs.kategoriTakson);
+
+    ui.Image? markerImage;
+
+    // 1. Try to load local file if exists
+    if (obs.localFotoPath != null && obs.localFotoPath!.isNotEmpty) {
+      final file = File(obs.localFotoPath!);
+      if (file.existsSync()) {
+        try {
+          final bytes = await file.readAsBytes();
+          final codec = await ui.instantiateImageCodec(bytes, targetWidth: 150);
+          final frameInfo = await codec.getNextFrame();
+          markerImage = frameInfo.image;
+        } catch (e) {
+          print('Error loading local image for marker: $e');
+        }
+      }
+    }
+
+    // 2. Try to load from Supabase if network url exists and no local image loaded
+    if (markerImage == null && obs.fotoUrl.isNotEmpty) {
+      String imageUrl = obs.fotoUrl;
+      if (!imageUrl.startsWith('http')) {
+        imageUrl = Supabase.instance.client.storage
+            .from('Foto_Observasi')
+            .getPublicUrl(obs.fotoUrl);
+      }
+
+      try {
+        final client = HttpClient();
+        final request = await client.getUrl(Uri.parse(imageUrl));
+        final response = await request.close();
+        if (response.statusCode == 200) {
+          final bytes = await consolidateHttpClientResponseBytes(response);
+          final codec = await ui.instantiateImageCodec(bytes, targetWidth: 150);
+          final frameInfo = await codec.getNextFrame();
+          markerImage = frameInfo.image;
+        }
+      } catch (e) {
+        print('Error downloading image for marker: $e');
+      }
+    }
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    const double radius = 50.0;
+    const double pointerHeight = 25.0;
+    const double width = radius * 2;
+    const double height = radius * 2 + pointerHeight;
+    const double borderSize = 6.0;
+
+    final path = Path();
+    path.addArc(
+      Rect.fromCircle(center: const Offset(radius, radius), radius: radius),
+      math.pi * 0.75,
+      math.pi * 1.5,
+    );
+    path.lineTo(radius, height);
+    path.close();
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill,
+    );
+
+    // Inner white circle
+    canvas.drawCircle(
+      const Offset(radius, radius),
+      radius - borderSize,
+      Paint()..color = Colors.white,
+    );
+
+    if (markerImage != null) {
+      canvas.save();
+      canvas.clipPath(Path()
+        ..addOval(Rect.fromCircle(
+            center: const Offset(radius, radius),
+            radius: radius - borderSize)));
+      
+      final double imgW = markerImage.width.toDouble();
+      final double imgH = markerImage.height.toDouble();
+      final double targetSize = (radius - borderSize) * 2;
+      
+      double scale = math.max(targetSize / imgW, targetSize / imgH);
+      double dw = imgW * scale;
+      double dh = imgH * scale;
+      
+      canvas.translate(radius - dw / 2, radius - dh / 2);
+      canvas.scale(scale, scale);
+      canvas.drawImage(markerImage, Offset.zero, Paint());
+      canvas.restore();
+    } else {
+      canvas.drawCircle(
+        const Offset(radius, radius),
+        radius - borderSize,
+        Paint()..color = color.withOpacity(0.2),
+      );
+
+      final tp = TextPainter(
+        text: TextSpan(text: emoji, style: const TextStyle(fontSize: 45)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(radius - tp.width / 2, radius - tp.height / 2));
+    }
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(width.toInt(), height.toInt());
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
   }
 
   Future<Uint8List> _emojiToImageBytes(String emoji, Color color) async {
