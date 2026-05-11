@@ -40,16 +40,16 @@ class AppStrings {
   static const String terverifikasi = 'Terverifikasi';
   static const String perluDirevisi = 'Perlu Direvisi';
 
-  // Takson
+  // Takson - Disesuaikan dengan Enum tipe_divisi di Supabase
   static const List<String> kategoriTakson = [
-    'Mamalia',
-    'Burung',
-    'Reptil',
-    'Amfibi',
-    'Ikan',
-    'Serangga',
-    'Flora',
-    'Lainnya',
+    'DK Karnivora',
+    'DK Herbivora',
+    'DK Primata',
+    'DK Burung',
+    'DK Reptil Amfibi',
+    'DK Insekta',
+    'DK Fauna Perairan',
+    'DK Eksitu',
   ];
 }
 
@@ -107,16 +107,16 @@ class AppTextStyles {
   );
 }
 
-// Helper: ambil warna marker berdasarkan kategori takson
+// Helper: ambil warna marker berdasarkan kategori takson (Divisi)
 Color markerColorForTakson(String takson) {
   final t = takson.toLowerCase();
   if (t.contains('burung')) return AppColors.markerBurung;
-  if (t.contains('flora')) return AppColors.markerFlora;
-  if (t.contains('reptil')) return AppColors.markerReptil;
-  if (t.contains('mamalia') || t.contains('karnivora') || t.contains('herbivora') || t.contains('primata')) {
+  if (t.contains('eksitu')) return AppColors.markerFlora;
+  if (t.contains('reptil') || t.contains('amfibi')) return AppColors.markerReptil;
+  if (t.contains('karnivora') || t.contains('herbivora') || t.contains('primata')) {
     return AppColors.markerMamalia;
   }
-  if (t.contains('insekta') || t.contains('serangga') || t.contains('fauna') || t.contains('ikan')) {
+  if (t.contains('insekta') || t.contains('fauna perairan')) {
     return AppColors.markerFauna;
   }
   return AppColors.markerDefault;
@@ -125,13 +125,13 @@ Color markerColorForTakson(String takson) {
 // Helper: emoji icon per takson (untuk marker sederhana)
 String markerEmojiForTakson(String takson) {
   final t = takson.toLowerCase();
-  if (t.contains('mamalia') || t.contains('primata') || t.contains('karnivora')) return '🐒';
+  if (t.contains('karnivora')) return '🐅';
   if (t.contains('herbivora')) return '🐘';
+  if (t.contains('primata')) return '🐒';
   if (t.contains('burung')) return '🦅';
-  if (t.contains('flora')) return '🌿';
-  if (t.contains('reptil')) return '🐍';
-  if (t.contains('amfibi')) return '🐸';
-  if (t.contains('ikan') || t.contains('perairan')) return '🐟';
-  if (t.contains('insekta') || t.contains('serangga')) return '🦋';
+  if (t.contains('reptil') || t.contains('amfibi')) return '🦎';
+  if (t.contains('fauna perairan')) return '🐟';
+  if (t.contains('insekta')) return '🦋';
+  if (t.contains('eksitu')) return '🌿';
   return '📍';
 }
