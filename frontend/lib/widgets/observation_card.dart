@@ -33,17 +33,24 @@ class ObservationCard extends StatelessWidget {
     // 2. Jika tersinkron dan memiliki path Supabase
     if (obs.fotoUrl.isNotEmpty) {
       // Generate Public URL dari path storage Supabase
-      String imageUrl = obs.fotoUrl;
+      String imageUrl = obs.fotoUrl.trim(); // Hapus spasi jika ada
       if (!imageUrl.startsWith('http')) {
         imageUrl = Supabase.instance.client.storage
             .from('Foto_Observasi') // Sesuai nama bucket Supabase Anda
-            .getPublicUrl(obs.fotoUrl);
+            .getPublicUrl(imageUrl);
       }
+      
+      // Bypass cache Flutter dengan menambahkan random query parameter
+      final bypassCacheUrl = '$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}';
 
       return Image.network(
-        imageUrl,
+        bypassCacheUrl,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _buildPlaceholder(color, emoji),
+        errorBuilder: (context, error, stackTrace) {
+          print('❌ ERROR LOAD GAMBAR [${obs.namaSpesies}]: $error');
+          print('🔗 URL YANG DICOBA: $bypassCacheUrl');
+          return _buildPlaceholder(color, emoji);
+        },
       );
     }
 

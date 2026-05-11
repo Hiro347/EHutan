@@ -573,25 +573,30 @@ class _MapScreenState extends State<MapScreen> {
 
     // 2. Try to load from Supabase if network url exists and no local image loaded
     if (markerImage == null && obs.fotoUrl.isNotEmpty) {
-      String imageUrl = obs.fotoUrl;
+      String imageUrl = obs.fotoUrl.trim(); // Hapus spasi jika ada
       if (!imageUrl.startsWith('http')) {
         imageUrl = Supabase.instance.client.storage
             .from('Foto_Observasi')
-            .getPublicUrl(obs.fotoUrl);
+            .getPublicUrl(imageUrl);
       }
+      
+      // Bypass cache
+      final bypassCacheUrl = '$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}';
 
       try {
         final client = HttpClient();
-        final request = await client.getUrl(Uri.parse(imageUrl));
+        final request = await client.getUrl(Uri.parse(bypassCacheUrl));
         final response = await request.close();
         if (response.statusCode == 200) {
           final bytes = await consolidateHttpClientResponseBytes(response);
           final codec = await ui.instantiateImageCodec(bytes, targetWidth: 150);
           final frameInfo = await codec.getNextFrame();
           markerImage = frameInfo.image;
+        } else {
+          print('❌ HTTP Error ${response.statusCode} saat download marker: $bypassCacheUrl');
         }
       } catch (e) {
-        print('Error downloading image for marker: $e');
+        print('❌ Error downloading image for marker [${obs.namaSpesies}]: $e');
       }
     }
 
