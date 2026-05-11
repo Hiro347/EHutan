@@ -109,42 +109,29 @@ class AppTextStyles {
 
 // Helper: ambil warna marker berdasarkan kategori takson
 Color markerColorForTakson(String takson) {
-  switch (takson.toLowerCase()) {
-    case 'mamalia':
-      return AppColors.markerMamalia;
-    case 'burung':
-      return AppColors.markerBurung;
-    case 'flora':
-      return AppColors.markerFlora;
-    case 'reptil':
-      return AppColors.markerReptil;
-    case 'amfibi':
-    case 'ikan':
-    case 'serangga':
-      return AppColors.markerFauna;
-    default:
-      return AppColors.markerDefault;
+  final t = takson.toLowerCase();
+  if (t.contains('burung')) return AppColors.markerBurung;
+  if (t.contains('flora')) return AppColors.markerFlora;
+  if (t.contains('reptil')) return AppColors.markerReptil;
+  if (t.contains('mamalia') || t.contains('karnivora') || t.contains('herbivora') || t.contains('primata')) {
+    return AppColors.markerMamalia;
   }
+  if (t.contains('insekta') || t.contains('serangga') || t.contains('fauna') || t.contains('ikan')) {
+    return AppColors.markerFauna;
+  }
+  return AppColors.markerDefault;
 }
 
 // Helper: emoji icon per takson (untuk marker sederhana)
 String markerEmojiForTakson(String takson) {
-  switch (takson.toLowerCase()) {
-    case 'mamalia':
-      return '🦎';
-    case 'burung':
-      return '🦅';
-    case 'flora':
-      return '🌿';
-    case 'reptil':
-      return '🐍';
-    case 'amfibi':
-      return '🐸';
-    case 'ikan':
-      return '🐟';
-    case 'serangga':
-      return '🦋';
-    default:
-      return '📍';
-  }
+  final t = takson.toLowerCase();
+  if (t.contains('mamalia') || t.contains('primata') || t.contains('karnivora')) return '🐒';
+  if (t.contains('herbivora')) return '🐘';
+  if (t.contains('burung')) return '🦅';
+  if (t.contains('flora')) return '🌿';
+  if (t.contains('reptil')) return '🐍';
+  if (t.contains('amfibi')) return '🐸';
+  if (t.contains('ikan') || t.contains('perairan')) return '🐟';
+  if (t.contains('insekta') || t.contains('serangga')) return '🦋';
+  return '📍';
 }

@@ -602,45 +602,58 @@ class _MapScreenState extends State<MapScreen> {
 
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-    const double radius = 50.0;
-    const double pointerHeight = 25.0;
+    const double radius = 55.0; // Sedikit lebih besar untuk border putih yang jelas
+    const double pointerHeight = 22.0;
     const double width = radius * 2;
     const double height = radius * 2 + pointerHeight;
-    const double borderSize = 6.0;
+    const double borderSize = 5.0;
 
+    // Drop Shadow untuk marker
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.25)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    
     final path = Path();
     path.addArc(
       Rect.fromCircle(center: const Offset(radius, radius), radius: radius),
-      math.pi * 0.75,
-      math.pi * 1.5,
+      math.pi * 0.70,
+      math.pi * 1.6,
     );
     path.lineTo(radius, height);
     path.close();
 
+    // Draw Shadow
+    canvas.save();
+    canvas.translate(0, 2);
+    canvas.drawPath(path, shadowPaint);
+    canvas.restore();
+
+    // Draw Main Background (White Border)
     canvas.drawPath(
       path,
       Paint()
-        ..color = color
+        ..color = Colors.white
         ..style = PaintingStyle.fill,
     );
 
-    // Inner white circle
+    // Draw Inner Circle (The actual Category Color)
     canvas.drawCircle(
       const Offset(radius, radius),
       radius - borderSize,
-      Paint()..color = Colors.white,
+      Paint()..color = color,
     );
 
     if (markerImage != null) {
       canvas.save();
+      // Clipping untuk gambar di dalam marker
       canvas.clipPath(Path()
         ..addOval(Rect.fromCircle(
             center: const Offset(radius, radius),
-            radius: radius - borderSize)));
+            radius: radius - borderSize - 2)));
       
       final double imgW = markerImage.width.toDouble();
       final double imgH = markerImage.height.toDouble();
-      final double targetSize = (radius - borderSize) * 2;
+      final double targetSize = (radius - borderSize - 2) * 2;
       
       double scale = math.max(targetSize / imgW, targetSize / imgH);
       double dw = imgW * scale;
@@ -651,14 +664,9 @@ class _MapScreenState extends State<MapScreen> {
       canvas.drawImage(markerImage, Offset.zero, Paint());
       canvas.restore();
     } else {
-      canvas.drawCircle(
-        const Offset(radius, radius),
-        radius - borderSize,
-        Paint()..color = color.withOpacity(0.2),
-      );
-
+      // Jika gambar tidak ada, tampilkan emoji dengan background kategori
       final tp = TextPainter(
-        text: TextSpan(text: emoji, style: const TextStyle(fontSize: 45)),
+        text: TextSpan(text: emoji, style: const TextStyle(fontSize: 42)),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(canvas, Offset(radius - tp.width / 2, radius - tp.height / 2));
