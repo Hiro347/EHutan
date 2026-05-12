@@ -86,13 +86,17 @@ class SqliteService {
 
   Future<void> markAsSynced(String id, String storageUrl) async {
     final db = await database;
+    final updates = <String, dynamic>{
+      'is_synced': 1,
+      'foto_url': storageUrl,
+    };
+    // Hanya hapus local_foto_path kalau foto sudah berhasil upload (storageUrl ada isinya)
+    if (storageUrl.isNotEmpty) {
+      updates['local_foto_path'] = null;
+    }
     await db.update(
       'data_observasi',
-      {
-        'is_synced': 1,
-        'foto_url': storageUrl,
-        'local_foto_path': null,
-      },
+      updates,
       where: 'id = ?',
       whereArgs: [id],
     );

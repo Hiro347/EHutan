@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/observation_provider.dart';
 import '../utils/constants.dart';
 
@@ -128,7 +129,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
         kategoriTakson: _kategoriTakson,
         latitude: widget.lat,
         longitude: widget.lng,
-        idPetugas: 'petugas-001',
+        idPetugas: Supabase.instance.client.auth.currentUser?.id ?? '',
         localFotoPath: _fotoPath ?? '',
         jumlahIndividu: int.tryParse(_jumlahController.text),
         aktivitasTermati: aktivitasFinal,

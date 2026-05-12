@@ -54,10 +54,32 @@ class _KoleksiScreenState extends State<KoleksiScreen>
       _myError = null;
     });
     try {
-      // AMBIL DARI SQLITE (DRAFT LOKAL)
+      // 1. Ambil draft lokal dari SQLite (termasuk yang belum sync)
       final localData = await SqliteService().getAllObservasi();
+      final localObs = localData.map((e) => Observation.fromSQLite(e)).toList();
+      final localIds = localObs.map((o) => o.id).toSet();
+
+      // 2. Ambil data dari Supabase (observasi saya yang sudah sync)
+      List<Observation> remoteObs = [];
+      try {
+        remoteObs = await _service.fetchObservasiSaya();
+      } catch (_) {
+        // Offline — lanjut pakai data lokal saja
+      }
+
+      // 3. Gabungkan: lokal lebih prioritas (mungkin ada update belum sync)
+      final merged = <Observation>[...localObs];
+      for (final obs in remoteObs) {
+        if (!localIds.contains(obs.id)) {
+          merged.add(obs);
+        }
+      }
+
+      // Urutkan berdasarkan waktu pengamatan terbaru
+      merged.sort((a, b) => b.waktuPengamatan.compareTo(a.waktuPengamatan));
+
       setState(() {
-        _myObservations = localData.map((e) => Observation.fromSQLite(e)).toList();
+        _myObservations = merged;
         _myLoading = false;
       });
     } catch (e) {

@@ -151,6 +151,7 @@ class SpeciesCard extends StatelessWidget {
   }
 
   Widget _buildPhoto(Observation obs) {
+    // 1. Cek foto lokal (belum sync)
     final localPath = obs.localFotoPath;
     if (localPath != null && localPath.isNotEmpty) {
       final file = File(localPath);
@@ -158,25 +159,21 @@ class SpeciesCard extends StatelessWidget {
         return Image.file(file, fit: BoxFit.cover);
       }
     }
-    final url = obs.fotoUrl;
-    if (url.isNotEmpty) {
-      if (url.startsWith('http')) {
-        return Image.network(
-          url,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => _placeholder(),
-          loadingBuilder: (_, child, progress) {
-            if (progress == null) return child;
-            return _placeholder(loading: true);
-          },
-        );
-      } else {
-        final file = File(url);
-        if (file.existsSync()) {
-          return Image.file(file, fit: BoxFit.cover);
-        }
-      }
+
+    // 2. Resolve fotoUrl ke URL lengkap (handle storage path)
+    final resolvedUrl = resolveSupabaseFotoUrl(obs.fotoUrl);
+    if (resolvedUrl != null) {
+      return Image.network(
+        resolvedUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _placeholder(),
+        loadingBuilder: (_, child, progress) {
+          if (progress == null) return child;
+          return _placeholder(loading: true);
+        },
+      );
     }
+
     return _placeholder();
   }
 

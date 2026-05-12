@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/observation.dart';
 import '../utils/constants.dart';
 
@@ -29,18 +28,10 @@ class ObservationCard extends StatelessWidget {
       }
     }
 
-    if (obs.fotoUrl.isNotEmpty) {
-      String imageUrl = obs.fotoUrl.trim();
-      if (!imageUrl.startsWith('http')) {
-        imageUrl = Supabase.instance.client.storage
-            .from('Foto_Observasi')
-            .getPublicUrl(imageUrl);
-      }
-      
-      final bypassCacheUrl = '$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}';
-
+    final resolvedUrl = resolveSupabaseFotoUrl(obs.fotoUrl);
+    if (resolvedUrl != null) {
       return Image.network(
-        bypassCacheUrl,
+        resolvedUrl,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
           return _buildPlaceholder(color, emoji);

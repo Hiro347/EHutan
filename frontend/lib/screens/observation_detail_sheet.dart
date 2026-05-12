@@ -152,8 +152,7 @@ class ObservationDetailSheet extends ConsumerWidget {
   String? _resolveImagePath() {
     final local = observation.localFotoPath;
     if (local != null && local.isNotEmpty && File(local).existsSync()) return local;
-    if (observation.fotoUrl.isNotEmpty) return observation.fotoUrl;
-    return null;
+    return resolveSupabaseFotoUrl(observation.fotoUrl);
   }
 
   Widget _buildHeaderPhoto(BuildContext context) {
@@ -169,7 +168,18 @@ class ObservationDetailSheet extends ConsumerWidget {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           clipBehavior: Clip.antiAlias,
-          child: hasImage ? _renderImage(imagePath) : const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.white)),
+          child: hasImage
+              ? _renderImage(imagePath)
+              : Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.image_not_supported_outlined, size: 48, color: Colors.grey.shade400),
+                      const SizedBox(height: 8),
+                      Text('Tidak ada foto', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                    ],
+                  ),
+                ),
         ),
         // Tombol Close
         Positioned(
@@ -199,13 +209,30 @@ class ObservationDetailSheet extends ConsumerWidget {
     );
   }
 
-  // LOGIKA PINTAR MENDETEKSI GAMBAR LOKAL / INTERNET
   Widget _renderImage(String path) {
     if (path.startsWith('http')) {
-      return Image.network(path, fit: BoxFit.cover);
-    } else {
-      return Image.file(File(path), fit: BoxFit.cover);
+      return Image.network(
+        path,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.broken_image_outlined, size: 48, color: Colors.grey.shade400),
+              const SizedBox(height: 8),
+              Text('Gagal memuat foto', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+            ],
+          ),
+        ),
+      );
     }
+    final file = File(path);
+    if (file.existsSync()) {
+      return Image.file(file, fit: BoxFit.cover);
+    }
+    return Center(
+      child: Icon(Icons.image_not_supported_outlined, size: 48, color: Colors.grey.shade400),
+    );
   }
 
   Widget _buildInfoRow(IconData icon, String text) {

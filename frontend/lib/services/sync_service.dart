@@ -10,17 +10,19 @@ class SyncService {
   SyncService(this._sqliteService);
 
   Future<void> syncData() async {
-    try {
-      final unsyncedData = await _sqliteService.getUnsyncedObservasi();
+    final unsyncedData = await _sqliteService.getUnsyncedObservasi();
+    if (unsyncedData.isEmpty) return;
 
-      if (unsyncedData.isEmpty) return;
+    int successCount = 0;
 
-      for (var item in unsyncedData) {
+    for (var item in unsyncedData) {
+      try {
         final dataToPush = Map<String, dynamic>.from(item);
 
-        // 1. Upload foto lokal ke Supabase Storage dulu
+        // 1. Upload foto lokal ke Supabase Storage
         final localFotoPath = dataToPush['local_foto_path'] as String?;
         String storageUrl = dataToPush['foto_url'] ?? '';
+        bool fotoUploaded = false;
 
         if (localFotoPath != null && localFotoPath.isNotEmpty) {
           final fotoFile = File(localFotoPath);
@@ -30,32 +32,44 @@ class SyncService {
             final ext = localFotoPath.split('.').last;
             final storagePath = 'observasi/$userId/${item['id']}.$ext';
 
-            await _supabase.storage
-                .from('Foto_Observasi') // ← sesuai nama bucket kamu
-                .upload(storagePath, fotoFile);
-
-            storageUrl = storagePath;
-
-            // Hapus foto lokal setelah berhasil upload
-            await fotoFile.delete();
+            try {
+              await _supabase.storage
+                  .from('Foto_Observasi')
+                  .upload(storagePath, fotoFile);
+              storageUrl = storagePath;
+              fotoUploaded = true;
+            } catch (e) {
+              debugPrint('Upload foto gagal [${item['id']}]: $e');
+              // Foto gagal upload — tetap sync data tapi jangan hapus file lokal
+            }
           }
         }
 
         // 2. Bersihkan kolom yang tidak ada di Supabase
         dataToPush.remove('is_synced');
         dataToPush.remove('local_foto_path');
-        dataToPush['foto_url'] = storageUrl; // ← pakai storage path
+        dataToPush['foto_url'] = storageUrl;
 
         // 3. Push ke Supabase
         await _supabase.from('data_observasi').upsert(dataToPush);
 
-        // 4. Tandai sudah sync + simpan storage URL ke SQLite
+        // 4. Tandai sudah sync di SQLite
         await _sqliteService.markAsSynced(item['id'], storageUrl);
-      }
 
-      debugPrint('Sinkronisasi berhasil: ${unsyncedData.length} data');
-    } catch (e) {
-      debugPrint('Sinkronisasi gagal: $e');
+        // 5. Hapus foto lokal HANYA kalau upload berhasil
+        if (fotoUploaded && localFotoPath != null) {
+          try {
+            await File(localFotoPath).delete();
+          } catch (_) {}
+        }
+
+        successCount++;
+      } catch (e) {
+        debugPrint('Sync gagal untuk [${item['id']}]: $e');
+        // Lanjut ke item berikutnya, jangan berhenti total
+      }
     }
+
+    debugPrint('Sinkronisasi: $successCount/${unsyncedData.length} berhasil');
   }
 }
