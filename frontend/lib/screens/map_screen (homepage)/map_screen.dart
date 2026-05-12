@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; 
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../../utils/constants.dart';
 import '../../models/observation.dart';
@@ -45,6 +46,7 @@ class _MapScreenState extends State<MapScreen> {
   bool _firstLocationFixed = false;
   bool _is3DPov = true;
   final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.15);
+  final Map<String, Uint8List> _markerCache = {};
 
   // ─────────────────────────────────────────────────────────
   // LIFECYCLE
@@ -204,7 +206,14 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     for (final obs in _observations) {
-      final imageBytes = await _createCustomMarkerImage(obs);
+      Uint8List imageBytes;
+      if (_markerCache.containsKey(obs.id)) {
+        imageBytes = _markerCache[obs.id]!;
+      } else {
+        imageBytes = await _createCustomMarkerImage(obs);
+        _markerCache[obs.id] = imageBytes;
+      }
+
       await _annotationManager?.create(
         PointAnnotationOptions(
           geometry: Point(coordinates: Position(obs.longitude, obs.latitude)),
@@ -554,17 +563,14 @@ class _MapScreenState extends State<MapScreen> {
     final color = markerColorForTakson(obs.kategoriTakson);
     final emoji = markerEmojiForTakson(obs.kategoriTakson);
 
-    ui.Image? markerImage;
+    Uint8List? imageBytes;
 
     // 1. Try to load local file if exists
     if (obs.localFotoPath != null && obs.localFotoPath!.isNotEmpty) {
       final file = File(obs.localFotoPath!);
       if (file.existsSync()) {
         try {
-          final bytes = await file.readAsBytes();
-          final codec = await ui.instantiateImageCodec(bytes, targetWidth: 150);
-          final frameInfo = await codec.getNextFrame();
-          markerImage = frameInfo.image;
+          imageBytes = await file.readAsBytes();
         } catch (e) {
           print('Error loading local image for marker: $e');
         }
@@ -572,7 +578,7 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     // 2. Try to load from Supabase if network url exists and no local image loaded
-    if (markerImage == null && obs.fotoUrl.isNotEmpty) {
+    if (imageBytes == null && obs.fotoUrl.isNotEmpty) {
       String imageUrl = obs.fotoUrl.trim(); // Hapus spasi jika ada
       if (!imageUrl.startsWith('http')) {
         imageUrl = Supabase.instance.client.storage
@@ -580,102 +586,21 @@ class _MapScreenState extends State<MapScreen> {
             .getPublicUrl(imageUrl);
       }
       
-      // Bypass cache
-      final bypassCacheUrl = '$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}';
-
       try {
-        final client = HttpClient();
-        final request = await client.getUrl(Uri.parse(bypassCacheUrl));
-        final response = await request.close();
-        if (response.statusCode == 200) {
-          final bytes = await consolidateHttpClientResponseBytes(response);
-          final codec = await ui.instantiateImageCodec(bytes, targetWidth: 150);
-          final frameInfo = await codec.getNextFrame();
-          markerImage = frameInfo.image;
-        } else {
-          print('❌ HTTP Error ${response.statusCode} saat download marker: $bypassCacheUrl');
-        }
+        final file = await DefaultCacheManager().getSingleFile(imageUrl);
+        imageBytes = await file.readAsBytes();
       } catch (e) {
         print('❌ Error downloading image for marker [${obs.namaSpesies}]: $e');
       }
     }
 
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    const double radius = 55.0; // Sedikit lebih besar untuk border putih yang jelas
-    const double pointerHeight = 22.0;
-    const double width = radius * 2;
-    const double height = radius * 2 + pointerHeight;
-    const double borderSize = 5.0;
-
-    // Drop Shadow untuk marker
-    final shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.25)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    final renderData = _MarkerRenderData(
+      imageBytes: imageBytes,
+      colorValue: color.value,
+      emoji: emoji,
+    );
     
-    final path = Path();
-    path.addArc(
-      Rect.fromCircle(center: const Offset(radius, radius), radius: radius),
-      math.pi * 0.70,
-      math.pi * 1.6,
-    );
-    path.lineTo(radius, height);
-    path.close();
-
-    // Draw Shadow
-    canvas.save();
-    canvas.translate(0, 2);
-    canvas.drawPath(path, shadowPaint);
-    canvas.restore();
-
-    // Draw Main Background (White Border)
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.fill,
-    );
-
-    // Draw Inner Circle (The actual Category Color)
-    canvas.drawCircle(
-      const Offset(radius, radius),
-      radius - borderSize,
-      Paint()..color = color,
-    );
-
-    if (markerImage != null) {
-      canvas.save();
-      // Clipping untuk gambar di dalam marker
-      canvas.clipPath(Path()
-        ..addOval(Rect.fromCircle(
-            center: const Offset(radius, radius),
-            radius: radius - borderSize - 2)));
-      
-      final double imgW = markerImage.width.toDouble();
-      final double imgH = markerImage.height.toDouble();
-      final double targetSize = (radius - borderSize - 2) * 2;
-      
-      double scale = math.max(targetSize / imgW, targetSize / imgH);
-      double dw = imgW * scale;
-      double dh = imgH * scale;
-      
-      canvas.translate(radius - dw / 2, radius - dh / 2);
-      canvas.scale(scale, scale);
-      canvas.drawImage(markerImage, Offset.zero, Paint());
-      canvas.restore();
-    } else {
-      // Jika gambar tidak ada, tampilkan emoji dengan background kategori
-      final tp = TextPainter(
-        text: TextSpan(text: emoji, style: const TextStyle(fontSize: 42)),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, Offset(radius - tp.width / 2, radius - tp.height / 2));
-    }
-
-    final picture = recorder.endRecording();
-    final img = await picture.toImage(width.toInt(), height.toInt());
-    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
+    return await compute(_renderMarkerBackgroundIsolate, renderData);
   }
 
   Future<Uint8List> _emojiToImageBytes(String emoji, Color color) async {
@@ -780,4 +705,99 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
+}
+
+class _MarkerRenderData {
+  final Uint8List? imageBytes;
+  final int colorValue;
+  final String emoji;
+
+  _MarkerRenderData({this.imageBytes, required this.colorValue, required this.emoji});
+}
+
+Future<Uint8List> _renderMarkerBackgroundIsolate(_MarkerRenderData data) async {
+  ui.Image? markerImage;
+  if (data.imageBytes != null) {
+    final codec = await ui.instantiateImageCodec(data.imageBytes!, targetWidth: 150);
+    final frameInfo = await codec.getNextFrame();
+    markerImage = frameInfo.image;
+  }
+
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  const double radius = 55.0; // Sedikit lebih besar untuk border putih yang jelas
+  const double pointerHeight = 22.0;
+  const double width = radius * 2;
+  const double height = radius * 2 + pointerHeight;
+  const double borderSize = 5.0;
+  final color = Color(data.colorValue);
+
+  // Drop Shadow untuk marker
+  final shadowPaint = Paint()
+    ..color = Colors.black.withOpacity(0.25)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+  
+  final path = Path();
+  path.addArc(
+    Rect.fromCircle(center: const Offset(radius, radius), radius: radius),
+    math.pi * 0.70,
+    math.pi * 1.6,
+  );
+  path.lineTo(radius, height);
+  path.close();
+
+  // Draw Shadow
+  canvas.save();
+  canvas.translate(0, 2);
+  canvas.drawPath(path, shadowPaint);
+  canvas.restore();
+
+  // Draw Main Background (White Border)
+  canvas.drawPath(
+    path,
+    Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill,
+  );
+
+  // Draw Inner Circle (The actual Category Color)
+  canvas.drawCircle(
+    const Offset(radius, radius),
+    radius - borderSize,
+    Paint()..color = color,
+  );
+
+  if (markerImage != null) {
+    canvas.save();
+    // Clipping untuk gambar di dalam marker
+    canvas.clipPath(Path()
+      ..addOval(Rect.fromCircle(
+          center: const Offset(radius, radius),
+          radius: radius - borderSize - 2)));
+    
+    final double imgW = markerImage.width.toDouble();
+    final double imgH = markerImage.height.toDouble();
+    final double targetSize = (radius - borderSize - 2) * 2;
+    
+    double scale = math.max(targetSize / imgW, targetSize / imgH);
+    double dw = imgW * scale;
+    double dh = imgH * scale;
+    
+    canvas.translate(radius - dw / 2, radius - dh / 2);
+    canvas.scale(scale, scale);
+    canvas.drawImage(markerImage, Offset.zero, Paint());
+    canvas.restore();
+  } else {
+    // Jika gambar tidak ada, tampilkan emoji dengan background kategori
+    final tp = TextPainter(
+      text: TextSpan(text: data.emoji, style: const TextStyle(fontSize: 42)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(radius - tp.width / 2, radius - tp.height / 2));
+  }
+
+  final picture = recorder.endRecording();
+  final img = await picture.toImage(width.toInt(), height.toInt());
+  final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+  return byteData!.buffer.asUint8List();
 }
