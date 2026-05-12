@@ -31,7 +31,7 @@ class ObservationDetailSheet extends ConsumerWidget {
         return Container(
           decoration: const BoxDecoration(
             color: Color(0xFFF8FAF5),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Stack(
             children: [
@@ -39,7 +39,7 @@ class ObservationDetailSheet extends ConsumerWidget {
                 controller: scrollController,
                 padding: EdgeInsets.zero,
                 children: [
-                  // 1. HEADER FOTO
+                  // 1. HEADER FOTO DENGAN ZOOM
                   _buildHeaderPhoto(context),
                   
                   Padding(
@@ -47,27 +47,87 @@ class ObservationDetailSheet extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 2. SEKSI IDENTITAS (Gaya Pokemon)
-                        _buildMainInfo(),
-                        const SizedBox(height: 24),
+                        // 2. JUDUL SPESIES & NAMA LOKAL (Sesuai Wireframe)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    observation.namaSpesies,
+                                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, color: Color(0xFF1A2400)),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    observation.namaLokal != null && observation.namaLokal!.isNotEmpty ? observation.namaLokal! : 'Nama lokal tidak diketahui',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _StatusChip(status: observation.statusApproval),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        const Divider(height: 1),
+                        const SizedBox(height: 20),
 
-                        // 3. DETAIL PENGAMATAN
-                        _buildSectionTitle('DETAIL PENGAMATAN'),
-                        _buildDetailGrid(),
-                        const SizedBox(height: 24),
-
-                        // 4. ISI LAPORAN (TALLY SHEET)
-                        _buildSectionTitle('ISI LAPORAN TALLY SHEET'),
-                        _buildTallyContent(),
+                        // 3. WAKTU & LOKASI
+                        _buildInfoRow(Icons.calendar_month_rounded, DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(observation.waktuPengamatan) + ' WIB'),
+                        const SizedBox(height: 12),
+                        _buildInfoRow(Icons.location_on_rounded, '${observation.latitude.toStringAsFixed(6)}, ${observation.longitude.toStringAsFixed(6)}'),
                         
-                        const SizedBox(height: 100), // Space buat tombol
+                        const SizedBox(height: 20),
+                        const Divider(height: 1),
+                        const SizedBox(height: 20),
+
+                        // 4. GRID DETAIL DATA (Dengan Icon Menarik)
+                        const Text('DETAIL OBSERVASI', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.blueGrey, letterSpacing: 1.2)),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                          child: Column(
+                            children: [
+                              _buildDetailGridItem(Icons.category_rounded, Colors.purple, 'Taksonomi', observation.kategoriTakson),
+                              const Divider(height: 24),
+                              _buildDetailGridItem(Icons.groups_rounded, Colors.blue, 'Jumlah Individu', observation.jumlahIndividu != null ? '${observation.jumlahIndividu} Ekor' : '-'),
+                              const Divider(height: 24),
+                              _buildDetailGridItem(Icons.directions_run_rounded, Colors.orange, 'Aktivitas', observation.aktivitasTermati ?? '-'),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 20),
+
+                        // 5. CATATAN HABITAT & KONDISI
+                        if (observation.catatanHabitat != null && observation.catatanHabitat!.isNotEmpty) ...[
+                          const Text('KONDISI & HABITAT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.blueGrey, letterSpacing: 1.2)),
+                          const SizedBox(height: 16),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                            child: Text(observation.catatanHabitat!, style: const TextStyle(fontSize: 14, height: 1.6, color: Color(0xFF2C3E50))),
+                          ),
+                        ],
+
+                        // 6. DRAFT WARNING
+                        if (!observation.isSynced) ...[
+                          const SizedBox(height: 20),
+                          _DraftBanner(),
+                        ],
+                        
+                        const SizedBox(height: 100), // Ruang untuk tombol hapus
                       ],
                     ),
                   ),
                 ],
               ),
 
-              // 5. TOMBOL HAPUS (Kanan Bawah)
+              // TOMBOL HAPUS (Kanan Bawah)
               Positioned(
                 right: 20,
                 bottom: 20,
@@ -75,14 +135,10 @@ class ObservationDetailSheet extends ConsumerWidget {
                   heroTag: 'delete_obs',
                   backgroundColor: Colors.red.shade50,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.red.shade200),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.red.shade200)),
                   onPressed: () => _confirmDelete(context, ref),
                   icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade700),
-                  label: Text('Hapus Data Lokal', 
-                    style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold)),
+                  label: Text('Hapus', style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -92,112 +148,87 @@ class ObservationDetailSheet extends ConsumerWidget {
     );
   }
 
+  // --- WIDGET HELPER ---
   Widget _buildHeaderPhoto(BuildContext context) {
+    final bool hasImage = observation.fotoUrl != null && observation.fotoUrl!.isNotEmpty;
     return Stack(
       children: [
         Container(
-          height: 250,
+          height: 280,
           width: double.infinity,
-          decoration: BoxDecoration(color: Colors.grey.shade300),
-          child: observation.fotoUrl != null && observation.fotoUrl!.isNotEmpty
-              ? Image.file(File(observation.fotoUrl!), fit: BoxFit.cover)
-              : const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.white)),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: hasImage ? _renderImage(observation.fotoUrl!) : const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.white)),
         ),
+        // Tombol Close
         Positioned(
-          top: 15,
-          left: 15,
+          top: 16,
+          left: 16,
           child: CircleAvatar(
-            backgroundColor: Colors.black26,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
+            backgroundColor: Colors.black45,
+            child: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
+          ),
+        ),
+        // Tombol Zoom Fullscreen
+        if (hasImage)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: CircleAvatar(
+              backgroundColor: Colors.black45,
+              child: IconButton(
+                icon: const Icon(Icons.zoom_out_map_rounded, color: Colors.white),
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => FullScreenImageViewer(imagePath: observation.fotoUrl!)));
+                },
+              ),
             ),
           ),
-        ),
       ],
     );
   }
 
-  Widget _buildMainInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF9C4),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(observation.namaLokal ?? 'Satuwa Misterius', 
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFF5F4B00))),
-        ),
-        const SizedBox(height: 8),
-        Text(observation.namaSpesies, 
-            style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: Colors.grey.shade700)),
-        const SizedBox(height: 12),
-        _buildTaksonBadge(),
-      ],
-    );
+  // LOGIKA PINTAR MENDETEKSI GAMBAR LOKAL / INTERNET
+  Widget _renderImage(String path) {
+    if (path.startsWith('http')) {
+      return Image.network(path, fit: BoxFit.cover);
+    } else {
+      return Image.file(File(path), fit: BoxFit.cover);
+    }
   }
 
-  Widget _buildTaksonBadge() {
-    final color = markerColorForTakson(observation.kategoriTakson);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.5)),
-      ),
-      child: Text(observation.kategoriTakson.toUpperCase(), 
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color)),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.blueGrey, letterSpacing: 1.2)),
-    );
-  }
-
-  Widget _buildDetailGrid() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        children: [
-          _rowInfo(Icons.access_time_rounded, 'Waktu', DateFormat('dd MMM yyyy, HH:mm').format(observation.waktuPengamatan)),
-          const Divider(height: 24),
-          _rowInfo(Icons.person_outline_rounded, 'Petugas', observation.idPetugas),
-          const Divider(height: 24),
-          _rowInfo(Icons.map_outlined, 'Lokasi', '${observation.latitude.toStringAsFixed(5)}, ${observation.longitude.toStringAsFixed(5)}'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTallyContent() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Text(observation.catatanHabitat ?? 'Tidak ada detail tambahan.', 
-        style: const TextStyle(fontSize: 14, height: 1.6, color: Color(0xFF2C3E50))),
-    );
-  }
-
-  Widget _rowInfo(IconData icon, String label, String value) {
+  Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.primary),
+        Icon(icon, size: 22, color: AppColors.primary),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          ],
-        )
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A2400)))),
+      ],
+    );
+  }
+
+  Widget _buildDetailGridItem(IconData icon, Color iconColor, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: iconColor.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, size: 20, color: iconColor),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A2400))),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -215,13 +246,72 @@ class ObservationDetailSheet extends ConsumerWidget {
             onPressed: () async {
               await ref.read(localObservationProvider.notifier).deleteObservation(observation.id);
               if (context.mounted) {
-                Navigator.pop(ctx); // Tutup dialog
-                Navigator.pop(context); // Tutup sheet
-                onDeleted(); // Panggil refresh di screen utama
+                Navigator.pop(ctx);
+                Navigator.pop(context);
+                onDeleted();
               }
             }, 
             child: const Text('Hapus', style: TextStyle(color: Colors.white)),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// --- WIDGET FULLSCREEN GAMBAR ---
+class FullScreenImageViewer extends StatelessWidget {
+  final String imagePath;
+  const FullScreenImageViewer({super.key, required this.imagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, elevation: 0),
+      body: Center(
+        child: InteractiveViewer(
+          panEnabled: true,
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: imagePath.startsWith('http') ? Image.network(imagePath) : Image.file(File(imagePath)),
+        ),
+      ),
+    );
+  }
+}
+
+// --- SUB-WIDGETS ---
+class _StatusChip extends StatelessWidget {
+  final String status;
+  const _StatusChip({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, bg, fg) = switch (status) {
+      'TERVERIFIKASI' => ('✓ Terverifikasi', const Color(0xFFE8F5E9), const Color(0xFF2E7D32)),
+      'PERLU_DIREVISI' => ('⚠ Revisi', const Color(0xFFFFF3E0), const Color(0xFFE65100)),
+      _ => ('⏳ Menunggu', const Color(0xFFE3F2FD), const Color(0xFF1565C0)),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: fg)),
+    );
+  }
+}
+
+class _DraftBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.orange.shade300)),
+      child: Row(
+        children: [
+          Icon(Icons.cloud_off_rounded, color: Colors.orange.shade700, size: 18),
+          const SizedBox(width: 8),
+          Expanded(child: Text('Data ini tersimpan secara lokal dan belum tersinkronisasi ke server.', style: TextStyle(fontSize: 12, color: Colors.orange.shade900))),
         ],
       ),
     );
