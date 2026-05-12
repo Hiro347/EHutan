@@ -1,5 +1,5 @@
 import 'dart:ui' as ui;
-import 'dart:typed_data';
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
@@ -12,8 +12,6 @@ import '../utils/constants.dart';
 import '../models/observation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/observation_provider.dart';
 import 'koleksi_screen.dart';
 import 'form_screen.dart';
 
@@ -29,7 +27,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   PointAnnotationManager? _annotationManager;
 
   late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
 
   final List<Observation> _dummyObservations = [
     Observation(
@@ -83,10 +80,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
-    _pulseAnimation = Tween<double>(
-      begin: 0.5,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeOut));
   }
 
   @override
@@ -270,10 +263,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         LocationComponentSettings(
           enabled: true,
           pulsingEnabled: true,
-          pulsingColor: AppColors.locationDot.value,
+          pulsingColor: AppColors.locationDot.toARGB32(),
           pulsingMaxRadius: 50.0,
           showAccuracyRing: true,
-          accuracyRingColor: AppColors.locationAccuracy.value,
+          accuracyRingColor: AppColors.locationAccuracy.toARGB32(),
         ),
       );
     } catch (e) {
@@ -375,7 +368,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     canvas.drawCircle(
       const Offset(size / 2, size / 2),
       size / 2,
-      Paint()..color = color.withOpacity(0.2),
+      Paint()..color = color.withValues(alpha:0.2),
     );
     canvas.drawCircle(
       const Offset(size / 2, size / 2),
@@ -409,7 +402,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           MapWidget(
             onMapCreated: _onMapCreated,
             styleUri: AppMapbox.styleUrl,
-            cameraOptions: CameraOptions(
+            viewport: CameraViewportState(
               center: Point(coordinates: _userPosition),
               zoom: 16.0,
               pitch: 50.0,
@@ -514,7 +507,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.12),
+                        color: AppColors.primary.withValues(alpha:0.12),
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Text(
@@ -563,7 +556,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.08) : Colors.white,
+          color: isSelected ? color.withValues(alpha:0.08) : Colors.white,
           borderRadius: BorderRadius.circular(AppSizes.radiusCard),
           border: Border.all(
             color: isSelected ? color : const Color(0xFFE5E7EB),
@@ -576,7 +569,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha:0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -599,7 +592,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.statusMenunggu.withOpacity(0.15),
+                  color: AppColors.statusMenunggu.withValues(alpha:0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(
@@ -635,7 +628,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(AppSizes.radiusCard),
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: color.withValues(alpha:0.3)),
           ),
           child: Row(
             children: [
@@ -643,7 +636,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha:0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
@@ -739,7 +732,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.92),
+        color: Colors.white.withValues(alpha:0.92),
         borderRadius: BorderRadius.circular(99),
         boxShadow: const [
           BoxShadow(color: Color(0x1A000000), blurRadius: 10),

@@ -31,8 +31,7 @@ class KoleksiService {
     created_at,
     updated_at,
     jumlah_individu,
-    aktivitas_termati,
-    profiles!id_petugas(nama_lengkap)
+    aktivitas_termati
   ''';
 
   /// Fetch observasi milik user yang sedang login (tab "Observasi Saya")
@@ -98,6 +97,6 @@ class KoleksiService {
         .maybeSingle();
 
     if (response == null) return null;
-    return Observation.fromSupabase(response as Map<String, dynamic>);
+    return Observation.fromSupabase(response);
   }
 }

@@ -28,6 +28,7 @@ class Observation {
   final String? aktivitasTermati;  // ← Baru
 
   // Hanya ada di SQLite lokal — tidak dikirim ke Supabase
+  final String? localFotoPath;
   final bool isSynced;
 
   const Observation({
@@ -50,6 +51,7 @@ class Observation {
     required this.updatedAt,
     this.jumlahIndividu,
     this.aktivitasTermati,
+    this.localFotoPath,
     this.isSynced = false,
   });
 
@@ -77,6 +79,7 @@ class Observation {
       updatedAt: DateTime.parse(map['updated_at'] as String),
       jumlahIndividu: map['jumlah_individu'] as int?,
       aktivitasTermati: map['aktivitas_termati'] as String?,
+      localFotoPath: map['local_foto_path'] as String?,
       isSynced: (map['is_synced'] as int? ?? 0) == 1,
     );
   }
@@ -149,6 +152,7 @@ class Observation {
     DateTime? waktuVerifikasi,
     int? jumlahIndividu,
     String? aktivitasTermati,
+    String? localFotoPath,
     bool? isSynced,
     DateTime? updatedAt,
   }) {
@@ -172,6 +176,7 @@ class Observation {
       updatedAt: updatedAt ?? this.updatedAt,
       jumlahIndividu: jumlahIndividu ?? this.jumlahIndividu,
       aktivitasTermati: aktivitasTermati ?? this.aktivitasTermati,
+      localFotoPath: localFotoPath ?? this.localFotoPath,
       isSynced: isSynced ?? this.isSynced,
     );
   }

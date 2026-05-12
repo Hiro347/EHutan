@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'screens/map_screen.dart';
 import 'services/sync_service.dart';
 import 'services/sqlite_service.dart';
@@ -11,6 +12,7 @@ import 'services/sqlite_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+  await initializeDateFormatting('id_ID');
 
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,

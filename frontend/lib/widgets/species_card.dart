@@ -2,6 +2,7 @@
 // Kartu observasi bergaya Pokémon GO untuk layar Koleksi.
 // Sengaja dibuat terpisah dari observation_card.dart (milik task lain).
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/observation.dart';
 import '../utils/constants.dart';
@@ -28,7 +29,7 @@ class SpeciesCard extends StatelessWidget {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.18),
+              color: color.withValues(alpha:0.18),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -39,7 +40,7 @@ class SpeciesCard extends StatelessWidget {
           children: [
             // ── Foto background ──────────────────────────────────────────
             Positioned.fill(
-              child: _buildPhoto(observation.fotoUrl),
+              child: _buildPhoto(observation),
             ),
 
             // ── Gradient overlay bawah ───────────────────────────────────
@@ -52,8 +53,8 @@ class SpeciesCard extends StatelessWidget {
                     colors: [
                       Colors.transparent,
                       Colors.transparent,
-                      color.withOpacity(0.55),
-                      color.withOpacity(0.92),
+                      color.withValues(alpha:0.55),
+                      color.withValues(alpha:0.92),
                     ],
                     stops: const [0.0, 0.4, 0.72, 1.0],
                   ),
@@ -149,17 +150,32 @@ class SpeciesCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPhoto(String? url) {
-    if (url != null && url.isNotEmpty) {
-      return Image.network(
-        url,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholder(),
-        loadingBuilder: (_, child, progress) {
-          if (progress == null) return child;
-          return _placeholder(loading: true);
-        },
-      );
+  Widget _buildPhoto(Observation obs) {
+    final localPath = obs.localFotoPath;
+    if (localPath != null && localPath.isNotEmpty) {
+      final file = File(localPath);
+      if (file.existsSync()) {
+        return Image.file(file, fit: BoxFit.cover);
+      }
+    }
+    final url = obs.fotoUrl;
+    if (url.isNotEmpty) {
+      if (url.startsWith('http')) {
+        return Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => _placeholder(),
+          loadingBuilder: (_, child, progress) {
+            if (progress == null) return child;
+            return _placeholder(loading: true);
+          },
+        );
+      } else {
+        final file = File(url);
+        if (file.existsSync()) {
+          return Image.file(file, fit: BoxFit.cover);
+        }
+      }
     }
     return _placeholder();
   }
@@ -241,11 +257,11 @@ class _TaxonBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.85),
+        color: color.withValues(alpha:0.85),
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.4),
+            color: color.withValues(alpha:0.4),
             blurRadius: 6,
             spreadRadius: 1,
           ),
@@ -271,7 +287,7 @@ class _LocalNameBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha:0.25),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

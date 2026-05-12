@@ -70,11 +70,13 @@ class LocalObservationNotifier
     String? catatanHabitat,
     int? jumlahIndividu,            // ← Baru
     String? aktivitasTermati,       // ← Baru
+    DateTime? waktuPengamatan,
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final sqliteService = ref.read(sqliteServiceProvider);
       final now = DateTime.now().toIso8601String();
+      final waktu = (waktuPengamatan ?? DateTime.now()).toIso8601String();
       final id = const Uuid().v4();
 
       await sqliteService.insertObservasi({
@@ -89,7 +91,7 @@ class LocalObservationNotifier
         'foto_url': '',
         'local_foto_path': localFotoPath.isNotEmpty ? localFotoPath : null,
         'catatan_habitat': catatanHabitat,
-        'waktu_pengamatan': now,
+        'waktu_pengamatan': waktu,
         'status_approval': 'MENUNGGU_VERIFIKASI',
         'jumlah_individu': jumlahIndividu,
         'aktivitas_termati': aktivitasTermati,

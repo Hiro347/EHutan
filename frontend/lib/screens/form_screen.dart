@@ -133,6 +133,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
         jumlahIndividu: int.tryParse(_jumlahController.text),
         aktivitasTermati: aktivitasFinal,
         catatanHabitat: "Status: $kesehatanFinal | Habitat: $habitatFinal | Posisi: $posisiFinal | Veg: ${_vegetasiController.text} | Note: ${_catatanController.text}",
+        waktuPengamatan: finalWaktu,
       );
 
       if (mounted) {
@@ -176,7 +177,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
               const SizedBox(height: 16),
               TextFormField(controller: _lokalController, decoration: const InputDecoration(labelText: 'Nama Lokal / Panggilan', border: OutlineInputBorder())),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(value: _kategoriTakson, decoration: const InputDecoration(labelText: 'Divisi Konservasi', border: OutlineInputBorder()), items: _listDivisi.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => _kategoriTakson = v!)),
+              DropdownButtonFormField<String>(initialValue: _kategoriTakson, decoration: const InputDecoration(labelText: 'Divisi Konservasi', border: OutlineInputBorder()), items: _listDivisi.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => _kategoriTakson = v!)),
               const SizedBox(height: 16),
               TextFormField(controller: _jumlahController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Jumlah Individu', border: OutlineInputBorder(), prefixIcon: Icon(Icons.groups))),
             ]),
@@ -228,13 +229,13 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
   // Helper Section
   Widget _buildSectionHeader(String title) => Padding(padding: const EdgeInsets.only(left: 4, bottom: 8), child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.grey, letterSpacing: 1)));
-  Widget _buildCard({required List<Widget> children}) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children));
+  Widget _buildCard({required List<Widget> children}) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.05), blurRadius: 10, offset: const Offset(0, 4))]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children));
 
   // Helper untuk Dropdown + Custom Field
   Widget _buildDropdownWithCustom({required String label, required String value, required List<String> list, required TextEditingController customController, required Function(String?) onChanged}) {
     return Column(
       children: [
-        DropdownButtonFormField<String>(decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()), value: value, items: list.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: onChanged),
+        DropdownButtonFormField<String>(decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()), initialValue: value, items: list.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: onChanged),
         if (value == 'Lainnya') ...[
           const SizedBox(height: 12),
           TextFormField(controller: customController, decoration: InputDecoration(hintText: 'Tulis $label manual...', border: const OutlineInputBorder(), filled: true, fillColor: Colors.orange.shade50)),

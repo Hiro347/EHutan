@@ -75,7 +75,7 @@ class ObservationDetailSheet extends ConsumerWidget {
                         const SizedBox(height: 20),
 
                         // 3. WAKTU & LOKASI
-                        _buildInfoRow(Icons.calendar_month_rounded, DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(observation.waktuPengamatan) + ' WIB'),
+                        _buildInfoRow(Icons.calendar_month_rounded, '${DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(observation.waktuPengamatan)} WIB'),
                         const SizedBox(height: 12),
                         _buildInfoRow(Icons.location_on_rounded, '${observation.latitude.toStringAsFixed(6)}, ${observation.longitude.toStringAsFixed(6)}'),
                         
@@ -149,8 +149,16 @@ class ObservationDetailSheet extends ConsumerWidget {
   }
 
   // --- WIDGET HELPER ---
+  String? _resolveImagePath() {
+    final local = observation.localFotoPath;
+    if (local != null && local.isNotEmpty && File(local).existsSync()) return local;
+    if (observation.fotoUrl.isNotEmpty) return observation.fotoUrl;
+    return null;
+  }
+
   Widget _buildHeaderPhoto(BuildContext context) {
-    final bool hasImage = observation.fotoUrl != null && observation.fotoUrl!.isNotEmpty;
+    final imagePath = _resolveImagePath();
+    final bool hasImage = imagePath != null;
     return Stack(
       children: [
         Container(
@@ -161,7 +169,7 @@ class ObservationDetailSheet extends ConsumerWidget {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           clipBehavior: Clip.antiAlias,
-          child: hasImage ? _renderImage(observation.fotoUrl!) : const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.white)),
+          child: hasImage ? _renderImage(imagePath) : const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.white)),
         ),
         // Tombol Close
         Positioned(
@@ -182,7 +190,7 @@ class ObservationDetailSheet extends ConsumerWidget {
               child: IconButton(
                 icon: const Icon(Icons.zoom_out_map_rounded, color: Colors.white),
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => FullScreenImageViewer(imagePath: observation.fotoUrl!)));
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => FullScreenImageViewer(imagePath: imagePath)));
                 },
               ),
             ),
@@ -215,7 +223,7 @@ class ObservationDetailSheet extends ConsumerWidget {
       children: [
         Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: iconColor.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, size: 20, color: iconColor),
         ),
         const SizedBox(width: 16),
