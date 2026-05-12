@@ -67,140 +67,136 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                     ),
                   ],
                 ),
-                child: Column(
-                  children: [
-                    // Handle Bar & UX Top Line
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Column(
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.only(bottom: 100), // Space for Navbar
+                  itemCount: filteredObservations.length + 2, // Header + Search + List
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      // GABUNGKAN Handle Bar dan TITLE HEADER disini
+                      return Column(
                         children: [
+                          // Handle Bar & UX Top Line
                           Container(
-                            width: 50,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade400.withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(10),
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: 50,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade400.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView.builder(
-                        controller: scrollController,
-                        padding: const EdgeInsets.only(bottom: 100), // Space for Navbar
-                        itemCount: filteredObservations.length + 2, // Header + Search + List
-                        itemBuilder: (context, index) {
-                          if (index == 0) {
-                            // TITLE HEADER
-                            return Padding(
-                              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'E-Hutan Explore',
-                                        style: TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w900,
-                                          color: Color(0xFF1E3A2B),
-                                          letterSpacing: -0.8,
-                                        ),
+                          // TITLE HEADER
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'E-Hutan Explore',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFF1E3A2B),
+                                        letterSpacing: -0.8,
                                       ),
+                                    ),
+                                    Text(
+                                      'Temukan keanekaragaman hayati',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey.shade600,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.primary,
+                                        AppColors.primary.withOpacity(0.8),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primary.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.location_on, size: 14, color: Colors.white),
+                                      const SizedBox(width: 4),
                                       Text(
-                                        'Temukan keanekaragaman hayati',
-                                        style: TextStyle(
+                                        '${widget.observations.length}',
+                                        style: const TextStyle(
                                           fontSize: 13,
-                                          color: Colors.grey.shade600,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppColors.primary,
-                                          AppColors.primary.withOpacity(0.8),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.primary.withOpacity(0.3),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.location_on, size: 14, color: Colors.white),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${widget.observations.length}',
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-
-                          if (index == 1) {
-                            // SEARCH BAR
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100.withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.grey.shade200),
                                 ),
-                                child: TextField(
-                                  controller: _searchController,
-                                  onChanged: (value) {
-                                    setState(() => _searchQuery = value);
-                                  },
-                                  decoration: InputDecoration(
-                                    hintText: 'Cari spesies atau takson...',
-                                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                                    prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade400),
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-
-                          // OBSERVATION CARDS
-                          final obs = filteredObservations[index - 2];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                            child: ObservationCard(
-                              obs: obs,
-                              isSelected: widget.selectedObservationId == obs.id,
-                              onTap: () => widget.onObservationTap(obs),
+                              ],
                             ),
-                          );
-                        },
+                          ),
+                        ],
+                      );
+                    }
+
+                    if (index == 1) {
+                      // SEARCH BAR
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (value) {
+                              setState(() => _searchQuery = value);
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Cari spesies atau takson...',
+                              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                              prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade400),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // OBSERVATION CARDS
+                    final obs = filteredObservations[index - 2];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      child: ObservationCard(
+                        obs: obs,
+                        isSelected: widget.selectedObservationId == obs.id,
+                        onTap: () => widget.onObservationTap(obs),
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ),

@@ -600,7 +600,7 @@ class _MapScreenState extends State<MapScreen> {
       emoji: emoji,
     );
     
-    return await compute(_renderMarkerBackgroundIsolate, renderData);
+    return await _renderMarkerImage(renderData);
   }
 
   Future<Uint8List> _emojiToImageBytes(String emoji, Color color) async {
@@ -715,7 +715,7 @@ class _MarkerRenderData {
   _MarkerRenderData({this.imageBytes, required this.colorValue, required this.emoji});
 }
 
-Future<Uint8List> _renderMarkerBackgroundIsolate(_MarkerRenderData data) async {
+Future<Uint8List> _renderMarkerImage(_MarkerRenderData data) async {
   ui.Image? markerImage;
   if (data.imageBytes != null) {
     final codec = await ui.instantiateImageCodec(data.imageBytes!, targetWidth: 150);
