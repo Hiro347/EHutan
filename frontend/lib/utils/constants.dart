@@ -40,22 +40,22 @@ class AppStrings {
   static const String terverifikasi = 'Terverifikasi';
   static const String perluDirevisi = 'Perlu Direvisi';
 
-  // Takson
+  // Takson - Disesuaikan dengan Enum tipe_divisi di Supabase
   static const List<String> kategoriTakson = [
-    'Mamalia',
-    'Burung',
-    'Reptil',
-    'Amfibi',
-    'Ikan',
-    'Serangga',
-    'Flora',
-    'Lainnya',
+    'DK Karnivora',
+    'DK Herbivora',
+    'DK Primata',
+    'DK Burung',
+    'DK Reptil Amfibi',
+    'DK Insekta',
+    'DK Fauna Perairan',
+    'DK Eksitu',
   ];
 }
 
 class AppMapbox {
   static const String styleUrl = 
-    'mapbox://styles/arya347/cmoq35vej001t01qr8yjgfkx8/draft';
+    'mapbox://styles/arya347/cmor4slcc000c01s09xgmfbby';
 
   // Bounding box wilayah Bogor
   static const double boundsMinLat = -6.75;
@@ -107,31 +107,31 @@ class AppTextStyles {
   );
 }
 
-// Helper: ambil warna marker berdasarkan kategori takson
-// Helper: ambil warna marker berdasarkan kategori takson
+// Helper: ambil warna marker berdasarkan kategori takson (Divisi)
 Color markerColorForTakson(String takson) {
-  switch (takson) {
-    case 'DK Karnivora': return const Color(0xFFD84315); // Oranye Buas
-    case 'DK Herbivora': return const Color(0xFF7CB342); // Hijau Daun
-    case 'DK Primata': return const Color(0xFF8D6E4A);   // Coklat
-    case 'DK Burung': return const Color(0xFF039BE5);    // Biru Langit
-    case 'DK Reptil Amfibi': return const Color(0xFF2E7D32); // Hijau Gelap
-    case 'DK Insekta': return const Color(0xFFF9A825);   // Emas Serangga
-    case 'DK Fauna Perairan': return const Color(0xFF1565C0); // Biru Air Laut
-    default: return AppColors.markerDefault;
+  final t = takson.toLowerCase();
+  if (t.contains('burung')) return AppColors.markerBurung;
+  if (t.contains('eksitu')) return AppColors.markerFlora;
+  if (t.contains('reptil') || t.contains('amfibi')) return AppColors.markerReptil;
+  if (t.contains('karnivora') || t.contains('herbivora') || t.contains('primata')) {
+    return AppColors.markerMamalia;
   }
+  if (t.contains('insekta') || t.contains('fauna perairan')) {
+    return AppColors.markerFauna;
+  }
+  return AppColors.markerDefault;
 }
 
 // Helper: emoji icon per takson
 String markerEmojiForTakson(String takson) {
-  switch (takson) {
-    case 'DK Karnivora': return '🐯';
-    case 'DK Herbivora': return '🦌';
-    case 'DK Primata': return '🐒';
-    case 'DK Burung': return '🦅';
-    case 'DK Reptil Amfibi': return '🦎';
-    case 'DK Insekta': return '🦋';
-    case 'DK Fauna Perairan': return '🐟';
-    default: return '📍';
-  }
+  final t = takson.toLowerCase();
+  if (t.contains('karnivora')) return '🐅';
+  if (t.contains('herbivora')) return '🐘';
+  if (t.contains('primata')) return '🐒';
+  if (t.contains('burung')) return '🦅';
+  if (t.contains('reptil') || t.contains('amfibi')) return '🦎';
+  if (t.contains('fauna perairan')) return '🐟';
+  if (t.contains('insekta')) return '🦋';
+  if (t.contains('eksitu')) return '🌿';
+  return '📍';
 }

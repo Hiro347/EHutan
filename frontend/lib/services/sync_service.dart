@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'sqlite_service.dart';
 
@@ -52,9 +53,9 @@ class SyncService {
         await _sqliteService.markAsSynced(item['id'], storageUrl);
       }
 
-      print('Sinkronisasi berhasil: ${unsyncedData.length} data');
+      debugPrint('Sinkronisasi berhasil: ${unsyncedData.length} data');
     } catch (e) {
-      print('Sinkronisasi gagal: $e');
+      debugPrint('Sinkronisasi gagal: $e');
     }
   }
 }

@@ -5,9 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'screens/map_screen.dart';
 import 'services/sync_service.dart';
 import 'services/sqlite_service.dart';
+import 'screens/login_screen/login_screen.dart';
+import 'screens/map_screen (homepage)/map_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,7 +49,9 @@ class MyApp extends StatelessWidget {
           seedColor: const Color(0xFF609008),
         ),
       ),
-      home: const MapScreen(),
+      home: Supabase.instance.client.auth.currentSession != null
+          ? const MapScreen()
+          : const LoginScreen(),
     );
   }
 }

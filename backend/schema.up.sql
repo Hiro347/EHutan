@@ -169,7 +169,7 @@ CREATE POLICY "Petugas hapus observasi sendiri" ON data_observasi
   );
 
 -- ============================================================
--- 10. Storage Policies: Foto_Observasi  ← BARU
+-- 10. Storage Policies: Foto_Observasi  
 -- ============================================================
 CREATE POLICY "Petugas upload foto observasi"
 ON storage.objects FOR INSERT
@@ -191,3 +191,72 @@ USING (
   bucket_id = 'Foto_Observasi'
   AND auth.uid()::text = (storage.foldername(name))[2]
 );
+
+- ============================================================
+-- Tambahan
+-- ============================================================
+
+-- 1. Pembuatan Tipe Data Enum untuk Divisi
+-- Digunakan untuk memastikan konsistensi nama divisi di seluruh tabel.
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tipe_divisi') THEN
+        CREATE TYPE tipe_divisi AS ENUM (
+            'DK Karnivora', 
+            'DK Herbivora', 
+            'DK Primata', 
+            'DK Burung', 
+            'DK Reptil Amfibi', 
+            'DK Insekta', 
+            'DK Fauna Perairan', 
+            'DK Eksitu'
+        );
+    END IF;
+END $$;
+
+-- 2. Update Tabel Profiles
+-- Mengubah kolom 'divisi_takson' dari TEXT menjadi ENUM tipe_divisi.
+ALTER TABLE profiles 
+  ALTER COLUMN divisi_takson TYPE tipe_divisi 
+  USING divisi_takson::tipe_divisi;
+
+COMMENT ON COLUMN profiles.divisi_takson IS 'Menentukan spesialisasi kordinator atau petugas lapangan';
+
+-- 3. Update Tabel Data Observasi
+-- Mengubah kolom 'kategori_takson' menjadi ENUM agar sinkron dengan divisi.
+-- Ini mencegah kesalahan input kategori yang tidak terdaftar di divisi resmi.
+ALTER TABLE data_observasi 
+  ALTER COLUMN kategori_takson TYPE tipe_divisi 
+  USING kategori_takson::tipe_divisi;
+
+COMMENT ON COLUMN data_observasi.kategori_takson IS 'Kategori flora/fauna yang harus sesuai dengan daftar divisi resmi';
+
+-- 4. Pembaruan Row Level Security (RLS) untuk Verifikasi
+-- Koordinator hanya boleh memverifikasi data yang masuk ke dalam divisinya sendiri.
+-- Admin tetap memiliki akses ke semua data.
+
+-- Hapus kebijakan lama jika ada
+DROP POLICY IF EXISTS "Kordinator verifikasi observasi" ON data_observasi;
+DROP POLICY IF EXISTS "Kordinator verifikasi sesuai divisi" ON data_observasi;
+
+-- Terapkan kebijakan baru yang lebih ketat
+CREATE POLICY "Kordinator verifikasi sesuai divisi" ON data_observasi
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid()
+        AND (
+          role = 'Admin' -- Admin bisa segalanya
+          OR (
+            role = 'Kordinator_Divisi' 
+            AND divisi_takson = data_observasi.kategori_takson -- Cek kecocokan divisi
+          )
+        )
+    )
+  );
+
+-- 5. Tambahan: Indexing untuk Performa
+-- Karena kita akan sering memfilter data berdasarkan divisi (kategori_takson),
+-- penambahan index akan mempercepat query saat data sudah banyak.
+CREATE INDEX IF NOT EXISTS idx_observasi_kategori ON data_observasi(kategori_takson);
+CREATE INDEX IF NOT EXISTS idx_profiles_divisi ON profiles(divisi_takson);
