@@ -20,6 +20,9 @@ import '../../widgets/map_bottom_sheet.dart';
 import '../../widgets/detail_card.dart';
 import '../../widgets/top_overlay.dart';
 import '../../widgets/map_controls.dart';
+import '../koleksi_screen.dart';
+import '../form_screen.dart';
+import '../login_screen/login_screen.dart';
 import '_marker_click_listener.dart';
 import 'dart:math' as math;
 
@@ -36,7 +39,6 @@ class _MapScreenState extends State<MapScreen> {
   PointAnnotationManager? _annotationManager;
 
   List<Observation> _observations = [];
-  bool _isLoadingData = true;
 
   Position? _userPosition;
   Observation? _selectedObservation;
@@ -85,7 +87,6 @@ class _MapScreenState extends State<MapScreen> {
 
       setState(() {
         _observations = fetchedData;
-        _isLoadingData = false;
       });
 
       // Setelah data didapat, tambahkan marker ke peta
@@ -93,8 +94,7 @@ class _MapScreenState extends State<MapScreen> {
         await _addObservationMarkers();
       }
     } catch (e) {
-      print('Gagal mengambil data dari Supabase: $e');
-      setState(() => _isLoadingData = false);
+      debugPrint('Gagal mengambil data dari Supabase: $e');
     }
   }
 
@@ -114,7 +114,7 @@ class _MapScreenState extends State<MapScreen> {
         minZoom: 10.0,
       ));
     } catch (e) {
-      print('Set bounds error: $e');
+      debugPrint('Set bounds error: $e');
     }
 
     try {
@@ -124,7 +124,7 @@ class _MapScreenState extends State<MapScreen> {
         'day',
       );
     } catch (e) {
-      print('Skip lightPreset: $e');
+      debugPrint('Skip lightPreset: $e');
     }
 
     await _fetchObservations();
@@ -190,7 +190,7 @@ class _MapScreenState extends State<MapScreen> {
         );
       }
     } catch (e) {
-      print('Setup petugas model error: $e');
+      debugPrint('Setup petugas model error: $e');
     }
   }
 
@@ -244,14 +244,14 @@ class _MapScreenState extends State<MapScreen> {
         LocationComponentSettings(
           enabled: true,
           pulsingEnabled: true,
-          pulsingColor: AppColors.locationDot.value,
+          pulsingColor: AppColors.locationDot.toARGB32(),
           pulsingMaxRadius: 50.0,
           showAccuracyRing: true,
-          accuracyRingColor: AppColors.locationAccuracy.value,
+          accuracyRingColor: AppColors.locationAccuracy.toARGB32(),
         ),
       );
     } catch (e) {
-      print('Location indicator error (non-fatal): $e');
+      debugPrint('Location indicator error (non-fatal): $e');
     }
   }
 
@@ -312,7 +312,7 @@ class _MapScreenState extends State<MapScreen> {
       await map.style.setStyleLayerProperty('beam-edge-layer', 'line-width', 1.0);
 
     } catch (e) {
-      print('Beam setup error: $e');
+      debugPrint('Beam setup error: $e');
     }
   }
 
@@ -400,7 +400,7 @@ class _MapScreenState extends State<MapScreen> {
     if (status.isGranted) {
       _startLocationTracking();
     } else {
-      print('Izin lokasi ditolak');
+      debugPrint('Izin lokasi ditolak');
     }
   }
 
@@ -410,11 +410,13 @@ class _MapScreenState extends State<MapScreen> {
     
     try {
       final initialPosition = await geo.Geolocator.getCurrentPosition(
-        desiredAccuracy: geo.LocationAccuracy.high,
+        locationSettings: const geo.LocationSettings(
+          accuracy: geo.LocationAccuracy.high,
+        ),
       );
       _updateUserPosition(initialPosition.latitude, initialPosition.longitude);
     } catch (e) {
-      print('Gagal mendapatkan lokasi awal: $e');
+      debugPrint('Gagal mendapatkan lokasi awal: $e');
     }
 
     _locationSubscription = geo.Geolocator.getPositionStream(
@@ -446,17 +448,13 @@ class _MapScreenState extends State<MapScreen> {
   if (map == null) return;
 
   try {
-    // Jika muka karakter masih tidak pas, ubah angka 0.0 di bawah ini (offset).
-    // Misal: heading + 180 jika model menghadap ke belakang.
-    double modelYaw = heading; 
-
     await map.style.setStyleLayerProperty(
       'petugas-model-layer',
       'model-rotation',
       [0.0, 0.0, heading - 180.0], 
     );
   } catch (e) {
-    print('Update heading model error: $e');
+    debugPrint('Update heading model error: $e');
   }
 
   // Update Beam (posisi tetap di user, arah mengikuti heading)
@@ -517,7 +515,7 @@ class _MapScreenState extends State<MapScreen> {
         _buildGeoJsonPoint(lng, lat),
       );
     } catch (e) {
-      print('Update source error: $e');
+      debugPrint('Update source error: $e');
     }
 
     // Update beam position ketika GPS bergerak
@@ -537,7 +535,7 @@ class _MapScreenState extends State<MapScreen> {
         _buildBeamGeoJson(beamLng, beamLat, _heading, 0.0004),
       );
     } catch (e) {
-      print('Update beam position error: $e');
+      debugPrint('Update beam position error: $e');
     }
   }
 
@@ -572,66 +570,237 @@ class _MapScreenState extends State<MapScreen> {
         try {
           imageBytes = await file.readAsBytes();
         } catch (e) {
-          print('Error loading local image for marker: $e');
+          debugPrint('Error loading local image for marker: $e');
         }
       }
     }
 
     // 2. Try to load from Supabase if network url exists and no local image loaded
-    if (imageBytes == null && obs.fotoUrl.isNotEmpty) {
-      String imageUrl = obs.fotoUrl.trim(); // Hapus spasi jika ada
-      if (!imageUrl.startsWith('http')) {
-        imageUrl = Supabase.instance.client.storage
-            .from('Foto_Observasi')
-            .getPublicUrl(imageUrl);
-      }
-      
+    final resolvedUrl = resolveSupabaseFotoUrl(obs.fotoUrl);
+    if (imageBytes == null && resolvedUrl != null) {
       try {
-        final file = await DefaultCacheManager().getSingleFile(imageUrl);
+        final file = await DefaultCacheManager().getSingleFile(resolvedUrl);
         imageBytes = await file.readAsBytes();
       } catch (e) {
-        print('❌ Error downloading image for marker [${obs.namaSpesies}]: $e');
+        debugPrint('Error downloading image for marker [${obs.namaSpesies}]: $e');
       }
     }
 
     final renderData = _MarkerRenderData(
       imageBytes: imageBytes,
-      colorValue: color.value,
+      colorValue: color.toARGB32(),
       emoji: emoji,
     );
     
     return await _renderMarkerImage(renderData);
   }
 
-  Future<Uint8List> _emojiToImageBytes(String emoji, Color color) async {
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    const size = 80.0;
+  // ─────────────────────────────────────────────────────────
+  // NAVIGASI TOMBOL ADD (+)
+  // ─────────────────────────────────────────────────────────
+  void _onAddTap() {
+    final lat = _userPosition?.lat.toDouble() ?? 0.0;
+    final lng = _userPosition?.lng.toDouble() ?? 0.0;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FormScreen(lat: lat, lng: lng),
+      ),
+    ).then((_) {
+      // Refresh data setelah kembali dari form
+      _fetchObservations();
+    });
+  }
 
-    canvas.drawCircle(
-      const Offset(size / 2, size / 2),
-      size / 2,
-      Paint()..color = color.withOpacity(0.2),
+  // ─────────────────────────────────────────────────────────
+  // BUILD KONTEN BERDASARKAN TAB
+  // ─────────────────────────────────────────────────────────
+  Widget _buildBody() {
+    switch (_currentIndex) {
+      case 0:
+        return _buildMapContent();
+      case 1:
+        return const Padding(
+          padding: EdgeInsets.only(bottom: 80),
+          child: KoleksiScreen(),
+        );
+      case 2:
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 80),
+          child: _buildPersetujuanScreen(),
+        );
+      case 3:
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 80),
+          child: _buildProfilScreen(),
+        );
+      default:
+        return _buildMapContent();
+    }
+  }
+
+  Widget _buildMapContent() {
+    final unsyncedCount = _observations.where((o) => !o.isSynced).length;
+
+    return Stack(
+      children: [
+        if (_userPosition == null)
+          const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: AppColors.primary),
+                SizedBox(height: 16),
+                Text(
+                  'Mencari lokasi Anda...',
+                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          )
+        else
+          MapWidget(
+            onMapCreated: _onMapCreated,
+            styleUri: AppMapbox.styleUrl,
+            viewport: CameraViewportState(
+              center: Point(coordinates: _userPosition!),
+              zoom: _is3DPov ? 18.5 : 16.0,
+              pitch: _is3DPov ? 65.0 : 0.0,
+              bearing: 0.0,
+            ),
+          ),
+        if (_userPosition != null)
+          MapBottomSheet(
+            observations: _observations,
+            selectedObservationId: _selectedObservation?.id,
+            sheetExtent: _sheetExtent,
+            onObservationTap: (obs) {
+              setState(() => _selectedObservation = obs);
+              _flyToObservation(obs);
+            },
+          ),
+        if (_userPosition != null)
+          MapTopOverlay(unsyncedCount: unsyncedCount),
+        if (_selectedObservation != null)
+          ObservationDetailCard(
+            obs: _selectedObservation!,
+            onClose: () => setState(() => _selectedObservation = null),
+          ),
+        if (_userPosition != null)
+          MapControls(
+            sheetExtent: _sheetExtent,
+            is3DPov: _is3DPov,
+            onTogglePov: _togglePov,
+            onRecenter: _recenterCamera,
+          ),
+      ],
     );
-    canvas.drawCircle(
-      const Offset(size / 2, size / 2),
-      size / 2 - 2,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3,
+  }
+
+  Widget _buildPersetujuanScreen() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Persetujuan',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1E3A2B),
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.assignment_outlined, size: 64, color: AppColors.primary),
+            SizedBox(height: 16),
+            Text(
+              'Fitur Persetujuan',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1E3A2B),
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Segera hadir',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
     );
+  }
 
-    final tp = TextPainter(
-      text: TextSpan(text: emoji, style: const TextStyle(fontSize: 36)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    tp.paint(canvas, Offset((size - tp.width) / 2, (size - tp.height) / 2));
+  Widget _buildProfilScreen() {
+    final user = Supabase.instance.client.auth.currentUser;
+    final email = user?.email ?? 'Tidak diketahui';
 
-    final picture = recorder.endRecording();
-    final img = await picture.toImage(size.toInt(), size.toInt());
-    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Profil',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1E3A2B),
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const CircleAvatar(
+              radius: 48,
+              backgroundColor: AppColors.primary,
+              child: Icon(Icons.person, size: 48, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              email,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E3A2B),
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await Supabase.instance.client.auth.signOut();
+                  if (mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  }
+                },
+                icon: const Icon(Icons.logout),
+                label: const Text('Keluar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade400,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ─────────────────────────────────────────────────────────
@@ -639,66 +808,16 @@ class _MapScreenState extends State<MapScreen> {
   // ─────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final unsyncedCount = _observations.where((o) => !o.isSynced).length;
-
     return Scaffold(
       body: Stack(
         children: [
-          if (_userPosition == null)
-            const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: AppColors.primary),
-                  SizedBox(height: 16),
-                  Text(
-                    'Mencari lokasi Anda...',
-                    style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            )
-          else
-            MapWidget(
-              onMapCreated: _onMapCreated,
-              styleUri: AppMapbox.styleUrl,
-              cameraOptions: CameraOptions(
-                center: Point(coordinates: _userPosition!),
-                zoom: _is3DPov ? 18.5 : 16.0,
-                pitch: _is3DPov ? 65.0 : 0.0,
-                bearing: 0.0,
-              ),
-            ),
-          if (_userPosition != null)
-            MapBottomSheet(
-              observations: _observations,
-              selectedObservationId: _selectedObservation?.id,
-              sheetExtent: _sheetExtent,
-              onObservationTap: (obs) {
-                setState(() => _selectedObservation = obs);
-                _flyToObservation(obs);
-              },
-            ),
-          if (_userPosition != null)
-            MapTopOverlay(unsyncedCount: unsyncedCount),
-          if (_selectedObservation != null)
-            ObservationDetailCard(
-              obs: _selectedObservation!,
-              onClose: () => setState(() => _selectedObservation = null),
-            ),
-          if (_userPosition != null)
-            MapControls(
-              sheetExtent: _sheetExtent,
-              is3DPov: _is3DPov,
-              onTogglePov: _togglePov,
-              onRecenter: _recenterCamera,
-            ),
+          _buildBody(),
           Align(
             alignment: Alignment.bottomCenter,
             child: Navbar(
               currentIndex: _currentIndex,
               onTap: (index) => setState(() => _currentIndex = index),
-              onAddTap: () => print('Tombol Add ditekan dari Map Screen!'),
+              onAddTap: _onAddTap,
             ),
           ),
         ],
@@ -734,7 +853,7 @@ Future<Uint8List> _renderMarkerImage(_MarkerRenderData data) async {
 
   // Drop Shadow untuk marker
   final shadowPaint = Paint()
-    ..color = Colors.black.withOpacity(0.25)
+    ..color = Colors.black.withValues(alpha: 0.25)
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
   
   final path = Path();

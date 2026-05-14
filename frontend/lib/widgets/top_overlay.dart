@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../utils/constants.dart';
+import '../utils/constants.dart';
 
 class MapTopOverlay extends StatelessWidget {
   final int unsyncedCount;
@@ -64,7 +64,7 @@ class MapTopOverlay extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.92),
+        color: Colors.white.withValues(alpha:0.92),
         borderRadius: BorderRadius.circular(99),
         boxShadow: const [
           BoxShadow(

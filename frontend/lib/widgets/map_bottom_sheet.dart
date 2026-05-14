@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../../models/observation.dart';
-import '../../../utils/constants.dart';
+import '../models/observation.dart';
+import '../utils/constants.dart';
 import 'observation_card.dart';
 
 class MapBottomSheet extends StatefulWidget {
@@ -51,17 +51,17 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
               filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.85),
+                  color: Colors.white.withValues(alpha:0.85),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                   border: Border(
                     top: BorderSide(
-                      color: Colors.grey.withOpacity(0.2),
+                      color: Colors.grey.withValues(alpha:0.2),
                       width: 1.5,
                     ),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha:0.1),
                       blurRadius: 20,
                       offset: const Offset(0, -4),
                     ),
@@ -85,7 +85,7 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                               width: 50,
                               height: 6,
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade400.withOpacity(0.5),
+                                color: Colors.grey.shade400.withValues(alpha:0.5),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
@@ -125,13 +125,13 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                                     gradient: LinearGradient(
                                       colors: [
                                         AppColors.primary,
-                                        AppColors.primary.withOpacity(0.8),
+                                        AppColors.primary.withValues(alpha:0.8),
                                       ],
                                     ),
                                     borderRadius: BorderRadius.circular(16),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppColors.primary.withOpacity(0.3),
+                                        color: AppColors.primary.withValues(alpha:0.3),
                                         blurRadius: 8,
                                         offset: const Offset(0, 4),
                                       ),
@@ -165,7 +165,7 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100.withOpacity(0.5),
+                            color: Colors.grey.shade100.withValues(alpha:0.5),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: Colors.grey.shade200),
                           ),

@@ -45,6 +45,7 @@ dependencies:
   connectivity_plus: ^6.1.0   # deteksi online/offline
   image_picker: ^1.1.2        # ambil foto kamera/galeri
   uuid: ^4.5.1                # generate ID unik
+  intl: ^0.20.2
   flutter_compass: ^0.8.1
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
