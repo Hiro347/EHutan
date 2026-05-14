@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../utils/constants.dart';
+import '../utils/constants.dart';
 
 class MapControls extends StatelessWidget {
   final ValueNotifier<double> sheetExtent;

@@ -1,10 +1,8 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../models/observation.dart';
-import '../../../utils/constants.dart';
+import '../models/observation.dart';
+import '../utils/constants.dart';
 
 class ObservationCard extends StatelessWidget {
   final Observation obs;
@@ -30,18 +28,10 @@ class ObservationCard extends StatelessWidget {
       }
     }
 
-    if (obs.fotoUrl.isNotEmpty) {
-      String imageUrl = obs.fotoUrl.trim();
-      if (!imageUrl.startsWith('http')) {
-        imageUrl = Supabase.instance.client.storage
-            .from('Foto_Observasi')
-            .getPublicUrl(imageUrl);
-      }
-      
-      final bypassCacheUrl = '$imageUrl?t=${DateTime.now().millisecondsSinceEpoch}';
-
+    final resolvedUrl = resolveSupabaseFotoUrl(obs.fotoUrl);
+    if (resolvedUrl != null) {
       return Image.network(
-        bypassCacheUrl,
+        resolvedUrl,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
           return _buildPlaceholder(color, emoji);
@@ -82,8 +72,8 @@ class ObservationCard extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color: isSelected 
-                  ? AppColors.primary.withOpacity(0.15) 
-                  : Colors.black.withOpacity(0.06),
+                  ? AppColors.primary.withValues(alpha:0.15) 
+                  : Colors.black.withValues(alpha:0.06),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -113,9 +103,9 @@ class ObservationCard extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.5),
+                              color: Colors.black.withValues(alpha:0.5),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.white.withOpacity(0.2)),
+                              border: Border.all(color: Colors.white.withValues(alpha:0.2)),
                             ),
                             child: Text(
                               '$confidence%',
@@ -190,7 +180,7 @@ class ObservationCard extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: (obs.statusApproval == 'TERVERIFIKASI' 
                                     ? AppColors.statusTerverifikasi 
-                                    : AppColors.statusMenunggu).withOpacity(0.1),
+                                    : AppColors.statusMenunggu).withValues(alpha:0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -229,11 +219,11 @@ class ObservationCard extends StatelessWidget {
   Widget _buildPlaceholder(Color color, String emoji) {
     return Container(
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha:0.1),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [color.withOpacity(0.2), color.withOpacity(0.05)],
+          colors: [color.withValues(alpha:0.2), color.withValues(alpha:0.05)],
         ),
       ),
       child: Center(

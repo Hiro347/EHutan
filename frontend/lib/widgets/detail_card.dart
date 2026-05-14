@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../models/observation.dart';
-import '../../../utils/constants.dart';
+import '../models/observation.dart';
+import '../utils/constants.dart';
 
 class ObservationDetailCard extends StatelessWidget {
   final Observation obs;
@@ -29,7 +29,7 @@ class ObservationDetailCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(AppSizes.radiusCard),
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: color.withValues(alpha:0.3)),
           ),
           child: Row(
             children: [
@@ -37,7 +37,7 @@ class ObservationDetailCard extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha:0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(

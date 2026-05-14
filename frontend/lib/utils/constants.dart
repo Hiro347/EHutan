@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppColors {
   // Warna utama kehutanan
@@ -107,6 +108,19 @@ class AppTextStyles {
   );
 }
 
+/// Resolve foto_url ke URL lengkap Supabase Storage jika perlu.
+/// Jika sudah http → return apa adanya.
+/// Jika storage path (misal "observasi/uid/abc.jpg") → resolve ke public URL.
+/// Jika kosong → return null.
+String? resolveSupabaseFotoUrl(String? fotoUrl) {
+  if (fotoUrl == null || fotoUrl.trim().isEmpty) return null;
+  final url = fotoUrl.trim();
+  if (url.startsWith('http')) return url;
+  return Supabase.instance.client.storage
+      .from('Foto_Observasi')
+      .getPublicUrl(url);
+}
+
 // Helper: ambil warna marker berdasarkan kategori takson (Divisi)
 Color markerColorForTakson(String takson) {
   final t = takson.toLowerCase();
@@ -122,7 +136,7 @@ Color markerColorForTakson(String takson) {
   return AppColors.markerDefault;
 }
 
-// Helper: emoji icon per takson (untuk marker sederhana)
+// Helper: emoji icon per takson
 String markerEmojiForTakson(String takson) {
   final t = takson.toLowerCase();
   if (t.contains('karnivora')) return '🐅';
