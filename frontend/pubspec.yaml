@@ -76,6 +76,7 @@ flutter:
   assets:
     - .env
     - lib/assets/petugas.glb
+    - lib/assets/petugas_with_animation.glb
 
   # To add assets to your application, add an assets section, like this:
   # assets:

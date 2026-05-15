@@ -50,6 +50,10 @@ class _MapScreenState extends State<MapScreen> {
   final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.15);
   final Map<String, Uint8List> _markerCache = {};
 
+  Timer? _animationTimer;
+  double _animationTime = 0.0;
+  double _animationSpeed = 1.0;
+
   // ─────────────────────────────────────────────────────────
   // LIFECYCLE
   // ─────────────────────────────────────────────────────────
@@ -479,6 +483,30 @@ class _MapScreenState extends State<MapScreen> {
   }
 }
 
+  Future<void> _updateAnimationByDistance(double distanceMeters) async {
+    String animName = 'Idle';
+    if (distanceMeters < 1.5) {
+      animName = 'Idle';
+      _animationSpeed = 0.8;
+    } else if (distanceMeters <= 8.0) {
+      animName = 'walk';
+      _animationSpeed = 1.0;
+    } else {
+      animName = 'run';
+      _animationSpeed = 1.5;
+    }
+
+    try {
+      await _mapboxMap?.style.setStyleLayerProperty(
+        'petugas-model-layer',
+        'model-animation-name',
+        animName,
+      );
+    } catch (e) {
+      debugPrint('Animation update error: $e');
+    }
+  }
+
   Future<void> _updateUserPosition(double lat, double lng) async {
     if (!mounted) return;
 
@@ -490,6 +518,11 @@ class _MapScreenState extends State<MapScreen> {
       // and _onMapCreated will initialize everything at this _userPosition.
       return;
     }
+
+    final oldLat = _userPosition!.lat.toDouble();
+    final oldLng = _userPosition!.lng.toDouble();
+    final distance = geo.Geolocator.distanceBetween(oldLat, oldLng, lat, lng);
+    _updateAnimationByDistance(distance);
     
     // Optimisasi: Tanpa setState untuk mencegah rebuild Scaffold dan widget lain 
     // secara berulang setiap kali ada perubahan lokasi kecil.
