@@ -169,35 +169,29 @@ class _MapScreenState extends State<MapScreen> {
         ),
       );
 
-      await map.style.addLayer(
-        ModelLayer(
-          id: 'petugas-model-layer',
-          sourceId: 'petugas-location-source',
-        ),
-      );
+      // ✅ Gunakan addStyleLayer dengan JSON literal agar bisa mengirim model-animation-name saat creation
+      final layerProperties = jsonEncode({
+        'id': 'petugas-model-layer',
+        'type': 'model',
+        'source': 'petugas-location-source',
+        'layout': {
+          'model-id': 'petugas-model',
+        },
+        'paint': {
+          'model-scale': [8.0, 8.0, 8.0],
+          'model-rotation': [0.0, 0.0, -180.0],
+          'model-translation': [0.0, 0.0, 5.0],
+          'model-type': 'common-3d',
+          'model-cast-shadows': true,
+          'model-receive-shadows': true,
+          'model-animation-name': 'idle',
+        }
+      });
+      await map.style.addStyleLayer(layerProperties, null);
 
-      final props = {
-        'model-id': ['literal', 'petugas-model'],
-        'model-scale': [8.0, 8.0, 8.0],
-        'model-rotation': [0.0, 0.0, -180.0],
-        'model-translation': [0.0, 0.0, 5.0],
-        'model-type': 'common-3d',
-        'model-cast-shadows': true,
-        'model-receive-shadows': true,
-      };
-
-      for (final entry in props.entries) {
-        await map.style.setStyleLayerProperty(
-          'petugas-model-layer',
-          entry.key,
-          entry.value,
-        );
-      }
-
-      await map.style.setStyleLayerProperty('petugas-model-layer', 'model-animation-name', 'idle');
-      
+      // Timer untuk update animation time (ini tetap pakai setStyleLayerProperty, OK)
       _animationTimer?.cancel();
-      _animationTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+      _animationTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
         _animationTime += 0.016 * _animationSpeed;
         _mapboxMap?.style.setStyleLayerProperty(
           'petugas-model-layer',
@@ -497,7 +491,7 @@ class _MapScreenState extends State<MapScreen> {
 }
 
   Future<void> _updateAnimationByDistance(double distanceMeters) async {
-    String animName = 'idle';
+    String animName;
     if (distanceMeters < 1.5) {
       animName = 'idle';
       _animationSpeed = 0.8;
@@ -509,6 +503,7 @@ class _MapScreenState extends State<MapScreen> {
       _animationSpeed = 1.5;
     }
 
+    // ✅ Ini tetap pakai setStyleLayerProperty untuk UPDATE (bukan create), ini valid
     try {
       await _mapboxMap?.style.setStyleLayerProperty(
         'petugas-model-layer',
