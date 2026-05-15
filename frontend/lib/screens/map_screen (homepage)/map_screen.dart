@@ -143,7 +143,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<String> _extractGlbToTemp(String assetPath) async {
     final byteData = await rootBundle.load(assetPath);
     final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/petugas.glb');
+    final file = File('${tempDir.path}/petugas_with_animation.glb');
     await file.writeAsBytes(byteData.buffer.asUint8List());
     return file.path;
   }
@@ -156,7 +156,7 @@ class _MapScreenState extends State<MapScreen> {
     if (map == null) return;
 
     try {
-      final glbPath = await _extractGlbToTemp('lib/assets/petugas.glb');
+      final glbPath = await _extractGlbToTemp('lib/assets/petugas_with_animation.glb');
       await map.style.addStyleModel('petugas-model', 'file://$glbPath');
 
       await map.style.addSource(
