@@ -20,8 +20,8 @@ import '../../widgets/map_bottom_sheet.dart';
 import '../../widgets/detail_card.dart';
 import '../../widgets/top_overlay.dart';
 import '../../widgets/map_controls.dart';
-import '../koleksi_screen.dart';
-import '../form_screen.dart';
+import '../koleksi_screen/koleksi_screen.dart';
+import '../form_screen/form_screen.dart';
 import '../login_screen/login_screen.dart';
 import '_marker_click_listener.dart';
 import 'dart:math' as math;
@@ -107,11 +107,11 @@ class _MapScreenState extends State<MapScreen> {
     try {
       await _mapboxMap?.setBounds(CameraBoundsOptions(
         bounds: CoordinateBounds(
-          southwest: Point(coordinates: Position(106.65, -6.75)),
-          northeast: Point(coordinates: Position(107.05, -6.45)),
+          southwest: Point(coordinates: Position(AppMapbox.boundsMinLng, AppMapbox.boundsMinLat)),
+          northeast: Point(coordinates: Position(AppMapbox.boundsMaxLng, AppMapbox.boundsMaxLat)),
           infiniteBounds: false,
         ),
-        minZoom: 10.0,
+        minZoom: AppMapbox.minZoom,
       ));
     } catch (e) {
       debugPrint('Set bounds error: $e');

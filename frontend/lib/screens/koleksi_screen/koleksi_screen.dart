@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/observation.dart';
-import '../services/koleksi_service.dart';
-import '../services/sqlite_service.dart'; 
-import '../widgets/species_card.dart';
-import '../utils/constants.dart';
+import '../../models/observation.dart';
+import '../../services/koleksi_service.dart';
+import '../../services/sqlite_service.dart'; 
+import '../../widgets/species_card.dart';
+import '../../utils/constants.dart';
 import 'observation_detail_sheet.dart';
 
 class KoleksiScreen extends StatefulWidget {

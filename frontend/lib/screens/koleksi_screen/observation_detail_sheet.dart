@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../models/observation.dart';
-import '../utils/constants.dart';
-import '../providers/observation_provider.dart';
+import '../../models/observation.dart';
+import '../../utils/constants.dart';
+import '../../providers/observation_provider.dart';
 
 Future<void> showObservationDetailSheet(BuildContext context, Observation observation, VoidCallback onDeleted) {
   return showModalBottomSheet(
