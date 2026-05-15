@@ -193,6 +193,19 @@ class _MapScreenState extends State<MapScreen> {
           entry.value,
         );
       }
+
+      await map.style.setStyleLayerProperty('petugas-model-layer', 'model-animation-name', 'idle');
+      
+      _animationTimer?.cancel();
+      _animationTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+        _animationTime += 0.016 * _animationSpeed;
+        _mapboxMap?.style.setStyleLayerProperty(
+          'petugas-model-layer',
+          'model-animation-time',
+          _animationTime,
+        ).catchError((_) {});
+      });
+
     } catch (e) {
       debugPrint('Setup petugas model error: $e');
     }
@@ -484,9 +497,9 @@ class _MapScreenState extends State<MapScreen> {
 }
 
   Future<void> _updateAnimationByDistance(double distanceMeters) async {
-    String animName = 'Idle';
+    String animName = 'idle';
     if (distanceMeters < 1.5) {
-      animName = 'Idle';
+      animName = 'idle';
       _animationSpeed = 0.8;
     } else if (distanceMeters <= 8.0) {
       animName = 'walk';
