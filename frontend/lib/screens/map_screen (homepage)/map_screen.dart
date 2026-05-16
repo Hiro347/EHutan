@@ -50,10 +50,6 @@ class _MapScreenState extends State<MapScreen> {
   final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.15);
   final Map<String, Uint8List> _markerCache = {};
 
-  Timer? _animationTimer;
-  double _animationTime = 0.0;
-  double _animationSpeed = 1.0;
-
   // ─────────────────────────────────────────────────────────
   // LIFECYCLE
   // ─────────────────────────────────────────────────────────
@@ -143,7 +139,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<String> _extractGlbToTemp(String assetPath) async {
     final byteData = await rootBundle.load(assetPath);
     final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/petugas_with_animation.glb');
+    final file = File('${tempDir.path}/petugas_coin.glb');
     await file.writeAsBytes(byteData.buffer.asUint8List());
     return file.path;
   }
@@ -156,7 +152,7 @@ class _MapScreenState extends State<MapScreen> {
     if (map == null) return;
 
     try {
-      final glbPath = await _extractGlbToTemp('lib/assets/petugas_with_animation.glb');
+      final glbPath = await _extractGlbToTemp('lib/assets/petugas_coin.glb');
       await map.style.addStyleModel('petugas-model', 'file://$glbPath');
 
       await map.style.addSource(
@@ -169,36 +165,17 @@ class _MapScreenState extends State<MapScreen> {
         ),
       );
 
-      // ✅ Gunakan addStyleLayer dengan JSON literal agar bisa mengirim model-animation-name saat creation
-      final layerProperties = jsonEncode({
-        'id': 'petugas-model-layer',
-        'type': 'model',
-        'source': 'petugas-location-source',
-        'layout': {
-          'model-id': 'petugas-model',
-        },
-        'paint': {
-          'model-scale': [8.0, 8.0, 8.0],
-          'model-rotation': [0.0, 0.0, -180.0],
-          'model-translation': [0.0, 0.0, 5.0],
-          'model-type': 'common-3d',
-          'model-cast-shadows': true,
-          'model-receive-shadows': true,
-          'model-animation-name': 'idle',
-        }
-      });
-      await map.style.addStyleLayer(layerProperties, null);
-
-      // Timer untuk update animation time (ini tetap pakai setStyleLayerProperty, OK)
-      _animationTimer?.cancel();
-      _animationTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
-        _animationTime += 0.016 * _animationSpeed;
-        _mapboxMap?.style.setStyleLayerProperty(
-          'petugas-model-layer',
-          'model-animation-time',
-          _animationTime,
-        ).catchError((_) {});
-      });
+      final modelLayer = ModelLayer(
+        id: 'petugas-model-layer',
+        sourceId: 'petugas-location-source',
+      );
+      modelLayer.modelId = 'petugas-model';
+      modelLayer.modelScale = [8.0, 8.0, 8.0];
+      modelLayer.modelRotation = [90.0, 0.0, -180.0];
+      modelLayer.modelTranslation = [0.0, 0.0, 5.0];
+      modelLayer.modelType = ModelType.COMMON_3D;
+      
+      await map.style.addLayer(modelLayer);
 
     } catch (e) {
       debugPrint('Setup petugas model error: $e');
@@ -462,7 +439,7 @@ class _MapScreenState extends State<MapScreen> {
     await map.style.setStyleLayerProperty(
       'petugas-model-layer',
       'model-rotation',
-      [0.0, 0.0, heading - 180.0], 
+      [90.0, 0.0, heading - 180.0], 
     );
   } catch (e) {
     debugPrint('Update heading model error: $e');
@@ -490,31 +467,6 @@ class _MapScreenState extends State<MapScreen> {
   }
 }
 
-  Future<void> _updateAnimationByDistance(double distanceMeters) async {
-    String animName;
-    if (distanceMeters < 1.5) {
-      animName = 'idle';
-      _animationSpeed = 0.8;
-    } else if (distanceMeters <= 8.0) {
-      animName = 'walk';
-      _animationSpeed = 1.0;
-    } else {
-      animName = 'run';
-      _animationSpeed = 1.5;
-    }
-
-    // ✅ Ini tetap pakai setStyleLayerProperty untuk UPDATE (bukan create), ini valid
-    try {
-      await _mapboxMap?.style.setStyleLayerProperty(
-        'petugas-model-layer',
-        'model-animation-name',
-        animName,
-      );
-    } catch (e) {
-      debugPrint('Animation update error: $e');
-    }
-  }
-
   Future<void> _updateUserPosition(double lat, double lng) async {
     if (!mounted) return;
 
@@ -526,11 +478,6 @@ class _MapScreenState extends State<MapScreen> {
       // and _onMapCreated will initialize everything at this _userPosition.
       return;
     }
-
-    final oldLat = _userPosition!.lat.toDouble();
-    final oldLng = _userPosition!.lng.toDouble();
-    final distance = geo.Geolocator.distanceBetween(oldLat, oldLng, lat, lng);
-    _updateAnimationByDistance(distance);
     
     // Optimisasi: Tanpa setState untuk mencegah rebuild Scaffold dan widget lain 
     // secara berulang setiap kali ada perubahan lokasi kecil.
