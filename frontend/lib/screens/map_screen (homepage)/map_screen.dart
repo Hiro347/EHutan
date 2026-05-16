@@ -50,6 +50,13 @@ class _MapScreenState extends State<MapScreen> {
   final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.15);
   final Map<String, Uint8List> _markerCache = {};
 
+  Position? _targetPosition;
+  Timer? _moveTimer;
+  static const int _moveSteps = 20;      // Jumlah langkah animasi
+  static const int _moveIntervalMs = 50; // 50ms × 20 = 1 detik total
+  double? _lastRenderLng;
+  double? _lastRenderLat;
+
   // ─────────────────────────────────────────────────────────
   // LIFECYCLE
   // ─────────────────────────────────────────────────────────
@@ -67,6 +74,7 @@ class _MapScreenState extends State<MapScreen> {
   void dispose() {
     _locationSubscription?.cancel();
     _compassSubscription?.cancel();
+    _moveTimer?.cancel();
     super.dispose();
   }
 
@@ -467,6 +475,46 @@ class _MapScreenState extends State<MapScreen> {
   }
 }
 
+  void _animateModelToPosition(double toLng, double toLat) {
+    _moveTimer?.cancel();
+
+    final fromLng = _lastRenderLng ?? _userPosition?.lng.toDouble() ?? toLng;
+    final fromLat = _lastRenderLat ?? _userPosition?.lat.toDouble() ?? toLat;
+
+    int step = 0;
+
+    _moveTimer = Timer.periodic(
+      const Duration(milliseconds: _moveIntervalMs),
+      (timer) async {
+        step++;
+        final t = step / _moveSteps; // 0.0 → 1.0
+        
+        // Linear interpolation
+        final currentLng = fromLng + (toLng - fromLng) * t;
+        final currentLat = fromLat + (toLat - fromLat) * t;
+
+        _lastRenderLng = currentLng;
+        _lastRenderLat = currentLat;
+
+        final map = _mapboxMap;
+        if (map == null || !mounted) {
+          timer.cancel();
+          return;
+        }
+
+        try {
+          await map.style.setStyleSourceProperty(
+            'petugas-location-source',
+            'data',
+            _buildGeoJsonPoint(currentLng, currentLat),
+          );
+        } catch (_) {}
+
+        if (step >= _moveSteps) timer.cancel();
+      },
+    );
+  }
+
   Future<void> _updateUserPosition(double lat, double lng) async {
     if (!mounted) return;
 
@@ -496,15 +544,7 @@ class _MapScreenState extends State<MapScreen> {
       ));
     }
 
-    try {
-      await map.style.setStyleSourceProperty(
-        'petugas-location-source',
-        'data',
-        _buildGeoJsonPoint(lng, lat),
-      );
-    } catch (e) {
-      debugPrint('Update source error: $e');
-    }
+    _animateModelToPosition(lng, lat);
 
     // Update beam position ketika GPS bergerak
     try {
