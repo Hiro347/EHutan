@@ -139,7 +139,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<String> _extractGlbToTemp(String assetPath) async {
     final byteData = await rootBundle.load(assetPath);
     final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/petugas_coin.glb');
+    final file = File('${tempDir.path}/petugas.glb');
     await file.writeAsBytes(byteData.buffer.asUint8List());
     return file.path;
   }
@@ -152,7 +152,7 @@ class _MapScreenState extends State<MapScreen> {
     if (map == null) return;
 
     try {
-      final glbPath = await _extractGlbToTemp('lib/assets/petugas_coin.glb');
+      final glbPath = await _extractGlbToTemp('lib/assets/petugas.glb');
       await map.style.addStyleModel('petugas-model', 'file://$glbPath');
 
       await map.style.addSource(
@@ -171,7 +171,7 @@ class _MapScreenState extends State<MapScreen> {
       );
       modelLayer.modelId = 'petugas-model';
       modelLayer.modelScale = [8.0, 8.0, 8.0];
-      modelLayer.modelRotation = [90.0, 0.0, -180.0];
+      modelLayer.modelRotation = [0.0, 0.0, -180.0];
       modelLayer.modelTranslation = [0.0, 0.0, 5.0];
       modelLayer.modelType = ModelType.COMMON_3D;
       
@@ -439,7 +439,7 @@ class _MapScreenState extends State<MapScreen> {
     await map.style.setStyleLayerProperty(
       'petugas-model-layer',
       'model-rotation',
-      [90.0, 0.0, heading - 180.0], 
+      [0.0, 0.0, heading - 180.0],
     );
   } catch (e) {
     debugPrint('Update heading model error: $e');
