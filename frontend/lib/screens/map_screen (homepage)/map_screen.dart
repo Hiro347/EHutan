@@ -20,8 +20,8 @@ import '../../widgets/map_bottom_sheet.dart';
 import '../../widgets/detail_card.dart';
 import '../../widgets/top_overlay.dart';
 import '../../widgets/map_controls.dart';
-import '../koleksi_screen.dart';
-import '../form_screen.dart';
+import '../koleksi_screen/koleksi_screen.dart';
+import '../form_screen/form_screen.dart';
 import '../login_screen/login_screen.dart';
 import '_marker_click_listener.dart';
 import 'dart:math' as math;
@@ -107,11 +107,11 @@ class _MapScreenState extends State<MapScreen> {
     try {
       await _mapboxMap?.setBounds(CameraBoundsOptions(
         bounds: CoordinateBounds(
-          southwest: Point(coordinates: Position(106.65, -6.75)),
-          northeast: Point(coordinates: Position(107.05, -6.45)),
+          southwest: Point(coordinates: Position(AppMapbox.boundsMinLng, AppMapbox.boundsMinLat)),
+          northeast: Point(coordinates: Position(AppMapbox.boundsMaxLng, AppMapbox.boundsMaxLat)),
           infiniteBounds: false,
         ),
-        minZoom: 10.0,
+        minZoom: AppMapbox.minZoom,
       ));
     } catch (e) {
       debugPrint('Set bounds error: $e');
@@ -139,7 +139,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<String> _extractGlbToTemp(String assetPath) async {
     final byteData = await rootBundle.load(assetPath);
     final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/petugas.glb');
+    final file = File('${tempDir.path}/petugas_coin.glb');
     await file.writeAsBytes(byteData.buffer.asUint8List());
     return file.path;
   }
@@ -152,7 +152,7 @@ class _MapScreenState extends State<MapScreen> {
     if (map == null) return;
 
     try {
-      final glbPath = await _extractGlbToTemp('lib/assets/petugas.glb');
+      final glbPath = await _extractGlbToTemp('lib/assets/petugas_coin.glb');
       await map.style.addStyleModel('petugas-model', 'file://$glbPath');
 
       await map.style.addSource(
@@ -165,30 +165,18 @@ class _MapScreenState extends State<MapScreen> {
         ),
       );
 
-      await map.style.addLayer(
-        ModelLayer(
-          id: 'petugas-model-layer',
-          sourceId: 'petugas-location-source',
-        ),
+      final modelLayer = ModelLayer(
+        id: 'petugas-model-layer',
+        sourceId: 'petugas-location-source',
       );
+      modelLayer.modelId = 'petugas-model';
+      modelLayer.modelScale = [8.0, 8.0, 8.0];
+      modelLayer.modelRotation = [90.0, 0.0, -180.0];
+      modelLayer.modelTranslation = [0.0, 0.0, 5.0];
+      modelLayer.modelType = ModelType.COMMON_3D;
+      
+      await map.style.addLayer(modelLayer);
 
-      final props = {
-        'model-id': ['literal', 'petugas-model'],
-        'model-scale': [8.0, 8.0, 8.0],
-        'model-rotation': [0.0, 0.0, -180.0],
-        'model-translation': [0.0, 0.0, 5.0],
-        'model-type': 'common-3d',
-        'model-cast-shadows': true,
-        'model-receive-shadows': true,
-      };
-
-      for (final entry in props.entries) {
-        await map.style.setStyleLayerProperty(
-          'petugas-model-layer',
-          entry.key,
-          entry.value,
-        );
-      }
     } catch (e) {
       debugPrint('Setup petugas model error: $e');
     }
@@ -451,7 +439,7 @@ class _MapScreenState extends State<MapScreen> {
     await map.style.setStyleLayerProperty(
       'petugas-model-layer',
       'model-rotation',
-      [0.0, 0.0, heading - 180.0], 
+      [90.0, 0.0, heading - 180.0], 
     );
   } catch (e) {
     debugPrint('Update heading model error: $e');

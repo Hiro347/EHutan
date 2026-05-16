@@ -58,13 +58,13 @@ class AppMapbox {
   static const String styleUrl = 
     'mapbox://styles/arya347/cmor4slcc000c01s09xgmfbby';
 
-  // Bounding box wilayah Bogor
-  static const double boundsMinLat = -6.75;
-  static const double boundsMaxLat = -6.45;
-  static const double boundsMinLng = 106.65;
-  static const double boundsMaxLng = 106.95;
+  // Bounding box wilayah Indonesia
+  static const double boundsMinLat = -11.0;
+  static const double boundsMaxLat = 6.0;
+  static const double boundsMinLng = 95.0;
+  static const double boundsMaxLng = 141.0;
 
-  static const double minZoom = 11.0;
+  static const double minZoom = 4.0;
   static const double maxZoom = 20.0;
 }
 
