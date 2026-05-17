@@ -21,6 +21,7 @@ import '../../widgets/detail_card.dart';
 import '../../widgets/top_overlay.dart';
 import '../../widgets/map_controls.dart';
 import '../koleksi_screen/koleksi_screen.dart';
+import '../persetujuan_screen/persetujuan_screen.dart';
 import '../form_screen/form_screen.dart';
 import '../login_screen/login_screen.dart';
 import '_marker_click_listener.dart';
@@ -809,42 +810,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _buildPersetujuanScreen() {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Persetujuan',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF1E3A2B),
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.assignment_outlined, size: 64, color: AppColors.primary),
-            SizedBox(height: 16),
-            Text(
-              'Fitur Persetujuan',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1E3A2B),
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Segera hadir',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
+    return const PersetujuanScreen();
   }
 
   Widget _buildProfilScreen() {
