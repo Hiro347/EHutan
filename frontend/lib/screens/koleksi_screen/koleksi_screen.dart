@@ -149,25 +149,14 @@ class _KoleksiScreenState extends State<KoleksiScreen>
         style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 2, color: Color(0xFF1A2400)),
       ),
       centerTitle: true,
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight - 12),
-        child: _buildTabBar(),
-      ),
-    );
-  }
-
-  Widget _buildTabBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE8EDE0), width: 1)),
-      ),
-      child: TabBar(
+      bottom: TabBar(
         controller: _tabController,
         labelColor: AppColors.primary,
         unselectedLabelColor: Colors.grey.shade500,
         labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         indicatorColor: AppColors.primary,
         indicatorWeight: 3,
+        dividerColor: const Color(0xFFE8EDE0),
         tabs: const [Tab(text: 'Observasi Saya'), Tab(text: 'Observasi UKF')],
       ),
     );
@@ -187,7 +176,7 @@ class _KoleksiScreenState extends State<KoleksiScreen>
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.78,
+          childAspectRatio: 0.72,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -245,7 +234,7 @@ class _KoleksiScreenState extends State<KoleksiScreen>
                 childCount: entry.value.length,
               ),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, childAspectRatio: 0.78, crossAxisSpacing: 12, mainAxisSpacing: 12,
+                crossAxisCount: 2, childAspectRatio: 0.72, crossAxisSpacing: 12, mainAxisSpacing: 12,
               ),
             ),
           ),
