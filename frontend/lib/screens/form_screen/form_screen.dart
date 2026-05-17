@@ -342,7 +342,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
               const SizedBox(height: 16),
               TextFormField(controller: _lokalController, decoration: const InputDecoration(labelText: 'Nama Lokal / Panggilan', border: OutlineInputBorder())),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(value: _kategoriTakson, decoration: const InputDecoration(labelText: 'Divisi Konservasi', border: OutlineInputBorder()), items: _listDivisi.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => _kategoriTakson = v!)),
+              DropdownButtonFormField<String>(initialValue: _kategoriTakson, decoration: const InputDecoration(labelText: 'Divisi Konservasi', border: OutlineInputBorder()), items: _listDivisi.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => _kategoriTakson = v!)),
               const SizedBox(height: 16),
               TextFormField(controller: _jumlahController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Jumlah Individu', border: OutlineInputBorder(), prefixIcon: Icon(Icons.groups))),
             ]),
@@ -587,7 +587,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
   Widget _buildDropdownWithCustom({required String label, required String value, required List<String> list, required TextEditingController customController, required Function(String?) onChanged}) {
     return Column(
       children: [
-        DropdownButtonFormField<String>(decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()), value: value, items: list.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: onChanged),
+        DropdownButtonFormField<String>(decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()), initialValue: value, items: list.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: onChanged),
         if (value == 'Lainnya') ...[
           const SizedBox(height: 12),
           TextFormField(controller: customController, decoration: InputDecoration(hintText: 'Tulis $label manual...', border: const OutlineInputBorder(), filled: true, fillColor: Colors.orange.shade50)),
