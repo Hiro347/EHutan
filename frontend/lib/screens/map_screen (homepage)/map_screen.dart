@@ -114,6 +114,26 @@ class _MapScreenState extends State<MapScreen> {
     final isReinit = _mapboxMap != null;
     _mapboxMap = mapboxMap;
 
+    // Geser kompas Mapbox ke bawah agar tidak nabrak status bar
+    await _mapboxMap?.compass.updateSettings(
+      CompassSettings(
+        enabled: true,
+        position: OrnamentPosition.TOP_RIGHT,
+        marginTop: 50,   // ← turunkan sesuai kebutuhan
+        marginRight: 16,
+      ),
+    );
+
+    // Turunkan scale bar agar tidak nabrak status bar
+    await _mapboxMap?.scaleBar.updateSettings(
+      ScaleBarSettings(
+        enabled: true,
+        position: OrnamentPosition.TOP_LEFT,
+        marginTop: 30,   // sesuaikan
+        marginLeft: 16,
+      ),
+    );
+
     if (_userPosition != null) {
       await _mapboxMap?.setCamera(CameraOptions(
         center: Point(coordinates: _userPosition!),
