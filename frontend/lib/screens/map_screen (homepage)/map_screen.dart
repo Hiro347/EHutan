@@ -244,7 +244,7 @@ class _MapScreenState extends State<MapScreen> {
       _annotationManager = await _mapboxMap?.annotations.createPointAnnotationManager();
     }
 
-    for (final obs in _observations) {
+    final optionsList = await Future.wait(_observations.map((obs) async {
       Uint8List imageBytes;
       if (_markerCache.containsKey(obs.id)) {
         imageBytes = _markerCache[obs.id]!;
@@ -253,14 +253,16 @@ class _MapScreenState extends State<MapScreen> {
         _markerCache[obs.id] = imageBytes;
       }
 
-      await _annotationManager?.create(
-        PointAnnotationOptions(
-          geometry: Point(coordinates: Position(obs.longitude, obs.latitude)),
-          image: imageBytes,
-          iconSize: 1.2,
-          iconAnchor: IconAnchor.BOTTOM,
-        ),
+      return PointAnnotationOptions(
+        geometry: Point(coordinates: Position(obs.longitude, obs.latitude)),
+        image: imageBytes,
+        iconSize: 1.2,
+        iconAnchor: IconAnchor.BOTTOM,
       );
+    }));
+
+    if (optionsList.isNotEmpty && _annotationManager != null) {
+      await _annotationManager!.createMulti(optionsList);
     }
 
     _annotationManager?.addOnPointAnnotationClickListener(
