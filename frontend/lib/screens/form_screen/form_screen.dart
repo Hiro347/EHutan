@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/ai_suggestion.dart';
-import '../providers/observation_provider.dart';
-import '../services/ai_service.dart';
-import '../utils/constants.dart';
+import '../../models/ai_suggestion.dart';
+import '../../providers/observation_provider.dart';
+import '../../services/ai_service.dart';
+import '../../utils/constants.dart';
 
 class FormScreen extends ConsumerStatefulWidget {
   final double lat;

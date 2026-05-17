@@ -190,7 +190,7 @@ class _MapScreenState extends State<MapScreen> {
       modelLayer.modelId = 'petugas-model';
       modelLayer.modelScale = [8.0, 8.0, 8.0];
       modelLayer.modelRotation = [0.0, 0.0, -180.0];
-      modelLayer.modelTranslation = [0.0, 0.0, 5.0];
+      modelLayer.modelTranslation = [0.0, 0.0, 8.0];
       modelLayer.modelType = ModelType.COMMON_3D;
       
       await map.style.addLayer(modelLayer);
@@ -281,8 +281,8 @@ class _MapScreenState extends State<MapScreen> {
         id: 'beam-outer-layer',
         sourceId: 'beam-outer-source',
       ));
-      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-color', '#B3E5FC');
-      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-opacity', 0.08);
+      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-color', '#FFFDE7');
+      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-opacity', 0.18);
 
       // ── Layer 2: Mid beam ──
       await map.style.addSource(GeoJsonSource(
@@ -293,8 +293,8 @@ class _MapScreenState extends State<MapScreen> {
         id: 'beam-mid-layer',
         sourceId: 'beam-mid-source',
       ));
-      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-color', '#E1F5FE');
-      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-opacity', 0.14);
+      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-color', '#FFF9C4');
+      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-opacity', 0.28);
 
       // ── Layer 3: Inner core (sempit, paling terang) ──
       await map.style.addSource(GeoJsonSource(
@@ -306,16 +306,16 @@ class _MapScreenState extends State<MapScreen> {
         sourceId: 'beam-inner-source',
       ));
       await map.style.setStyleLayerProperty('beam-inner-layer', 'fill-color', '#FFFFFF');
-      await map.style.setStyleLayerProperty('beam-inner-layer', 'fill-opacity', 0.22);
+      await map.style.setStyleLayerProperty('beam-inner-layer', 'fill-opacity', 0.45);
 
       // ── Line edge: tepi beam ──
       await map.style.addLayer(LineLayer(
         id: 'beam-edge-layer',
         sourceId: 'beam-inner-source',
       ));
-      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-color', '#90CAF9');
-      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-opacity', 0.35);
-      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-width', 1.0);
+      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-color', '#FFE082');
+      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-opacity', 0.70);
+      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-width', 1.5);
 
     } catch (e) {
       debugPrint('Beam setup error: $e');

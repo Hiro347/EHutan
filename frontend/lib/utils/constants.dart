@@ -24,10 +24,10 @@ class AppColors {
   static const Color markerReptil = Color(0xFFF97316);
   static const Color markerDefault = Color(0xFF6B7280);
 
-  // Warna location marker (Pokémon GO style)
-  static const Color locationDot = Color(0xFF3B82F6);
-  static const Color locationPulse = Color(0x663B82F6);
-  static const Color locationAccuracy = Color(0x223B82F6);
+  // Warna location marker
+  static const Color locationDot = Color(0xFF609008);
+  static const Color locationPulse = Color(0x66609008);
+  static const Color locationAccuracy = Color(0x22609008);
 }
 
 class AppStrings {
