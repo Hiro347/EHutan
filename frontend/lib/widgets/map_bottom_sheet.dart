@@ -9,6 +9,7 @@ class MapBottomSheet extends StatefulWidget {
   final String? selectedObservationId;
   final ValueNotifier<double> sheetExtent;
   final void Function(Observation) onObservationTap;
+  final DraggableScrollableController? controller;
 
   const MapBottomSheet({
     super.key,
@@ -16,6 +17,7 @@ class MapBottomSheet extends StatefulWidget {
     required this.selectedObservationId,
     required this.sheetExtent,
     required this.onObservationTap,
+    this.controller,
   });
 
   @override
@@ -39,6 +41,7 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
         return false;
       },
       child: DraggableScrollableSheet(
+        controller: widget.controller,
         initialChildSize: 0.28,
         minChildSize: 0.18,
         maxChildSize: 0.95,

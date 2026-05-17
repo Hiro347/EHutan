@@ -48,6 +48,7 @@ class _MapScreenState extends State<MapScreen> {
   bool _firstLocationFixed = false;
   bool _is3DPov = true;
   final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.15);
+  final DraggableScrollableController _sheetController = DraggableScrollableController();
   final Map<String, Uint8List> _markerCache = {};
 
   Position? _targetPosition;
@@ -699,12 +700,20 @@ class _MapScreenState extends State<MapScreen> {
           ),
         if (_userPosition != null)
           MapBottomSheet(
+            controller: _sheetController,
             observations: _observations,
             selectedObservationId: _selectedObservation?.id,
             sheetExtent: _sheetExtent,
             onObservationTap: (obs) {
               setState(() => _selectedObservation = obs);
               _flyToObservation(obs);
+              if (_sheetController.isAttached) {
+                _sheetController.animateTo(
+                  0.18,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
             },
           ),
         if (_userPosition != null)
