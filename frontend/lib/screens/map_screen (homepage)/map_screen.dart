@@ -47,7 +47,7 @@ class _MapScreenState extends State<MapScreen> {
   double _heading = 0.0;
   bool _firstLocationFixed = false;
   bool _is3DPov = true;
-  final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.15);
+  final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(AppLayout.sheetInitialSize);
   final DraggableScrollableController _sheetController = DraggableScrollableController();
   final Map<String, Uint8List> _markerCache = {};
 
@@ -112,6 +112,15 @@ class _MapScreenState extends State<MapScreen> {
   // ─────────────────────────────────────────────────────────
   Future<void> _onMapCreated(MapboxMap mapboxMap) async {
     _mapboxMap = mapboxMap;
+
+    if (_userPosition != null) {
+      await _mapboxMap?.setCamera(CameraOptions(
+        center: Point(coordinates: _userPosition!),
+        zoom: _is3DPov ? 18.5 : 16.0,
+        pitch: _is3DPov ? 65.0 : 0.0,
+        bearing: 0.0,
+      ));
+    }
 
     try {
       await _mapboxMap?.setBounds(CameraBoundsOptions(
@@ -691,12 +700,6 @@ class _MapScreenState extends State<MapScreen> {
           MapWidget(
             onMapCreated: _onMapCreated,
             styleUri: AppMapbox.styleUrl,
-            viewport: CameraViewportState(
-              center: Point(coordinates: _userPosition!),
-              zoom: _is3DPov ? 18.5 : 16.0,
-              pitch: _is3DPov ? 65.0 : 0.0,
-              bearing: 0.0,
-            ),
           ),
         if (_userPosition != null)
           MapBottomSheet(
@@ -709,7 +712,7 @@ class _MapScreenState extends State<MapScreen> {
               _flyToObservation(obs);
               if (_sheetController.isAttached) {
                 _sheetController.animateTo(
-                  0.18,
+                  AppLayout.sheetMinSize,
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                 );

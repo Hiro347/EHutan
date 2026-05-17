@@ -42,11 +42,11 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
       },
       child: DraggableScrollableSheet(
         controller: widget.controller,
-        initialChildSize: 0.28,
-        minChildSize: 0.18,
-        maxChildSize: 0.95,
+        initialChildSize: AppLayout.sheetInitialSize,
+        minChildSize: AppLayout.sheetMinSize,
+        maxChildSize: AppLayout.sheetMaxSize,
         snap: true,
-        snapSizes: const [0.18, 0.45, 0.95],
+        snapSizes: const [AppLayout.sheetMinSize, 0.45, AppLayout.sheetMaxSize],
         builder: (context, scrollController) {
           return ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),

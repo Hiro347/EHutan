@@ -68,6 +68,12 @@ class AppMapbox {
   static const double maxZoom = 20.0;
 }
 
+class AppLayout {
+  static const double sheetInitialSize = 0.28;
+  static const double sheetMinSize = 0.18;
+  static const double sheetMaxSize = 0.95;
+}
+
 class AppSizes {
   static const double radiusCard = 16.0;
   static const double radiusButton = 12.0;
