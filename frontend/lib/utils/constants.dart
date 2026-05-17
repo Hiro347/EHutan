@@ -24,10 +24,10 @@ class AppColors {
   static const Color markerReptil = Color(0xFFF97316);
   static const Color markerDefault = Color(0xFF6B7280);
 
-  // Warna location marker (Pokémon GO style)
-  static const Color locationDot = Color(0xFF3B82F6);
-  static const Color locationPulse = Color(0x663B82F6);
-  static const Color locationAccuracy = Color(0x223B82F6);
+  // Warna location marker
+  static const Color locationDot = Color(0xFF609008);
+  static const Color locationPulse = Color(0x66609008);
+  static const Color locationAccuracy = Color(0x22609008);
 }
 
 class AppStrings {
@@ -66,6 +66,12 @@ class AppMapbox {
 
   static const double minZoom = 4.0;
   static const double maxZoom = 20.0;
+}
+
+class AppLayout {
+  static const double sheetInitialSize = 0.28;
+  static const double sheetMinSize = 0.18;
+  static const double sheetMaxSize = 0.95;
 }
 
 class AppSizes {

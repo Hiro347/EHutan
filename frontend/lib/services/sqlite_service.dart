@@ -6,7 +6,14 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class SqliteService {
+  static final SqliteService _instance = SqliteService._internal();
   static Database? _database;
+
+  factory SqliteService() {
+    return _instance;
+  }
+
+  SqliteService._internal();
 
   Future<Database> get database async {
     if (_database != null) return _database!;

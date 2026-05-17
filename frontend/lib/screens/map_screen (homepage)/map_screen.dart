@@ -21,6 +21,7 @@ import '../../widgets/detail_card.dart';
 import '../../widgets/top_overlay.dart';
 import '../../widgets/map_controls.dart';
 import '../koleksi_screen/koleksi_screen.dart';
+import '../persetujuan_screen/persetujuan_screen.dart';
 import '../form_screen/form_screen.dart';
 import '../login_screen/login_screen.dart';
 import '_marker_click_listener.dart';
@@ -47,8 +48,19 @@ class _MapScreenState extends State<MapScreen> {
   double _heading = 0.0;
   bool _firstLocationFixed = false;
   bool _is3DPov = true;
-  final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.15);
+  bool _isModelMode = true;
+  static const double _zoomThreshold = 15.0; // batas zoom
+  final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(AppLayout.sheetInitialSize);
+  final DraggableScrollableController _sheetController = DraggableScrollableController();
   final Map<String, Uint8List> _markerCache = {};
+
+  Position? _targetPosition;
+  Timer? _moveTimer;
+  Timer? _zoomCheckTimer;
+  static const int _moveSteps = 20;      // Jumlah langkah animasi
+  static const int _moveIntervalMs = 50; // 50ms × 20 = 1 detik total
+  double? _lastRenderLng;
+  double? _lastRenderLat;
 
   // ─────────────────────────────────────────────────────────
   // LIFECYCLE
@@ -67,6 +79,8 @@ class _MapScreenState extends State<MapScreen> {
   void dispose() {
     _locationSubscription?.cancel();
     _compassSubscription?.cancel();
+    _moveTimer?.cancel();
+    _zoomCheckTimer?.cancel();
     super.dispose();
   }
 
@@ -102,7 +116,37 @@ class _MapScreenState extends State<MapScreen> {
   // MAP CREATED
   // ─────────────────────────────────────────────────────────
   Future<void> _onMapCreated(MapboxMap mapboxMap) async {
+    final isReinit = _mapboxMap != null;
     _mapboxMap = mapboxMap;
+
+    // Geser kompas Mapbox ke bawah agar tidak nabrak status bar
+    await _mapboxMap?.compass.updateSettings(
+      CompassSettings(
+        enabled: true,
+        position: OrnamentPosition.TOP_RIGHT,
+        marginTop: 50,   // ← turunkan sesuai kebutuhan
+        marginRight: 16,
+      ),
+    );
+
+    // Turunkan scale bar agar tidak nabrak status bar
+    await _mapboxMap?.scaleBar.updateSettings(
+      ScaleBarSettings(
+        enabled: true,
+        position: OrnamentPosition.TOP_LEFT,
+        marginTop: 30,   // sesuaikan
+        marginLeft: 16,
+      ),
+    );
+
+    if (_userPosition != null) {
+      await _mapboxMap?.setCamera(CameraOptions(
+        center: Point(coordinates: _userPosition!),
+        zoom: _is3DPov ? 18.5 : 16.0,
+        pitch: _is3DPov ? 65.0 : 0.0,
+        bearing: 0.0,
+      ));
+    }
 
     try {
       await _mapboxMap?.setBounds(CameraBoundsOptions(
@@ -128,9 +172,11 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     await _fetchObservations();
-    await _setupBeamEffect();      // ← tambahkan ini SEBELUM setupPetugasModel
-    await _setupPetugasModel();    // supaya model 3D render di atas beam
-    await _setupLocationIndicator();
+    if (!isReinit) {
+      await _setupBeamEffect();      // ← tambahkan ini SEBELUM setupPetugasModel
+      await _setupPetugasModel();    // supaya model 3D render di atas beam
+      await _setupLocationIndicator();
+    }
   }
 
   // ─────────────────────────────────────────────────────────
@@ -139,7 +185,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<String> _extractGlbToTemp(String assetPath) async {
     final byteData = await rootBundle.load(assetPath);
     final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/petugas_coin.glb');
+    final file = File('${tempDir.path}/petugas.glb');
     await file.writeAsBytes(byteData.buffer.asUint8List());
     return file.path;
   }
@@ -151,16 +197,21 @@ class _MapScreenState extends State<MapScreen> {
     final map = _mapboxMap;
     if (map == null) return;
 
+    final pos = _userPosition;  // ← capture dulu, hindari null race
+    if (pos == null) return;    // ← guard eksplisit
+
     try {
-      final glbPath = await _extractGlbToTemp('lib/assets/petugas_coin.glb');
+      final glbPath = await _extractGlbToTemp('lib/assets/petugas.glb');
+      if (!mounted) return;     // ← cek setelah await
+
       await map.style.addStyleModel('petugas-model', 'file://$glbPath');
 
       await map.style.addSource(
         GeoJsonSource(
           id: 'petugas-location-source',
           data: _buildGeoJsonPoint(
-            _userPosition!.lng.toDouble(),
-            _userPosition!.lat.toDouble(),
+            pos.lng.toDouble(),  // ← pakai captured variable
+            pos.lat.toDouble(),
           ),
         ),
       );
@@ -171,8 +222,8 @@ class _MapScreenState extends State<MapScreen> {
       );
       modelLayer.modelId = 'petugas-model';
       modelLayer.modelScale = [8.0, 8.0, 8.0];
-      modelLayer.modelRotation = [90.0, 0.0, -180.0];
-      modelLayer.modelTranslation = [0.0, 0.0, 5.0];
+      modelLayer.modelRotation = [0.0, 0.0, -180.0];
+      modelLayer.modelTranslation = [0.0, 0.0, 8.0];
       modelLayer.modelType = ModelType.COMMON_3D;
       
       await map.style.addLayer(modelLayer);
@@ -193,7 +244,7 @@ class _MapScreenState extends State<MapScreen> {
       _annotationManager = await _mapboxMap?.annotations.createPointAnnotationManager();
     }
 
-    for (final obs in _observations) {
+    final optionsList = await Future.wait(_observations.map((obs) async {
       Uint8List imageBytes;
       if (_markerCache.containsKey(obs.id)) {
         imageBytes = _markerCache[obs.id]!;
@@ -202,14 +253,16 @@ class _MapScreenState extends State<MapScreen> {
         _markerCache[obs.id] = imageBytes;
       }
 
-      await _annotationManager?.create(
-        PointAnnotationOptions(
-          geometry: Point(coordinates: Position(obs.longitude, obs.latitude)),
-          image: imageBytes,
-          iconSize: 1.2,
-          iconAnchor: IconAnchor.BOTTOM,
-        ),
+      return PointAnnotationOptions(
+        geometry: Point(coordinates: Position(obs.longitude, obs.latitude)),
+        image: imageBytes,
+        iconSize: 1.2,
+        iconAnchor: IconAnchor.BOTTOM,
       );
+    }));
+
+    if (optionsList.isNotEmpty && _annotationManager != null) {
+      await _annotationManager!.createMulti(optionsList);
     }
 
     _annotationManager?.addOnPointAnnotationClickListener(
@@ -226,16 +279,70 @@ class _MapScreenState extends State<MapScreen> {
   // ─────────────────────────────────────────────────────────
   // LOCATION INDICATOR
   // ─────────────────────────────────────────────────────────
+  void _handleCameraChange(CameraChangedEventData data) {
+    // Throttle: tunggu 300ms setelah kamera berhenti bergerak
+    _zoomCheckTimer?.cancel();
+    _zoomCheckTimer = Timer(
+      const Duration(milliseconds: 300),
+      _onCameraChanged,
+    );
+  }
+
+  void _handleMapIdle(MapIdleEventData data) {
+    // Fire sekali saat kamera benar-benar berhenti
+    _onCameraChanged();
+  }
+
+  Future<void> _onCameraChanged() async {
+    final cameraState = await _mapboxMap?.getCameraState();
+    if (cameraState == null) return;
+
+    final shouldBeModelMode = cameraState.zoom >= _zoomThreshold;
+
+    // Hanya update kalau mode berubah (hindari spam)
+    if (shouldBeModelMode == _isModelMode) return;
+    _isModelMode = shouldBeModelMode;
+
+    await _updateLocationDisplayMode(shouldBeModelMode);
+  }
+
+  Future<void> _updateLocationDisplayMode(bool modelMode) async {
+    final map = _mapboxMap;
+    if (map == null) return;
+
+    // Toggle blue indicator
+    await map.location.updateSettings(
+      LocationComponentSettings(
+        enabled: !modelMode,
+        pulsingEnabled: !modelMode,
+        pulsingColor: AppColors.locationDot.toARGB32(),
+        pulsingMaxRadius: 50.0,
+        showAccuracyRing: !modelMode,
+        accuracyRingColor: AppColors.locationAccuracy.toARGB32(),
+      ),
+    );
+
+    // Toggle model + beam layers
+    final visibility = modelMode ? 'visible' : 'none';
+    final layers = [
+      'petugas-model-layer',
+      'beam-outer-layer',
+      'beam-mid-layer',
+      'beam-inner-layer',
+      'beam-edge-layer',
+    ];
+    for (final layer in layers) {
+      try {
+        await map.style.setStyleLayerProperty(layer, 'visibility', visibility);
+      } catch (_) {}
+    }
+  }
+
   Future<void> _setupLocationIndicator() async {
     try {
       await _mapboxMap?.location.updateSettings(
         LocationComponentSettings(
-          enabled: true,
-          pulsingEnabled: true,
-          pulsingColor: AppColors.locationDot.toARGB32(),
-          pulsingMaxRadius: 50.0,
-          showAccuracyRing: true,
-          accuracyRingColor: AppColors.locationAccuracy.toARGB32(),
+          enabled: false, // model aktif duluan saat zoom in
         ),
       );
     } catch (e) {
@@ -250,9 +357,12 @@ class _MapScreenState extends State<MapScreen> {
     final map = _mapboxMap;
     if (map == null) return;
 
+    final pos = _userPosition;  // ← sama
+    if (pos == null) return;
+
     try {
-      final lng = _userPosition!.lng.toDouble();
-      final lat = _userPosition!.lat.toDouble();
+      final lng = pos.lng.toDouble();
+      final lat = pos.lat.toDouble();
 
       // ── Layer 1: Outer glow (lebar, sangat transparan) ──
       await map.style.addSource(GeoJsonSource(
@@ -263,8 +373,8 @@ class _MapScreenState extends State<MapScreen> {
         id: 'beam-outer-layer',
         sourceId: 'beam-outer-source',
       ));
-      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-color', '#B3E5FC');
-      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-opacity', 0.08);
+      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-color', '#FFFDE7');
+      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-opacity', 0.18);
 
       // ── Layer 2: Mid beam ──
       await map.style.addSource(GeoJsonSource(
@@ -275,8 +385,8 @@ class _MapScreenState extends State<MapScreen> {
         id: 'beam-mid-layer',
         sourceId: 'beam-mid-source',
       ));
-      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-color', '#E1F5FE');
-      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-opacity', 0.14);
+      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-color', '#FFF9C4');
+      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-opacity', 0.28);
 
       // ── Layer 3: Inner core (sempit, paling terang) ──
       await map.style.addSource(GeoJsonSource(
@@ -288,16 +398,16 @@ class _MapScreenState extends State<MapScreen> {
         sourceId: 'beam-inner-source',
       ));
       await map.style.setStyleLayerProperty('beam-inner-layer', 'fill-color', '#FFFFFF');
-      await map.style.setStyleLayerProperty('beam-inner-layer', 'fill-opacity', 0.22);
+      await map.style.setStyleLayerProperty('beam-inner-layer', 'fill-opacity', 0.45);
 
       // ── Line edge: tepi beam ──
       await map.style.addLayer(LineLayer(
         id: 'beam-edge-layer',
         sourceId: 'beam-inner-source',
       ));
-      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-color', '#90CAF9');
-      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-opacity', 0.35);
-      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-width', 1.0);
+      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-color', '#FFE082');
+      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-opacity', 0.70);
+      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-width', 1.5);
 
     } catch (e) {
       debugPrint('Beam setup error: $e');
@@ -439,7 +549,7 @@ class _MapScreenState extends State<MapScreen> {
     await map.style.setStyleLayerProperty(
       'petugas-model-layer',
       'model-rotation',
-      [90.0, 0.0, heading - 180.0], 
+      [0.0, 0.0, heading - 180.0],
     );
   } catch (e) {
     debugPrint('Update heading model error: $e');
@@ -466,6 +576,50 @@ class _MapScreenState extends State<MapScreen> {
     } catch (_) {}
   }
 }
+
+  void _animateModelToPosition(double toLng, double toLat) {
+    _moveTimer?.cancel();
+
+    final fromLng = _lastRenderLng ?? _userPosition?.lng.toDouble() ?? toLng;
+    final fromLat = _lastRenderLat ?? _userPosition?.lat.toDouble() ?? toLat;
+
+    int step = 0;
+
+    _moveTimer = Timer.periodic(
+      const Duration(milliseconds: _moveIntervalMs),
+      (timer) async {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
+        step++;
+        final t = step / _moveSteps; // 0.0 → 1.0
+        
+        // Linear interpolation
+        final currentLng = fromLng + (toLng - fromLng) * t;
+        final currentLat = fromLat + (toLat - fromLat) * t;
+
+        _lastRenderLng = currentLng;
+        _lastRenderLat = currentLat;
+
+        final map = _mapboxMap;
+        if (map == null || !mounted) {
+          timer.cancel();
+          return;
+        }
+
+        try {
+          await map.style.setStyleSourceProperty(
+            'petugas-location-source',
+            'data',
+            _buildGeoJsonPoint(currentLng, currentLat),
+          );
+        } catch (_) {}
+
+        if (step >= _moveSteps) timer.cancel();
+      },
+    );
+  }
 
   Future<void> _updateUserPosition(double lat, double lng) async {
     if (!mounted) return;
@@ -496,15 +650,7 @@ class _MapScreenState extends State<MapScreen> {
       ));
     }
 
-    try {
-      await map.style.setStyleSourceProperty(
-        'petugas-location-source',
-        'data',
-        _buildGeoJsonPoint(lng, lat),
-      );
-    } catch (e) {
-      debugPrint('Update source error: $e');
-    }
+    _animateModelToPosition(lng, lat);
 
     // Update beam position ketika GPS bergerak
     try {
@@ -603,30 +749,6 @@ class _MapScreenState extends State<MapScreen> {
   // ─────────────────────────────────────────────────────────
   // BUILD KONTEN BERDASARKAN TAB
   // ─────────────────────────────────────────────────────────
-  Widget _buildBody() {
-    switch (_currentIndex) {
-      case 0:
-        return _buildMapContent();
-      case 1:
-        return const Padding(
-          padding: EdgeInsets.only(bottom: 80),
-          child: KoleksiScreen(),
-        );
-      case 2:
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 80),
-          child: _buildPersetujuanScreen(),
-        );
-      case 3:
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 80),
-          child: _buildProfilScreen(),
-        );
-      default:
-        return _buildMapContent();
-    }
-  }
-
   Widget _buildMapContent() {
     final unsyncedCount = _observations.where((o) => !o.isSynced).length;
 
@@ -650,21 +772,25 @@ class _MapScreenState extends State<MapScreen> {
           MapWidget(
             onMapCreated: _onMapCreated,
             styleUri: AppMapbox.styleUrl,
-            viewport: CameraViewportState(
-              center: Point(coordinates: _userPosition!),
-              zoom: _is3DPov ? 18.5 : 16.0,
-              pitch: _is3DPov ? 65.0 : 0.0,
-              bearing: 0.0,
-            ),
+            onCameraChangeListener: _handleCameraChange,
+            onMapIdleListener: _handleMapIdle,
           ),
         if (_userPosition != null)
           MapBottomSheet(
+            controller: _sheetController,
             observations: _observations,
             selectedObservationId: _selectedObservation?.id,
             sheetExtent: _sheetExtent,
             onObservationTap: (obs) {
               setState(() => _selectedObservation = obs);
               _flyToObservation(obs);
+              if (_sheetController.isAttached) {
+                _sheetController.animateTo(
+                  AppLayout.sheetMinSize,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
             },
           ),
         if (_userPosition != null)
@@ -686,42 +812,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _buildPersetujuanScreen() {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Persetujuan',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF1E3A2B),
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.assignment_outlined, size: 64, color: AppColors.primary),
-            SizedBox(height: 16),
-            Text(
-              'Fitur Persetujuan',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1E3A2B),
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Segera hadir',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
+    return const PersetujuanScreen();
   }
 
   Widget _buildProfilScreen() {
@@ -799,7 +890,24 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          _buildBody(),
+          IndexedStack(
+            index: _currentIndex,
+            children: [
+              _buildMapContent(),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 80),
+                child: KoleksiScreen(),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 80),
+                child: _buildPersetujuanScreen(),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 80),
+                child: _buildProfilScreen(),
+              ),
+            ],
+          ),
           Align(
             alignment: Alignment.bottomCenter,
             child: Navbar(

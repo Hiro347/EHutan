@@ -75,7 +75,7 @@ flutter:
 
   assets:
     - .env
-    - lib/assets/petugas_coin.glb
+    - lib/assets/petugas.glb
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -8,11 +8,15 @@ class MapTopOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Positioned must be a descendant of a Stack widget
+    // Ambil tinggi status bar
+    final double statusBarHeight = MediaQuery.of(context).viewPadding.top;
+
     return Positioned(
-      top: MediaQuery.of(context).padding.top + 24,
+      // Tambahkan tinggi status bar dengan jarak ekstra (misal 16)
+      top: statusBarHeight + 16, 
       left: 16,
       right: 16,
+      // Hapus SafeArea, langsung gunakan Row
       child: Row(
         children: [
           _glassChip(

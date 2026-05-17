@@ -9,6 +9,7 @@ class MapBottomSheet extends StatefulWidget {
   final String? selectedObservationId;
   final ValueNotifier<double> sheetExtent;
   final void Function(Observation) onObservationTap;
+  final DraggableScrollableController? controller;
 
   const MapBottomSheet({
     super.key,
@@ -16,6 +17,7 @@ class MapBottomSheet extends StatefulWidget {
     required this.selectedObservationId,
     required this.sheetExtent,
     required this.onObservationTap,
+    this.controller,
   });
 
   @override
@@ -39,11 +41,12 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
         return false;
       },
       child: DraggableScrollableSheet(
-        initialChildSize: 0.28,
-        minChildSize: 0.18,
-        maxChildSize: 0.95,
+        controller: widget.controller,
+        initialChildSize: AppLayout.sheetInitialSize,
+        minChildSize: AppLayout.sheetMinSize,
+        maxChildSize: AppLayout.sheetMaxSize,
         snap: true,
-        snapSizes: const [0.18, 0.45, 0.95],
+        snapSizes: const [AppLayout.sheetMinSize, 0.45, AppLayout.sheetMaxSize],
         builder: (context, scrollController) {
           return ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
