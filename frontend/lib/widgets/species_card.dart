@@ -1,306 +1,349 @@
-// lib/widgets/species_card.dart
-// Kartu observasi bergaya Pokémon GO untuk layar Koleksi.
-// Sengaja dibuat terpisah dari observation_card.dart (milik task lain).
-
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/observation.dart';
 import '../utils/constants.dart';
 
-class SpeciesCard extends StatelessWidget {
+class SpeciesCard extends StatefulWidget {
   final Observation observation;
   final VoidCallback onTap;
+  const SpeciesCard({super.key, required this.observation, required this.onTap});
 
-  const SpeciesCard({
-    super.key,
-    required this.observation,
-    required this.onTap,
-  });
+  @override
+  State<SpeciesCard> createState() => _SpeciesCardState();
+}
+
+class _SpeciesCardState extends State<SpeciesCard> with SingleTickerProviderStateMixin {
+  late AnimationController _flipCtrl;
+  bool _isBack = false;
+  Offset? _dragStart;
+
+  @override
+  void initState() {
+    super.initState();
+    _flipCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+    _flipCtrl.addListener(() {
+      final back = _flipCtrl.value >= 0.5;
+      if (back != _isBack) setState(() => _isBack = back);
+    });
+  }
+
+  @override
+  void dispose() {
+    _flipCtrl.dispose();
+    super.dispose();
+  }
+
+  void _flip() {
+    if (_isBack) {
+      _flipCtrl.reverse();
+    } else {
+      _flipCtrl.forward();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final color = _taxonColor(observation.kategoriTakson);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha:0.18),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            // ── Foto background ──────────────────────────────────────────
-            Positioned.fill(
-              child: _buildPhoto(observation),
-            ),
-
-            // ── Gradient overlay bawah ───────────────────────────────────
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.transparent,
-                      color.withValues(alpha:0.55),
-                      color.withValues(alpha:0.92),
-                    ],
-                    stops: const [0.0, 0.4, 0.72, 1.0],
-                  ),
-                ),
-              ),
-            ),
-
-            // ── Badge takson (pojok kanan atas) ──────────────────────────
-            Positioned(
-              top: 8,
-              right: 8,
-              child: _TaxonBadge(
-                label: _taxonEmoji(observation.kategoriTakson),
-                color: color,
-              ),
-            ),
-
-            // ── Status draft (jika belum sync) ───────────────────────────
-            if (!observation.isSynced)
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade700,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.cloud_off_rounded, size: 10, color: Colors.white),
-                      SizedBox(width: 3),
-                      Text(
-                        'Draft',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-            // ── Info di bagian bawah kartu ───────────────────────────────
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Nama ilmiah (gaya nama Pokémon — bold, italic)
-                    Text(
-                      observation.namaSpesies,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        fontStyle: FontStyle.italic,
-                        letterSpacing: 0.2,
-                        height: 1.2,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black54,
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    // Nama lokal (gaya CP di Pokémon GO — badge kuning kecil)
-                    if (observation.namaLokal != null &&
-                        observation.namaLokal!.isNotEmpty)
-                      _LocalNameBadge(label: observation.namaLokal!),
-                  ],
-                ),
-              ),
-            ),
-          ],
+    // Listener doesn't participate in gesture arena → scroll tetap jalan
+    return Listener(
+      onPointerDown: (e) => _dragStart = e.position,
+      onPointerUp: (e) {
+        if (_dragStart != null) {
+          final delta = e.position - _dragStart!;
+          // Hanya flip jika geser horizontal > 30px dan lebih besar dari vertikal
+          if (delta.dx.abs() > 30 && delta.dx.abs() > delta.dy.abs() * 1.5) {
+            _flip();
+          }
+          _dragStart = null;
+        }
+      },
+      child: GestureDetector(
+        onTap: _isBack ? _flip : widget.onTap,
+        onLongPress: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _flipCtrl,
+          builder: (context, _) {
+            final v = _flipCtrl.value;
+            final scaleX = v <= 0.5 ? 1.0 - 2.0 * v : 2.0 * v - 1.0;
+            return Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..scale(scaleX, 1.0, 1.0),
+              child: _isBack ? _buildBack() : _buildFront(),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildPhoto(Observation obs) {
-    // 1. Cek foto lokal (belum sync)
+  // ═══════════════════════════════════════════════════════════════════════
+  //  FRONT SIDE
+  // ═══════════════════════════════════════════════════════════════════════
+  Widget _buildFront() {
+    final obs = widget.observation;
+    final grad = _gradientFor(obs.kategoriTakson);
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: grad[1].withValues(alpha: 0.30), blurRadius: 14, offset: const Offset(0, 5))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(children: [
+        // Foto
+        Positioned.fill(child: _photo(obs)),
+
+        // Gradient overlay
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                colors: [Colors.black.withValues(alpha: 0.05), Colors.transparent, grad[0].withValues(alpha: 0.55), grad[1].withValues(alpha: 0.95)],
+                stops: const [0.0, 0.35, 0.7, 1.0],
+              ),
+            ),
+          ),
+        ),
+
+        // Emoji badge
+        Positioned(
+          top: 10, right: 10,
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.92), shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: grad[1].withValues(alpha: 0.35), blurRadius: 8)]),
+            child: Text(_emojiFor(obs.kategoriTakson), style: const TextStyle(fontSize: 14)),
+          ),
+        ),
+
+        // Status chip
+        Positioned(top: 10, left: 10, child: _statusChip(obs)),
+
+        // Swipe hint
+        Positioned(
+          bottom: 10, right: 10,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.25), shape: BoxShape.circle),
+            child: const Icon(Icons.swipe_rounded, color: Colors.white70, size: 14),
+          ),
+        ),
+
+        // Species name
+        Positioned(
+          bottom: 0, left: 0, right: 0,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 40, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(obs.namaSpesies,
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800, fontStyle: FontStyle.italic, height: 1.25,
+                    shadows: [Shadow(color: Colors.black45, blurRadius: 6)]),
+                  maxLines: 2, overflow: TextOverflow.ellipsis),
+                if (obs.namaLokal != null && obs.namaLokal!.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.88), borderRadius: BorderRadius.circular(8)),
+                    child: Text(obs.namaLokal!, style: TextStyle(color: grad[1], fontSize: 10, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  BACK SIDE
+  // ═══════════════════════════════════════════════════════════════════════
+  Widget _buildBack() {
+    final obs = widget.observation;
+    final grad = _gradientFor(obs.kategoriTakson);
+    final dateStr = DateFormat('dd MMM yyyy').format(obs.waktuPengamatan);
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [grad[0], grad[1]]),
+        boxShadow: [BoxShadow(color: grad[1].withValues(alpha: 0.30), blurRadius: 14, offset: const Offset(0, 5))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(children: [
+        // Subtle pattern
+        Positioned.fill(
+          child: CustomPaint(painter: _DotPatternPainter(color: Colors.white.withValues(alpha: 0.06))),
+        ),
+
+        // Content
+        Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(children: [
+                Text(_emojiFor(obs.kategoriTakson), style: const TextStyle(fontSize: 18)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text('Detail', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
+                  child: const Icon(Icons.swipe_rounded, color: Colors.white70, size: 12),
+                ),
+              ]),
+              const SizedBox(height: 8),
+              Divider(color: Colors.white.withValues(alpha: 0.2), height: 1),
+              const SizedBox(height: 8),
+
+              // Info rows
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      _infoRow(Icons.science_rounded, 'Latin', obs.namaSpesies),
+                      _infoRow(Icons.label_rounded, 'Lokal', obs.namaLokal ?? '-'),
+                      _infoRow(Icons.category_rounded, 'Takson', obs.kategoriTakson),
+                      _infoRow(Icons.groups_rounded, 'Individu', '${obs.jumlahIndividu ?? 1} ekor'),
+                      _infoRow(Icons.directions_walk_rounded, 'Aktivitas', obs.aktivitasTermati ?? '-'),
+                      _infoRow(Icons.calendar_today_rounded, 'Tanggal', dateStr),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
+          child: Icon(icon, size: 12, color: Colors.white.withValues(alpha: 0.9)),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 8, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+              Text(value, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600, height: 1.2), maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _statusChip(Observation obs) {
+    if (!obs.isSynced) return _chip(Icons.cloud_off_rounded, 'Draft', Colors.orange.shade700, Colors.orange.shade50);
+    if (obs.statusApproval == 'TERVERIFIKASI') return _chip(Icons.verified_rounded, 'Verified', AppColors.statusTerverifikasi, Colors.green.shade50);
+    if (obs.statusApproval == 'MENUNGGU_VERIFIKASI') return _chip(Icons.hourglass_top_rounded, 'Menunggu', AppColors.statusMenunggu, Colors.amber.shade50);
+    return const SizedBox.shrink();
+  }
+
+  Widget _chip(IconData icon, String label, Color color, Color bg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(color: bg.withValues(alpha: 0.92), borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withValues(alpha: 0.3), width: 0.5)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 10, color: color),
+        const SizedBox(width: 3),
+        Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w700)),
+      ]),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  PHOTO
+  // ═══════════════════════════════════════════════════════════════════════
+  Widget _photo(Observation obs) {
     final localPath = obs.localFotoPath;
     if (localPath != null && localPath.isNotEmpty) {
       final file = File(localPath);
-      if (file.existsSync()) {
-        return Image.file(file, fit: BoxFit.cover);
-      }
+      if (file.existsSync()) return Image.file(file, fit: BoxFit.cover);
     }
-
-    // 2. Resolve fotoUrl ke URL lengkap (handle storage path)
-    final resolvedUrl = resolveSupabaseFotoUrl(obs.fotoUrl);
-    if (resolvedUrl != null) {
-      return Image.network(
-        resolvedUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _placeholder(),
-        loadingBuilder: (_, child, progress) {
-          if (progress == null) return child;
-          return _placeholder(loading: true);
-        },
-      );
+    final url = resolveSupabaseFotoUrl(obs.fotoUrl);
+    if (url != null) {
+      return Image.network(url, fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(),
+        loadingBuilder: (_, child, p) => p == null ? child : _placeholder(loading: true));
     }
-
     return _placeholder();
   }
 
   Widget _placeholder({bool loading = false}) {
+    final g = _gradientFor(widget.observation.kategoriTakson);
     return Container(
-      color: Colors.grey.shade200,
-      child: Center(
-        child: loading
-            ? const CircularProgressIndicator(strokeWidth: 2)
-            : Icon(Icons.image_not_supported_outlined,
-                color: Colors.grey.shade400, size: 32),
-      ),
+      decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [g[0].withValues(alpha: 0.15), g[1].withValues(alpha: 0.25)])),
+      child: Center(child: loading
+        ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: g[1]))
+        : Icon(Icons.photo_camera_outlined, color: g[1].withValues(alpha: 0.5), size: 36)),
     );
   }
 
-  // ── Helpers ─────────────────────────────────────────────────────────────
-
-  Color _taxonColor(String takson) {
-    switch (takson.toLowerCase()) {
-      case 'mamalia':
-        return const Color(0xFF8D6E4A);
-      case 'aves':
-      case 'burung':
-        return const Color(0xFF1E88B4);
-      case 'reptilia':
-        return const Color(0xFF3E8A48);
-      case 'insecta':
-      case 'serangga':
-        return const Color(0xFFB8860B);
-      case 'amphibia':
-        return const Color(0xFF2E9688);
-      case 'pisces':
-      case 'ikan':
-        return const Color(0xFF1565C0);
-      case 'flora':
-      case 'tumbuhan':
-        return AppColors.primary;
-      default:
-        return AppColors.primary;
-    }
+  // ═══════════════════════════════════════════════════════════════════════
+  //  HELPERS
+  // ═══════════════════════════════════════════════════════════════════════
+  List<Color> _gradientFor(String t) {
+    final s = t.toLowerCase();
+    if (s.contains('karnivora')) return [const Color(0xFFD4451A), const Color(0xFF8B2010)]; // Merah-oranye
+    if (s.contains('herbivora')) return [const Color(0xFF2E9B5E), const Color(0xFF1A6B3E)]; // Hijau emerald
+    if (s.contains('primata')) return [const Color(0xFFA0522D), const Color(0xFF6B3418)]; // Coklat sienna
+    if (s.contains('burung')) return [const Color(0xFF2196F3), const Color(0xFF0D47A1)]; // Biru langit
+    if (s.contains('reptil') || s.contains('amfibi')) return [const Color(0xFF00897B), const Color(0xFF004D40)]; // Teal
+    if (s.contains('insekta')) return [const Color(0xFFFF8F00), const Color(0xFFE65100)]; // Amber-oranye
+    if (s.contains('fauna perairan')) return [const Color(0xFF5C6BC0), const Color(0xFF283593)]; // Indigo
+    if (s.contains('eksitu') || s.contains('flora')) return [const Color(0xFF7CB342), const Color(0xFF33691E)]; // Lime green
+    return [const Color(0xFF609008), const Color(0xFF3D5A05)];
   }
 
-  String _taxonEmoji(String takson) {
-    switch (takson.toLowerCase()) {
-      case 'mamalia':
-        return '🦊';
-      case 'aves':
-      case 'burung':
-        return '🦜';
-      case 'reptilia':
-        return '🦎';
-      case 'insecta':
-      case 'serangga':
-        return '🦋';
-      case 'amphibia':
-        return '🐸';
-      case 'pisces':
-      case 'ikan':
-        return '🐟';
-      case 'flora':
-      case 'tumbuhan':
-        return '🌿';
-      default:
-        return '🔍';
-    }
+  String _emojiFor(String t) {
+    final s = t.toLowerCase();
+    if (s.contains('karnivora')) return '🐅';
+    if (s.contains('herbivora')) return '🐘';
+    if (s.contains('primata')) return '🐒';
+    if (s.contains('burung')) return '🦅';
+    if (s.contains('reptil') || s.contains('amfibi')) return '🦎';
+    if (s.contains('insekta')) return '🦋';
+    if (s.contains('fauna perairan')) return '🐟';
+    if (s.contains('eksitu') || s.contains('flora')) return '🌿';
+    return '🔍';
   }
 }
 
-// ─── Sub-widget: Badge takson ────────────────────────────────────────────────
-class _TaxonBadge extends StatelessWidget {
-  final String label;
+// ─── Dot pattern painter for card back ──────────────────────────────────────
+class _DotPatternPainter extends CustomPainter {
   final Color color;
-
-  const _TaxonBadge({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha:0.85),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha:0.4),
-            blurRadius: 6,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: Text(label, style: const TextStyle(fontSize: 14)),
-    );
-  }
-}
-
-// ─── Sub-widget: Badge nama lokal (gaya CP Pokémon GO) ──────────────────────
-class _LocalNameBadge extends StatelessWidget {
-  final String label;
-
-  const _LocalNameBadge({required this.label});
+  _DotPatternPainter({required this.color});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFD740),
-        borderRadius: BorderRadius.circular(6),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha:0.25),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Color(0xFF1A1200),
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.2,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    const spacing = 20.0;
+    for (double x = 0; x < size.width; x += spacing) {
+      for (double y = 0; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), 1.2, paint);
+      }
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
