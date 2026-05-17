@@ -47,12 +47,15 @@ class _MapScreenState extends State<MapScreen> {
   double _heading = 0.0;
   bool _firstLocationFixed = false;
   bool _is3DPov = true;
+  bool _isModelMode = true;
+  static const double _zoomThreshold = 15.0; // batas zoom
   final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(AppLayout.sheetInitialSize);
   final DraggableScrollableController _sheetController = DraggableScrollableController();
   final Map<String, Uint8List> _markerCache = {};
 
   Position? _targetPosition;
   Timer? _moveTimer;
+  Timer? _zoomCheckTimer;
   static const int _moveSteps = 20;      // Jumlah langkah animasi
   static const int _moveIntervalMs = 50; // 50ms × 20 = 1 detik total
   double? _lastRenderLng;
@@ -76,6 +79,7 @@ class _MapScreenState extends State<MapScreen> {
     _locationSubscription?.cancel();
     _compassSubscription?.cancel();
     _moveTimer?.cancel();
+    _zoomCheckTimer?.cancel();
     super.dispose();
   }
 
@@ -272,16 +276,70 @@ class _MapScreenState extends State<MapScreen> {
   // ─────────────────────────────────────────────────────────
   // LOCATION INDICATOR
   // ─────────────────────────────────────────────────────────
+  void _handleCameraChange(CameraChangedEventData data) {
+    // Throttle: tunggu 300ms setelah kamera berhenti bergerak
+    _zoomCheckTimer?.cancel();
+    _zoomCheckTimer = Timer(
+      const Duration(milliseconds: 300),
+      _onCameraChanged,
+    );
+  }
+
+  void _handleMapIdle(MapIdleEventData data) {
+    // Fire sekali saat kamera benar-benar berhenti
+    _onCameraChanged();
+  }
+
+  Future<void> _onCameraChanged() async {
+    final cameraState = await _mapboxMap?.getCameraState();
+    if (cameraState == null) return;
+
+    final shouldBeModelMode = cameraState.zoom >= _zoomThreshold;
+
+    // Hanya update kalau mode berubah (hindari spam)
+    if (shouldBeModelMode == _isModelMode) return;
+    _isModelMode = shouldBeModelMode;
+
+    await _updateLocationDisplayMode(shouldBeModelMode);
+  }
+
+  Future<void> _updateLocationDisplayMode(bool modelMode) async {
+    final map = _mapboxMap;
+    if (map == null) return;
+
+    // Toggle blue indicator
+    await map.location.updateSettings(
+      LocationComponentSettings(
+        enabled: !modelMode,
+        pulsingEnabled: !modelMode,
+        pulsingColor: AppColors.locationDot.toARGB32(),
+        pulsingMaxRadius: 50.0,
+        showAccuracyRing: !modelMode,
+        accuracyRingColor: AppColors.locationAccuracy.toARGB32(),
+      ),
+    );
+
+    // Toggle model + beam layers
+    final visibility = modelMode ? 'visible' : 'none';
+    final layers = [
+      'petugas-model-layer',
+      'beam-outer-layer',
+      'beam-mid-layer',
+      'beam-inner-layer',
+      'beam-edge-layer',
+    ];
+    for (final layer in layers) {
+      try {
+        await map.style.setStyleLayerProperty(layer, 'visibility', visibility);
+      } catch (_) {}
+    }
+  }
+
   Future<void> _setupLocationIndicator() async {
     try {
       await _mapboxMap?.location.updateSettings(
         LocationComponentSettings(
-          enabled: true,
-          pulsingEnabled: true,
-          pulsingColor: AppColors.locationDot.toARGB32(),
-          pulsingMaxRadius: 50.0,
-          showAccuracyRing: true,
-          accuracyRingColor: AppColors.locationAccuracy.toARGB32(),
+          enabled: false, // model aktif duluan saat zoom in
         ),
       );
     } catch (e) {
@@ -711,6 +769,8 @@ class _MapScreenState extends State<MapScreen> {
           MapWidget(
             onMapCreated: _onMapCreated,
             styleUri: AppMapbox.styleUrl,
+            onCameraChangeListener: _handleCameraChange,
+            onMapIdleListener: _handleMapIdle,
           ),
         if (_userPosition != null)
           MapBottomSheet(
