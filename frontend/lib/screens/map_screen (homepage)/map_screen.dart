@@ -111,6 +111,7 @@ class _MapScreenState extends State<MapScreen> {
   // MAP CREATED
   // ─────────────────────────────────────────────────────────
   Future<void> _onMapCreated(MapboxMap mapboxMap) async {
+    final isReinit = _mapboxMap != null;
     _mapboxMap = mapboxMap;
 
     if (_userPosition != null) {
@@ -146,9 +147,11 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     await _fetchObservations();
-    await _setupBeamEffect();      // ← tambahkan ini SEBELUM setupPetugasModel
-    await _setupPetugasModel();    // supaya model 3D render di atas beam
-    await _setupLocationIndicator();
+    if (!isReinit) {
+      await _setupBeamEffect();      // ← tambahkan ini SEBELUM setupPetugasModel
+      await _setupPetugasModel();    // supaya model 3D render di atas beam
+      await _setupLocationIndicator();
+    }
   }
 
   // ─────────────────────────────────────────────────────────
@@ -169,16 +172,21 @@ class _MapScreenState extends State<MapScreen> {
     final map = _mapboxMap;
     if (map == null) return;
 
+    final pos = _userPosition;  // ← capture dulu, hindari null race
+    if (pos == null) return;    // ← guard eksplisit
+
     try {
       final glbPath = await _extractGlbToTemp('lib/assets/petugas.glb');
+      if (!mounted) return;     // ← cek setelah await
+
       await map.style.addStyleModel('petugas-model', 'file://$glbPath');
 
       await map.style.addSource(
         GeoJsonSource(
           id: 'petugas-location-source',
           data: _buildGeoJsonPoint(
-            _userPosition!.lng.toDouble(),
-            _userPosition!.lat.toDouble(),
+            pos.lng.toDouble(),  // ← pakai captured variable
+            pos.lat.toDouble(),
           ),
         ),
       );
@@ -268,9 +276,12 @@ class _MapScreenState extends State<MapScreen> {
     final map = _mapboxMap;
     if (map == null) return;
 
+    final pos = _userPosition;  // ← sama
+    if (pos == null) return;
+
     try {
-      final lng = _userPosition!.lng.toDouble();
-      final lat = _userPosition!.lat.toDouble();
+      final lng = pos.lng.toDouble();
+      final lat = pos.lat.toDouble();
 
       // ── Layer 1: Outer glow (lebar, sangat transparan) ──
       await map.style.addSource(GeoJsonSource(
@@ -496,6 +507,10 @@ class _MapScreenState extends State<MapScreen> {
     _moveTimer = Timer.periodic(
       const Duration(milliseconds: _moveIntervalMs),
       (timer) async {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
         step++;
         final t = step / _moveSteps; // 0.0 → 1.0
         
@@ -653,30 +668,6 @@ class _MapScreenState extends State<MapScreen> {
   // ─────────────────────────────────────────────────────────
   // BUILD KONTEN BERDASARKAN TAB
   // ─────────────────────────────────────────────────────────
-  Widget _buildBody() {
-    switch (_currentIndex) {
-      case 0:
-        return _buildMapContent();
-      case 1:
-        return const Padding(
-          padding: EdgeInsets.only(bottom: 80),
-          child: KoleksiScreen(),
-        );
-      case 2:
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 80),
-          child: _buildPersetujuanScreen(),
-        );
-      case 3:
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 80),
-          child: _buildProfilScreen(),
-        );
-      default:
-        return _buildMapContent();
-    }
-  }
-
   Widget _buildMapContent() {
     final unsyncedCount = _observations.where((o) => !o.isSynced).length;
 
@@ -851,7 +842,24 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          _buildBody(),
+          IndexedStack(
+            index: _currentIndex,
+            children: [
+              _buildMapContent(),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 80),
+                child: KoleksiScreen(),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 80),
+                child: _buildPersetujuanScreen(),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 80),
+                child: _buildProfilScreen(),
+              ),
+            ],
+          ),
           Align(
             alignment: Alignment.bottomCenter,
             child: Navbar(
