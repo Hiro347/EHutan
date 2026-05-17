@@ -20,8 +20,8 @@ import '../../widgets/map_bottom_sheet.dart';
 import '../../widgets/detail_card.dart';
 import '../../widgets/top_overlay.dart';
 import '../../widgets/map_controls.dart';
-import '../koleksi_screen.dart';
-import '../form_screen.dart';
+import '../koleksi_screen/koleksi_screen.dart';
+import '../form_screen/form_screen.dart';
 import '../login_screen/login_screen.dart';
 import '_marker_click_listener.dart';
 import 'dart:math' as math;
@@ -48,7 +48,15 @@ class _MapScreenState extends State<MapScreen> {
   bool _firstLocationFixed = false;
   bool _is3DPov = true;
   final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(0.15);
+  final DraggableScrollableController _sheetController = DraggableScrollableController();
   final Map<String, Uint8List> _markerCache = {};
+
+  Position? _targetPosition;
+  Timer? _moveTimer;
+  static const int _moveSteps = 20;      // Jumlah langkah animasi
+  static const int _moveIntervalMs = 50; // 50ms × 20 = 1 detik total
+  double? _lastRenderLng;
+  double? _lastRenderLat;
 
   // ─────────────────────────────────────────────────────────
   // LIFECYCLE
@@ -67,6 +75,7 @@ class _MapScreenState extends State<MapScreen> {
   void dispose() {
     _locationSubscription?.cancel();
     _compassSubscription?.cancel();
+    _moveTimer?.cancel();
     super.dispose();
   }
 
@@ -107,11 +116,11 @@ class _MapScreenState extends State<MapScreen> {
     try {
       await _mapboxMap?.setBounds(CameraBoundsOptions(
         bounds: CoordinateBounds(
-          southwest: Point(coordinates: Position(106.65, -6.75)),
-          northeast: Point(coordinates: Position(107.05, -6.45)),
+          southwest: Point(coordinates: Position(AppMapbox.boundsMinLng, AppMapbox.boundsMinLat)),
+          northeast: Point(coordinates: Position(AppMapbox.boundsMaxLng, AppMapbox.boundsMaxLat)),
           infiniteBounds: false,
         ),
-        minZoom: 10.0,
+        minZoom: AppMapbox.minZoom,
       ));
     } catch (e) {
       debugPrint('Set bounds error: $e');
@@ -165,30 +174,18 @@ class _MapScreenState extends State<MapScreen> {
         ),
       );
 
-      await map.style.addLayer(
-        ModelLayer(
-          id: 'petugas-model-layer',
-          sourceId: 'petugas-location-source',
-        ),
+      final modelLayer = ModelLayer(
+        id: 'petugas-model-layer',
+        sourceId: 'petugas-location-source',
       );
+      modelLayer.modelId = 'petugas-model';
+      modelLayer.modelScale = [8.0, 8.0, 8.0];
+      modelLayer.modelRotation = [0.0, 0.0, -180.0];
+      modelLayer.modelTranslation = [0.0, 0.0, 5.0];
+      modelLayer.modelType = ModelType.COMMON_3D;
+      
+      await map.style.addLayer(modelLayer);
 
-      final props = {
-        'model-id': ['literal', 'petugas-model'],
-        'model-scale': [8.0, 8.0, 8.0],
-        'model-rotation': [0.0, 0.0, -180.0],
-        'model-translation': [0.0, 0.0, 5.0],
-        'model-type': 'common-3d',
-        'model-cast-shadows': true,
-        'model-receive-shadows': true,
-      };
-
-      for (final entry in props.entries) {
-        await map.style.setStyleLayerProperty(
-          'petugas-model-layer',
-          entry.key,
-          entry.value,
-        );
-      }
     } catch (e) {
       debugPrint('Setup petugas model error: $e');
     }
@@ -451,7 +448,7 @@ class _MapScreenState extends State<MapScreen> {
     await map.style.setStyleLayerProperty(
       'petugas-model-layer',
       'model-rotation',
-      [0.0, 0.0, heading - 180.0], 
+      [0.0, 0.0, heading - 180.0],
     );
   } catch (e) {
     debugPrint('Update heading model error: $e');
@@ -478,6 +475,46 @@ class _MapScreenState extends State<MapScreen> {
     } catch (_) {}
   }
 }
+
+  void _animateModelToPosition(double toLng, double toLat) {
+    _moveTimer?.cancel();
+
+    final fromLng = _lastRenderLng ?? _userPosition?.lng.toDouble() ?? toLng;
+    final fromLat = _lastRenderLat ?? _userPosition?.lat.toDouble() ?? toLat;
+
+    int step = 0;
+
+    _moveTimer = Timer.periodic(
+      const Duration(milliseconds: _moveIntervalMs),
+      (timer) async {
+        step++;
+        final t = step / _moveSteps; // 0.0 → 1.0
+        
+        // Linear interpolation
+        final currentLng = fromLng + (toLng - fromLng) * t;
+        final currentLat = fromLat + (toLat - fromLat) * t;
+
+        _lastRenderLng = currentLng;
+        _lastRenderLat = currentLat;
+
+        final map = _mapboxMap;
+        if (map == null || !mounted) {
+          timer.cancel();
+          return;
+        }
+
+        try {
+          await map.style.setStyleSourceProperty(
+            'petugas-location-source',
+            'data',
+            _buildGeoJsonPoint(currentLng, currentLat),
+          );
+        } catch (_) {}
+
+        if (step >= _moveSteps) timer.cancel();
+      },
+    );
+  }
 
   Future<void> _updateUserPosition(double lat, double lng) async {
     if (!mounted) return;
@@ -508,15 +545,7 @@ class _MapScreenState extends State<MapScreen> {
       ));
     }
 
-    try {
-      await map.style.setStyleSourceProperty(
-        'petugas-location-source',
-        'data',
-        _buildGeoJsonPoint(lng, lat),
-      );
-    } catch (e) {
-      debugPrint('Update source error: $e');
-    }
+    _animateModelToPosition(lng, lat);
 
     // Update beam position ketika GPS bergerak
     try {
@@ -671,12 +700,20 @@ class _MapScreenState extends State<MapScreen> {
           ),
         if (_userPosition != null)
           MapBottomSheet(
+            controller: _sheetController,
             observations: _observations,
             selectedObservationId: _selectedObservation?.id,
             sheetExtent: _sheetExtent,
             onObservationTap: (obs) {
               setState(() => _selectedObservation = obs);
               _flyToObservation(obs);
+              if (_sheetController.isAttached) {
+                _sheetController.animateTo(
+                  0.18,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
             },
           ),
         if (_userPosition != null)

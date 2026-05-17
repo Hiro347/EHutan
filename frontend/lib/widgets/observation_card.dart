@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../models/observation.dart';
-import '../utils/constants.dart';
+import '../../../models/observation.dart';
+import '../../../utils/constants.dart';
 
 class ObservationCard extends StatelessWidget {
   final Observation obs;
