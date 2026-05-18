@@ -798,7 +798,16 @@ class _MapScreenState extends State<MapScreen> {
         if (_selectedObservation != null)
           ObservationDetailCard(
             obs: _selectedObservation!,
-            onClose: () => setState(() => _selectedObservation = null),
+            onClose: () {
+              setState(() => _selectedObservation = null);
+              if (_sheetController.isAttached) {
+                _sheetController.animateTo(
+                  AppLayout.sheetInitialSize,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
+            },
           ),
         if (_userPosition != null)
           MapControls(

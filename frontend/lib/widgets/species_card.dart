@@ -87,72 +87,109 @@ class _SpeciesCardState extends State<SpeciesCard> with SingleTickerProviderStat
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: grad[1].withValues(alpha: 0.30), blurRadius: 14, offset: const Offset(0, 5))],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: grad[1].withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4))
+        ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(children: [
+      child: Stack(fit: StackFit.expand, children: [
         // Foto
-        Positioned.fill(child: _photo(obs)),
+        _photo(obs),
 
         // Gradient overlay
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                colors: [Colors.black.withValues(alpha: 0.05), Colors.transparent, grad[0].withValues(alpha: 0.55), grad[1].withValues(alpha: 0.95)],
-                stops: const [0.0, 0.35, 0.7, 1.0],
-              ),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter, 
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.35), 
+                Colors.transparent, 
+                grad[0].withValues(alpha: 0.8), 
+                grad[1].withValues(alpha: 0.95)
+              ],
+              stops: const [0.0, 0.4, 0.65, 1.0],
             ),
           ),
         ),
 
-        // Emoji badge
+        // Emoji badge (glassy)
         Positioned(
           top: 10, right: 10,
           child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.92), shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: grad[1].withValues(alpha: 0.35), blurRadius: 8)]),
-            child: Text(_emojiFor(obs.kategoriTakson), style: const TextStyle(fontSize: 14)),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.25), 
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+            ),
+            child: Text(_emojiFor(obs.kategoriTakson), style: const TextStyle(fontSize: 18)),
           ),
         ),
 
         // Status chip
         Positioned(top: 10, left: 10, child: _statusChip(obs)),
 
-        // Swipe hint
-        Positioned(
-          bottom: 10, right: 10,
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.25), shape: BoxShape.circle),
-            child: const Icon(Icons.swipe_rounded, color: Colors.white70, size: 14),
-          ),
-        ),
-
-        // Species name
+        // Bottom Content
         Positioned(
           bottom: 0, left: 0, right: 0,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 40, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(obs.namaSpesies,
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800, fontStyle: FontStyle.italic, height: 1.25,
-                    shadows: [Shadow(color: Colors.black45, blurRadius: 6)]),
-                  maxLines: 2, overflow: TextOverflow.ellipsis),
-                if (obs.namaLokal != null && obs.namaLokal!.isNotEmpty) ...[
-                  const SizedBox(height: 5),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.88), borderRadius: BorderRadius.circular(8)),
-                    child: Text(obs.namaLokal!, style: TextStyle(color: grad[1], fontSize: 10, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (obs.namaLokal != null && obs.namaLokal!.isNotEmpty) ...[
+                        Text(
+                          obs.namaLokal!, 
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 0.3, height: 1.2), 
+                          maxLines: 1, 
+                          overflow: TextOverflow.ellipsis
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          obs.namaSpesies,
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13, fontStyle: FontStyle.italic, fontWeight: FontWeight.w500),
+                          maxLines: 1, overflow: TextOverflow.ellipsis
+                        ),
+                      ] else ...[
+                        Text(
+                          obs.namaSpesies,
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, fontStyle: FontStyle.italic, letterSpacing: 0.3, height: 1.2),
+                          maxLines: 2, overflow: TextOverflow.ellipsis
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      Container(height: 1.5, width: 30, color: Colors.white.withValues(alpha: 0.4), margin: const EdgeInsets.only(bottom: 8)),
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_today_rounded, color: Colors.white.withValues(alpha: 0.9), size: 12),
+                          const SizedBox(width: 6),
+                          Text(
+                            DateFormat('dd MMM yyyy').format(obs.waktuPengamatan),
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
+                // Swipe hint icon
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  margin: const EdgeInsets.only(left: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15), 
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.flip_camera_android_rounded, color: Colors.white, size: 18),
+                ),
               ],
             ),
           ),
@@ -171,9 +208,9 @@ class _SpeciesCardState extends State<SpeciesCard> with SingleTickerProviderStat
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [grad[0], grad[1]]),
-        boxShadow: [BoxShadow(color: grad[1].withValues(alpha: 0.30), blurRadius: 14, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: grad[1].withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(children: [
@@ -193,12 +230,12 @@ class _SpeciesCardState extends State<SpeciesCard> with SingleTickerProviderStat
                 Text(_emojiFor(obs.kategoriTakson), style: const TextStyle(fontSize: 18)),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text('Detail', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+                  child: Text('Detail', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
                 ),
                 Container(
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
-                  child: const Icon(Icons.swipe_rounded, color: Colors.white70, size: 12),
+                  child: const Icon(Icons.flip_camera_android_rounded, color: Colors.white, size: 14),
                 ),
               ]),
               const SizedBox(height: 8),
@@ -242,8 +279,8 @@ class _SpeciesCardState extends State<SpeciesCard> with SingleTickerProviderStat
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 8, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-              Text(value, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600, height: 1.2), maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 9, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+              Text(value, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600, height: 1.2), maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
@@ -260,12 +297,16 @@ class _SpeciesCardState extends State<SpeciesCard> with SingleTickerProviderStat
 
   Widget _chip(IconData icon, String label, Color color, Color bg) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(color: bg.withValues(alpha: 0.92), borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withValues(alpha: 0.3), width: 0.5)),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg.withValues(alpha: 0.95), 
+        borderRadius: BorderRadius.circular(20), 
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1)
+      ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, size: 10, color: color),
-        const SizedBox(width: 3),
-        Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w700)),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
       ]),
     );
   }
