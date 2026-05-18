@@ -76,6 +76,7 @@ flutter:
   assets:
     - .env
     - lib/assets/petugas.glb
+    - lib/assets/images/empty_nature.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -166,29 +166,156 @@ class _KoleksiScreenState extends State<KoleksiScreen>
     if (_myLoading) return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     if (_myError != null) return Center(child: Text(_myError!));
     if (_myObservations.isEmpty) {
-      return const Center(child: Text('Belum ada observasi. Mulai lapor!'));
+      return _buildEmptyState();
     }
 
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _loadMyObservations,
-      child: GridView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.72,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-        ),
-        itemCount: _myObservations.length,
-        itemBuilder: (_, i) => SpeciesCard(
-          observation: _myObservations[i],
-          onTap: () => showObservationDetailSheet(
-            context, 
-            _myObservations[i],
-            () => _loadMyObservations(), // REFRESH SETELAH HAPUS
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: _buildMyStats(),
           ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+            sliver: SliverGrid(
+              delegate: SliverChildBuilderDelegate(
+                (_, i) => SpeciesCard(
+                  observation: _myObservations[i],
+                  onTap: () => showObservationDetailSheet(
+                    context, 
+                    _myObservations[i],
+                    () => _loadMyObservations(), // REFRESH SETELAH HAPUS
+                  ),
+                ),
+                childCount: _myObservations.length,
+              ),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.72,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.travel_explore_rounded, size: 80, color: AppColors.primary.withValues(alpha: 0.7)),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Koleksi Masih Kosong',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1A2400),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              'Jelajahi alam liar dan catat temuan flora maupun fauna pertamamu hari ini!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black54,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMyStats() {
+    final verified = _myObservations.where((o) => o.statusApproval == 'TERVERIFIKASI').length;
+    final pending = _myObservations.where((o) => o.statusApproval == 'MENUNGGU_VERIFIKASI').length;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.primary, Color(0xFF1A6B3E)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Statistik Penjelajahan',
+            style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${_myObservations.length}',
+                style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, height: 1),
+              ),
+              const SizedBox(width: 8),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: Text('Total Spesies', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              _statItem(Icons.verified_rounded, '$verified Terverifikasi', Colors.greenAccent),
+              const SizedBox(width: 16),
+              _statItem(Icons.hourglass_top_rounded, '$pending Menunggu', Colors.orangeAccent),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _statItem(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }

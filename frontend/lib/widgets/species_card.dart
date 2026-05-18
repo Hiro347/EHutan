@@ -90,7 +90,7 @@ class _SpeciesCardState extends State<SpeciesCard>
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.zero,
         // Outer border — thick, like Pokémon card's colored rim
         border: Border.all(color: borderColor, width: 3.5),
         boxShadow: [
@@ -129,7 +129,7 @@ class _SpeciesCardState extends State<SpeciesCard>
             child: Container(
               margin: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(11),
+                borderRadius: BorderRadius.zero,
                 border: Border.all(color: frameColor, width: 1.0),
               ),
             ),
@@ -162,7 +162,6 @@ class _SpeciesCardState extends State<SpeciesCard>
 
   Widget _buildHeader(Observation obs, Color typeColor, Color borderColor) {
     final jumlah = obs.jumlahIndividu ?? 1;
-    final emoji = _emojiFor(obs.kategoriTakson);
     final typeName = obs.kategoriTakson.replaceAll('DK ', '').toUpperCase();
 
     return Container(
@@ -181,21 +180,16 @@ class _SpeciesCardState extends State<SpeciesCard>
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Type badge (like BASIC stage in Pokémon)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2.5),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.35), width: 0.7),
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.0),
             child: Text(
               typeName,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 7,
+                fontSize: 11,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 0.7,
+                letterSpacing: 0.8,
+                height: 1.1,
               ),
             ),
           ),
@@ -219,8 +213,6 @@ class _SpeciesCardState extends State<SpeciesCard>
                     letterSpacing: 0.2,
                   ),
                 ),
-                const SizedBox(width: 3),
-                Text(emoji, style: const TextStyle(fontSize: 9)),
               ],
             ),
           ),
@@ -234,7 +226,7 @@ class _SpeciesCardState extends State<SpeciesCard>
     return Container(
       margin: const EdgeInsets.fromLTRB(6, 5, 6, 0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
         // Inner photo border — silver frame
         border: Border.all(
           color: const Color(0xFFB8B8B8),
@@ -448,7 +440,7 @@ class _SpeciesCardState extends State<SpeciesCard>
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.zero,
         gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
