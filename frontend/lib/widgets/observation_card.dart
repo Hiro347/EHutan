@@ -15,6 +15,26 @@ class ObservationCard extends StatelessWidget {
     required this.onTap,
   });
 
+  List<Color> _gradientFor(String t) {
+    final lower = t.toLowerCase();
+    if (lower.contains('flora') || lower.contains('tumbuhan') || lower.contains('plantae')) {
+      return const [Color(0xFF81C784), Color(0xFF388E3C)]; // Hijau muda
+    }
+    if (lower.contains('herbivora')) return const [Color(0xFF2E7D32), Color(0xFF1B5E20)];
+    if (lower.contains('karnivora')) return const [Color(0xFFC62828), Color(0xFF8E0000)];
+    if (lower.contains('primata')) return const [Color(0xFF8D6E63), Color(0xFF4E342E)]; // Coklat
+    if (lower.contains('aves')) return const [Color(0xFF0277BD), Color(0xFF01579B)];
+    if (lower.contains('amfibi')) return const [Color(0xFF00695C), Color(0xFF004D40)];
+    if (lower.contains('reptil')) return const [Color(0xFF4E342E), Color(0xFF3E2723)];
+    if (lower.contains('serangga') || lower.contains('insekta')) {
+      return const [Color(0xFFEF6C00), Color(0xFFE65100)];
+    }
+    if (lower.contains('pisces') || lower.contains('ikan')) {
+      return const [Color(0xFF00838F), Color(0xFF006064)];
+    }
+    return const [Color(0xFF424242), Color(0xFF212121)]; // Default
+  }
+
   Widget _buildBackgroundImage(Color color, String emoji) {
     if (obs.localFotoPath != null && obs.localFotoPath!.isNotEmpty) {
       final file = File(obs.localFotoPath!);
@@ -41,6 +61,17 @@ class ObservationCard extends StatelessWidget {
     return _buildPlaceholder(color, emoji);
   }
 
+  Widget _buildPlaceholder(Color color, String emoji) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.2),
+      ),
+      child: Center(
+        child: Text(emoji, style: const TextStyle(fontSize: 32)),
+      ),
+    );
+  }
+
   String _getTimeAgo(DateTime dateTime) {
     final duration = DateTime.now().difference(dateTime);
     if (duration.inDays > 0) return '${duration.inDays} hari lalu';
@@ -51,7 +82,8 @@ class ObservationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = markerColorForTakson(obs.kategoriTakson);
+    final grad = _gradientFor(obs.kategoriTakson);
+    final fallbackColor = markerColorForTakson(obs.kategoriTakson);
     final emoji = markerEmojiForTakson(obs.kategoriTakson);
     final int confidence = 85 + (obs.id.hashCode % 14);
 
@@ -61,54 +93,66 @@ class ObservationCard extends StatelessWidget {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         margin: const EdgeInsets.only(bottom: 12),
+        height: 120, // Ketinggian kartu TCG Horizontal
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.white,
-            width: 2,
+            color: isSelected ? const Color(0xFFFFF176) : const Color(0xFFD4AF37), // Highlight emas lebih terang kalau isSelected
+            width: isSelected ? 4 : 3,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isSelected 
-                  ? AppColors.primary.withValues(alpha:0.15) 
-                  : Colors.transparent,
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              grad[0].withValues(alpha: 0.9),
+              grad[0],
+              grad[1],
+              grad[0],
+            ],
+            stops: const [0.0, 0.3, 0.7, 1.0],
+          ),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: IntrinsicHeight(
-            child: Row(
-              children: [
-                // Image Section
-                Stack(
+        child: Row(
+          children: [
+            // --- KIRI: Frame Gambar ---
+            AspectRatio(
+              aspectRatio: 1.0, // Tetap persegi
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFFBDBDBD), width: 2),
+                  color: Colors.black,
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2))
+                  ],
+                ),
+                clipBehavior: Clip.hardEdge,
+                child: Stack(
                   children: [
                     SizedBox(
-                      width: 110,
-                      height: 110,
-                      child: _buildBackgroundImage(color, emoji),
+                      width: double.infinity,
+                      height: double.infinity,
+                      child: _buildBackgroundImage(fallbackColor, emoji),
                     ),
                     // Glassy AI Confidence Badge
                     Positioned(
-                      bottom: 8,
-                      left: 8,
+                      bottom: 4,
+                      left: 4,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(6),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha:0.6),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(6),
                             border: Border.all(color: Colors.white.withValues(alpha:0.2)),
                           ),
                           child: Text(
                             '$confidence%',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 10,
+                              fontSize: 8,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -117,114 +161,129 @@ class ObservationCard extends StatelessWidget {
                     ),
                   ],
                 ),
-    
-                // Info Section
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                obs.namaSpesies,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  fontStyle: FontStyle.italic,
-                                  color: Color(0xFF1E3A2B),
-                                  letterSpacing: -0.4,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (!obs.isSynced)
-                              const Icon(Icons.cloud_off_rounded, size: 16, color: Colors.orangeAccent),
+              ),
+            ),
+            
+            const SizedBox(width: 12),
+            
+            // --- KANAN: Informasi ---
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Badge Kategori & Spacing
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xFFE8E8E8), Color(0xFFBDBDBD)],
+                          ),
+                          border: Border.all(color: const Color(0xFFAAAAAA)),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 1))
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              obs.kategoriTakson,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          obs.kategoriTakson.replaceAll('DK ', '').toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                        const Spacer(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: (obs.statusApproval == 'TERVERIFIKASI' 
-                                    ? AppColors.statusTerverifikasi 
-                                    : AppColors.statusMenunggu).withValues(alpha:0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                obs.statusApproval == 'MENUNGGU_VERIFIKASI' ? 'Menunggu' : obs.statusApproval.toLowerCase(),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: obs.statusApproval == 'TERVERIFIKASI' 
-                                      ? AppColors.statusTerverifikasi 
-                                      : AppColors.statusMenunggu,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              _getTimeAgo(obs.waktuPengamatan),
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey.shade400,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
+                      if (!obs.isSynced)
+                        const Icon(Icons.cloud_off_rounded, size: 14, color: Colors.orangeAccent),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 6),
+                  
+                  // Nama Spesies
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      obs.namaSpesies,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        fontStyle: FontStyle.italic,
+                        shadows: [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(1, 1))],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  
+                  const SizedBox(height: 4),
+                  
+                  // Koordinat (LAT / LNG ditulis langsung)
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, size: 10, color: Colors.white70),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '${obs.latitude.toStringAsFixed(5)}, ${obs.longitude.toStringAsFixed(5)}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 10,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const Spacer(),
+                  
+                  // Footer Status & Waktu Berlalu
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        _getTimeAgo(obs.waktuPengamatan),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        obs.statusApproval == 'MENUNGGU_VERIFIKASI' ? 'MENUNGGU' : obs.statusApproval,
+                        style: TextStyle(
+                          color: _statusColor(obs.statusApproval),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                          shadows: const [Shadow(color: Colors.black87, blurRadius: 2, offset: Offset(1, 1))],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildPlaceholder(Color color, String emoji) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha:0.1),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [color.withValues(alpha:0.2), color.withValues(alpha:0.05)],
-        ),
-      ),
-      child: Center(
-        child: Text(emoji, style: const TextStyle(fontSize: 44)),
-      ),
-    );
+  Color _statusColor(String status) {
+    if (status == 'TERVERIFIKASI') return const Color(0xFF69F0AE); // Hijau terang
+    if (status == 'PERLU_DIREVISI') return const Color(0xFFFFAB40); // Orange
+    return const Color(0xFF80D8FF); // Biru muda
   }
 }
