@@ -80,351 +80,250 @@ class _SpeciesCardState extends State<SpeciesCard>
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  FRONT SIDE — Field Dex Card
+  //  FRONT SIDE — TCG Card
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildFront() {
     final obs = widget.observation;
-    final typeColor = _typeColorFor(obs.kategoriTakson);
-    final borderColor = _borderColorFor(obs.kategoriTakson);
-    final frameColor = _frameColorFor(obs.kategoriTakson);
+    final grad = _gradientFor(obs.kategoriTakson);
+
+    final lat = obs.latitude.toStringAsFixed(3);
+    final lng = obs.longitude.toStringAsFixed(3);
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.zero,
-        // Outer border — thick, like Pokémon card's colored rim
-        border: Border.all(color: borderColor, width: 3.5),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF5C842), width: 5), // TCG yellow border
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            grad[0],
+            grad[1],
+            grad[1],
+            grad[0],
+          ],
+          stops: const [0.0, 0.3, 0.7, 1.0],
+        ),
         boxShadow: [
           BoxShadow(
-            color: typeColor.withValues(alpha: 0.30),
+            color: grad[1].withValues(alpha: 0.4),
             blurRadius: 12,
             offset: const Offset(0, 5),
           ),
-          BoxShadow(
-            color: borderColor.withValues(alpha: 0.20),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Card background with subtle texture
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFFBFBF8),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _CardTexturePainter(
-                color: typeColor.withValues(alpha: 0.035),
-              ),
-            ),
-          ),
-          // Inner metallic frame line
-          Positioned.fill(
-            child: Container(
-              margin: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.zero,
-                border: Border.all(color: frameColor, width: 1.0),
-              ),
-            ),
-          ),
-
-          // Content
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          // ── Header: Kategori & Status ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // ── HEADER STRIP ──
-              _buildHeader(obs, typeColor, borderColor),
-              // ── PHOTO FRAME ──
-              Expanded(
-                flex: 55,
-                child: _buildPhotoFrame(obs, typeColor, borderColor),
-              ),
-              // ── POKÉDEX INFO STRIP ──
-              _buildDexStrip(obs, typeColor),
-              // ── FOOTER ──
-              Expanded(
-                flex: 32,
-                child: _buildFooter(obs, typeColor, borderColor),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(Observation obs, Color typeColor, Color borderColor) {
-    final jumlah = obs.jumlahIndividu ?? 1;
-    final typeName = obs.kategoriTakson.replaceAll('DK ', '').toUpperCase();
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(7, 7, 7, 6),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            borderColor,
-            typeColor,
-          ],
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Type badge (like BASIC stage in Pokémon)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2.0),
-            child: Text(
-              typeName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
-                height: 1.1,
-              ),
-            ),
-          ),
-          const Spacer(),
-          // Individu count (like HP in Pokémon)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.20),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '×$jumlah',
+              // Badge kiri atas (Kategori)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFFE8E8E8), Color(0xFFBDBDBD)],
+                  ),
+                  border: Border.all(color: const Color(0xFFAAAAAA)),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 1))
+                  ],
+                ),
+                child: Text(
+                  obs.kategoriTakson.replaceAll('DK ', '').toUpperCase(),
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
+                    color: Colors.black87,
+                    fontSize: 8,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 0.2,
+                    letterSpacing: 0.5,
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPhotoFrame(
-      Observation obs, Color typeColor, Color borderColor) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(6, 5, 6, 0),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.zero,
-        // Inner photo border — silver frame
-        border: Border.all(
-          color: const Color(0xFFB8B8B8),
-          width: 1.8,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Photo
-          _photo(obs),
-
-          // Subtle holographic diagonal shimmer overlay
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _HoloPainter(color: typeColor.withValues(alpha: 0.07)),
-            ),
-          ),
-
-          // Status badge (top-left)
-          Positioned(
-            top: 6,
-            left: 6,
-            child: _statusBadge(obs),
-          ),
-
-          // Swipe hint (bottom-right)
-          Positioned(
-            bottom: 5,
-            right: 5,
-            child: Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.35),
-                shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.swipe_rounded,
-                  color: Colors.white70, size: 10),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+              
+              const SizedBox(width: 6),
 
-  Widget _buildDexStrip(Observation obs, Color typeColor) {
-    final lat = obs.latitude.toStringAsFixed(4);
-    final lng = obs.longitude.toStringAsFixed(4);
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(6, 4, 6, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-      decoration: BoxDecoration(
-        color: typeColor.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-            color: typeColor.withValues(alpha: 0.18), width: 0.7),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.pin_drop_outlined,
-              size: 9, color: typeColor.withValues(alpha: 0.7)),
-          const SizedBox(width: 4),
-          Text(
-            '$lat°  $lng°',
-            style: TextStyle(
-              fontSize: 8.5,
-              fontFamily: 'monospace',
-              color: typeColor.withValues(alpha: 0.75),
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFooter(
-      Observation obs, Color typeColor, Color borderColor) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 5, 8, 7),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Species name — italic like Pokémon name
-          Text(
-            obs.namaSpesies,
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w800,
-              fontStyle: FontStyle.italic,
-              color: Color(0xFF1A1A1A),
-              height: 1.15,
-              letterSpacing: -0.2,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-
-          if (obs.namaLokal != null && obs.namaLokal!.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Text(
-              obs.namaLokal!,
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w700,
-                color: typeColor,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-
-          const Spacer(),
-
-          // Bottom divider line (like the divider before W/R/Retreat in Pokémon)
-          Container(
-            height: 0.7,
-            color: const Color(0xFFB8B8B8).withValues(alpha: 0.6),
-          ),
-          const SizedBox(height: 4),
-
-          // Time + sync indicator
-          Row(
-            children: [
-              Icon(Icons.access_time_outlined,
-                  size: 9, color: const Color(0xFFAAAAAA)),
-              const SizedBox(width: 3),
-              Text(
-                _getTimeAgo(obs.waktuPengamatan),
-                style: const TextStyle(
-                  fontSize: 8.5,
-                  color: Color(0xFFAAAAAA),
-                  fontWeight: FontWeight.w500,
+              // Nama Spesies (Kanan)
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    obs.namaSpesies,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      fontStyle: FontStyle.italic,
+                      shadows: [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(1, 1))],
+                    ),
+                  ),
                 ),
               ),
-              const Spacer(),
-              if (!obs.isSynced)
-                Icon(Icons.cloud_off_rounded,
-                    size: 11, color: Colors.orange.shade400)
-              else
-                Icon(Icons.cloud_done_rounded,
-                    size: 11, color: const Color(0xFFBBBBBB)),
             ],
           ),
-        ],
-      ),
-    );
-  }
 
-  Widget _statusBadge(Observation obs) {
-    if (!obs.isSynced) {
-      return _badge(Icons.edit_note_rounded, 'Draft',
-          Colors.orange.shade700, Colors.orange.shade50);
-    }
-    if (obs.statusApproval == 'TERVERIFIKASI') {
-      return _badge(Icons.verified_rounded, 'Verified',
-          AppColors.statusTerverifikasi, const Color(0xFFE6FAF3));
-    }
-    if (obs.statusApproval == 'PERLU_DIREVISI') {
-      return _badge(Icons.warning_amber_rounded, 'Revisi',
-          AppColors.statusRevisi, const Color(0xFFFFF0F0));
-    }
-    return _badge(Icons.hourglass_top_rounded, 'Pending',
-        AppColors.statusMenunggu, const Color(0xFFFFF8E6));
-  }
+          const SizedBox(height: 12),
 
-  Widget _badge(IconData icon, String label, Color color, Color bg) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.6),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 4,
+          // ── Area gambar ──
+          Expanded(
+            flex: 55,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFBDBDBD), width: 2),
+                color: Colors.black,
+                boxShadow: const [
+                  BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2))
+                ],
+              ),
+              clipBehavior: Clip.hardEdge,
+              child: Column(
+                children: [
+                  // Gambar utama
+                  Expanded(
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: _photo(obs),
+                    ),
+                  ),
+
+                  // Silver bar bawah gambar (Info Spasial)
+                  Container(
+                    height: 14,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFFD0D0D0), Color(0xFFB0B0B0)],
+                      ),
+                      border: Border(
+                        top: BorderSide(color: Color(0xFFAAAAAA)),
+                      ),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.location_on, size: 8, color: Colors.black87),
+                            const SizedBox(width: 4),
+                            Text(
+                              'LAT $lat • LNG $lng',
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontSize: 8,
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 9, color: color),
-          const SizedBox(width: 3),
-          Text(label,
-              style: TextStyle(
-                  color: color, fontSize: 8.5, fontWeight: FontWeight.w800)),
+
+          const SizedBox(height: 10),
+
+          // ── Area konten bawah (Deskripsi / Serangan) ──
+          Expanded(
+            flex: 45,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                color: Colors.white.withValues(alpha: 0.15),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Nama Lokal & Sync Status
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          obs.namaLokal != null && obs.namaLokal!.isNotEmpty 
+                              ? obs.namaLokal! 
+                              : 'Spesies Liar',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (!obs.isSynced)
+                        const Icon(Icons.cloud_off_rounded, size: 12, color: Colors.orangeAccent)
+                      else
+                        const Icon(Icons.cloud_done_rounded, size: 12, color: Colors.white70),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  
+                  // Habitat / Catatan
+                  Expanded(
+                    child: Text(
+                      obs.catatanHabitat != null && obs.catatanHabitat!.isNotEmpty
+                          ? obs.catatanHabitat!
+                          : 'Ditemukan di habitat alami. Tidak ada catatan tambahan.',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 9,
+                        fontStyle: FontStyle.italic,
+                        height: 1.2,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  
+                  // Footer (Tanggal & Status)
+                  const Divider(color: Colors.white30, height: 6),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          DateFormat('dd MMM yyyy').format(obs.waktuPengamatan),
+                          style: const TextStyle(color: Colors.white60, fontSize: 9),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          obs.statusApproval,
+                          style: TextStyle(
+                            color: obs.statusApproval == 'TERVERIFIKASI' 
+                                ? Colors.greenAccent 
+                                : (obs.statusApproval == 'PERLU_DIREVISI' ? Colors.redAccent : Colors.orangeAccent),
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -612,14 +511,6 @@ class _SpeciesCardState extends State<SpeciesCard>
   // ═══════════════════════════════════════════════════════════════════════
   //  HELPERS
   // ═══════════════════════════════════════════════════════════════════════
-  String _getTimeAgo(DateTime dateTime) {
-    final duration = DateTime.now().difference(dateTime);
-    if (duration.inDays > 0) return '${duration.inDays}h lalu';
-    if (duration.inHours > 0) return '${duration.inHours}j lalu';
-    if (duration.inMinutes > 0) return '${duration.inMinutes}m lalu';
-    return 'Baru saja';
-  }
-
   /// Warna dominan card (untuk gradient back + glow)
   List<Color> _gradientFor(String t) {
     final s = t.toLowerCase();
@@ -650,18 +541,6 @@ class _SpeciesCardState extends State<SpeciesCard>
     return [const Color(0xFF609008), const Color(0xFF3D5A05)];
   }
 
-  /// Warna type utama (untuk accent, strip, dll)
-  Color _typeColorFor(String t) => _gradientFor(t)[0];
-
-  /// Warna border tebal luar (sedikit lebih gelap)
-  Color _borderColorFor(String t) => _gradientFor(t)[1];
-
-  /// Warna frame metalik dalam (lighter, satin)
-  Color _frameColorFor(String t) {
-    final base = _gradientFor(t)[0];
-    return Color.lerp(base, Colors.white, 0.6)!.withValues(alpha: 0.6);
-  }
-
   String _emojiFor(String t) {
     final s = t.toLowerCase();
     if (s.contains('karnivora')) return '🐅';
@@ -674,57 +553,6 @@ class _SpeciesCardState extends State<SpeciesCard>
     if (s.contains('eksitu') || s.contains('flora')) return '🌿';
     return '🔍';
   }
-}
-
-// ─── Card texture — subtle diagonal lines ────────────────────────────────────
-class _CardTexturePainter extends CustomPainter {
-  final Color color;
-  _CardTexturePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 0.6;
-    const spacing = 14.0;
-    for (double i = -size.height; i < size.width + size.height; i += spacing) {
-      canvas.drawLine(
-        Offset(i, 0),
-        Offset(i + size.height, size.height),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// ─── Holographic shimmer overlay ─────────────────────────────────────────────
-class _HoloPainter extends CustomPainter {
-  final Color color;
-  _HoloPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Colors.white.withValues(alpha: 0.18),
-          Colors.transparent,
-          color,
-          Colors.transparent,
-        ],
-        stops: const [0.0, 0.35, 0.65, 1.0],
-      ).createShader(rect);
-    canvas.drawRect(rect, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // ─── Dot pattern for card back ───────────────────────────────────────────────

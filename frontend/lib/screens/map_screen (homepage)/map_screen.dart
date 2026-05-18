@@ -903,9 +903,17 @@ class _MapScreenState extends State<MapScreen> {
             index: _currentIndex,
             children: [
               _buildMapContent(),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 80),
-                child: KoleksiScreen(),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 80),
+                child: KoleksiScreen(
+                  onFlyTo: (obs) {
+                    setState(() {
+                      _currentIndex = 0;
+                      _selectedObservation = obs;
+                    });
+                    _flyToObservation(obs);
+                  },
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 80),

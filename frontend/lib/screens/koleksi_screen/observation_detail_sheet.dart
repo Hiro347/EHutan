@@ -6,20 +6,21 @@ import '../../models/observation.dart';
 import '../../utils/constants.dart';
 import '../../providers/observation_provider.dart';
 
-Future<void> showObservationDetailSheet(BuildContext context, Observation observation, VoidCallback onDeleted) {
+Future<void> showObservationDetailSheet(BuildContext context, Observation observation, VoidCallback onDeleted, [Function(Observation)? onFlyTo]) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => ObservationDetailSheet(observation: observation, onDeleted: onDeleted),
+    builder: (_) => ObservationDetailSheet(observation: observation, onDeleted: onDeleted, onFlyTo: onFlyTo),
   );
 }
 
 class ObservationDetailSheet extends ConsumerWidget {
   final Observation observation;
   final VoidCallback onDeleted;
+  final Function(Observation)? onFlyTo;
 
-  const ObservationDetailSheet({super.key, required this.observation, required this.onDeleted});
+  const ObservationDetailSheet({super.key, required this.observation, required this.onDeleted, this.onFlyTo});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,7 +78,27 @@ class ObservationDetailSheet extends ConsumerWidget {
                         // 3. WAKTU & LOKASI
                         _buildInfoRow(Icons.calendar_month_rounded, '${DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(observation.waktuPengamatan)} WIB'),
                         const SizedBox(height: 12),
-                        _buildInfoRow(Icons.location_on_rounded, '${observation.latitude.toStringAsFixed(6)}, ${observation.longitude.toStringAsFixed(6)}'),
+                        Row(
+                          children: [
+                            Expanded(child: _buildInfoRow(Icons.location_on_rounded, '${observation.latitude.toStringAsFixed(6)}, ${observation.longitude.toStringAsFixed(6)}')),
+                            if (onFlyTo != null)
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(Icons.map_rounded, color: AppColors.primary),
+                                  tooltip: 'Lihat di Peta',
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    onFlyTo!(observation);
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
                         
                         const SizedBox(height: 20),
                         const Divider(height: 1),

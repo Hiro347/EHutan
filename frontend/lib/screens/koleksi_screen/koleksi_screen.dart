@@ -7,7 +7,8 @@ import '../../utils/constants.dart';
 import 'observation_detail_sheet.dart';
 
 class KoleksiScreen extends StatefulWidget {
-  const KoleksiScreen({super.key});
+  final Function(Observation)? onFlyTo;
+  const KoleksiScreen({super.key, this.onFlyTo});
 
   @override
   State<KoleksiScreen> createState() => _KoleksiScreenState();
@@ -187,6 +188,7 @@ class _KoleksiScreenState extends State<KoleksiScreen>
                     context, 
                     _myObservations[i],
                     () => _loadMyObservations(), // REFRESH SETELAH HAPUS
+                    widget.onFlyTo,
                   ),
                 ),
                 childCount: _myObservations.length,
@@ -249,73 +251,39 @@ class _KoleksiScreenState extends State<KoleksiScreen>
     final verified = _myObservations.where((o) => o.statusApproval == 'TERVERIFIKASI').length;
     final pending = _myObservations.where((o) => o.statusApproval == 'MENUNGGU_VERIFIKASI').length;
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, Color(0xFF1A6B3E)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      child: Row(
         children: [
-          const Text(
-            'Statistik Penjelajahan',
-            style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${_myObservations.length}',
-                style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, height: 1),
-              ),
-              const SizedBox(width: 8),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 6),
-                child: Text('Total Spesies', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              _statItem(Icons.verified_rounded, '$verified Terverifikasi', Colors.greenAccent),
-              const SizedBox(width: 16),
-              _statItem(Icons.hourglass_top_rounded, '$pending Menunggu', Colors.orangeAccent),
-            ],
-          )
+          _simpleStatItem(Icons.nature_people_rounded, '${_myObservations.length} Total', Colors.blueGrey),
+          const SizedBox(width: 8),
+          _simpleStatItem(Icons.verified_rounded, '$verified Valid', Colors.green.shade600),
+          const SizedBox(width: 8),
+          _simpleStatItem(Icons.hourglass_empty_rounded, '$pending Pending', Colors.orange.shade700),
         ],
       ),
     );
   }
 
-  Widget _statItem(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
-        ],
+  Widget _simpleStatItem(IconData icon, String text, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(text, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -356,7 +324,7 @@ class _KoleksiScreenState extends State<KoleksiScreen>
               delegate: SliverChildBuilderDelegate(
                 (_, i) => SpeciesCard(
                   observation: entry.value[i],
-                  onTap: () => showObservationDetailSheet(context, entry.value[i], () {}),
+                  onTap: () => showObservationDetailSheet(context, entry.value[i], () {}, widget.onFlyTo),
                 ),
                 childCount: entry.value.length,
               ),
