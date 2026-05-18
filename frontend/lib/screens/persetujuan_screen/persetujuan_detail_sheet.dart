@@ -4,6 +4,7 @@ import '../../models/observation.dart';
 import '../../models/user_profile.dart';
 import '../../services/persetujuan_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/tcg_style_utils.dart';
 
 Future<void> showPersetujuanDetailSheet({
   required BuildContext context,
@@ -75,16 +76,24 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final grad = TcgStyleUtils.getGradientFor(widget.observation.kategoriTakson);
+
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
       maxChildSize: 0.95,
       minChildSize: 0.5,
       builder: (_, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFFF8FAF5),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [grad[0], grad[1], grad[1], grad[0]],
+              stops: const [0.0, 0.3, 0.7, 1.0],
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
+          clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
               Expanded(
@@ -102,12 +111,26 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
                             children: [
                               Text(
                                 widget.observation.namaSpesies,
-                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, color: Color(0xFF1A2400)),
+                                style: const TextStyle(
+                                  fontSize: 24, 
+                                  fontWeight: FontWeight.w900, 
+                                  fontStyle: FontStyle.italic, 
+                                  color: Colors.white,
+                                  shadows: [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(1, 1))],
+                                ),
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                widget.observation.namaLokal != null && widget.observation.namaLokal!.isNotEmpty ? widget.observation.namaLokal! : 'Nama lokal tidak diketahui',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
+                              Row(
+                                children: [
+                                  Text(TcgStyleUtils.getEmojiFor(widget.observation.kategoriTakson), style: const TextStyle(fontSize: 16)),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      widget.observation.namaLokal != null && widget.observation.namaLokal!.isNotEmpty ? widget.observation.namaLokal! : 'Nama lokal tidak diketahui',
+                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white70),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -116,7 +139,7 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    const Divider(height: 1),
+                    const Divider(height: 1, color: Colors.white24),
                     const SizedBox(height: 20),
 
                     // Info Umum
@@ -128,19 +151,19 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
                     
                     // Catatan Revisi Lama (Jika ada)
                     if (widget.observation.catatanRevisi != null && widget.observation.catatanRevisi!.isNotEmpty) ...[
-                      const Text('CATATAN REVISI SEBELUMNYA', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.blueGrey)),
+                      const Text('CATATAN REVISI SEBELUMNYA', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white70)),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.shade200)),
-                        child: Text(widget.observation.catatanRevisi!, style: TextStyle(color: Colors.orange.shade900)),
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white24)),
+                        child: Text(widget.observation.catatanRevisi!, style: const TextStyle(color: Colors.white)),
                       ),
                       const SizedBox(height: 20),
                     ],
 
                     // Foto Observasi (opsional)
                     if (widget.observation.fotoUrl.isNotEmpty) ...[
-                      const Text('FOTO BUKTI', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.blueGrey)),
+                      const Text('FOTO BUKTI', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white70)),
                       const SizedBox(height: 8),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
@@ -161,9 +184,9 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
                     
                     // Form untuk Admin/Kordinator
                     if (widget.userProfile.canVerify && widget.observation.statusApproval == 'MENUNGGU_VERIFIKASI') ...[
-                      const Divider(height: 1),
+                      const Divider(height: 1, color: Colors.white24),
                       const SizedBox(height: 20),
-                      const Text('TINDAKAN VERIFIKASI', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.blueGrey)),
+                      const Text('TINDAKAN VERIFIKASI', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white70)),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _notesController,
@@ -189,9 +212,9 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: grad[1], // Warna aksi match dengan gradient
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5)),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 10, offset: const Offset(0, -5)),
                     ],
                   ),
                   child: Row(
@@ -200,8 +223,8 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
                         child: OutlinedButton(
                           onPressed: _isSubmitting ? null : () => _updateStatus('PERLU_DIREVISI'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.orange.shade800,
-                            side: BorderSide(color: Colors.orange.shade800),
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white54),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
@@ -236,9 +259,9 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
   Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 22, color: AppColors.primary),
+        Icon(icon, size: 22, color: Colors.white70),
         const SizedBox(width: 12),
-        Expanded(child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A2400)))),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white))),
       ],
     );
   }

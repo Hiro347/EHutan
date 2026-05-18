@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/observation.dart';
 import '../utils/constants.dart';
+import '../utils/tcg_style_utils.dart';
 
 class SpeciesCard extends StatefulWidget {
   final Observation observation;
@@ -84,7 +84,7 @@ class _SpeciesCardState extends State<SpeciesCard>
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildFront() {
     final obs = widget.observation;
-    final grad = _gradientFor(obs.kategoriTakson);
+    final grad = TcgStyleUtils.getGradientFor(obs.kategoriTakson);
 
     final lat = obs.latitude.toStringAsFixed(3);
     final lng = obs.longitude.toStringAsFixed(3);
@@ -334,7 +334,7 @@ class _SpeciesCardState extends State<SpeciesCard>
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildBack() {
     final obs = widget.observation;
-    final grad = _gradientFor(obs.kategoriTakson);
+    final grad = TcgStyleUtils.getGradientFor(obs.kategoriTakson);
     final dateStr = DateFormat('dd MMM yyyy').format(obs.waktuPengamatan);
 
     return Container(
@@ -367,7 +367,7 @@ class _SpeciesCardState extends State<SpeciesCard>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Text(_emojiFor(obs.kategoriTakson),
+                  Text(TcgStyleUtils.getEmojiFor(obs.kategoriTakson),
                       style: const TextStyle(fontSize: 18)),
                   const SizedBox(width: 6),
                   Expanded(
@@ -483,7 +483,7 @@ class _SpeciesCardState extends State<SpeciesCard>
   }
 
   Widget _placeholder({bool loading = false}) {
-    final g = _gradientFor(widget.observation.kategoriTakson);
+    final g = TcgStyleUtils.getGradientFor(widget.observation.kategoriTakson);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -509,50 +509,8 @@ class _SpeciesCardState extends State<SpeciesCard>
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  HELPERS
+  //  HELPERS (Moved to TcgStyleUtils)
   // ═══════════════════════════════════════════════════════════════════════
-  /// Warna dominan card (untuk gradient back + glow)
-  List<Color> _gradientFor(String t) {
-    final s = t.toLowerCase();
-    if (s.contains('karnivora')) {
-      return [const Color(0xFFD4451A), const Color(0xFF8B2010)];
-    }
-    if (s.contains('herbivora')) {
-      return [const Color(0xFF2E9B5E), const Color(0xFF1A6B3E)];
-    }
-    if (s.contains('primata')) {
-      return [const Color(0xFFA0522D), const Color(0xFF6B3418)];
-    }
-    if (s.contains('burung')) {
-      return [const Color(0xFF2196F3), const Color(0xFF0D47A1)];
-    }
-    if (s.contains('reptil') || s.contains('amfibi')) {
-      return [const Color(0xFF00897B), const Color(0xFF004D40)];
-    }
-    if (s.contains('insekta')) {
-      return [const Color(0xFFFF8F00), const Color(0xFFE65100)];
-    }
-    if (s.contains('fauna perairan')) {
-      return [const Color(0xFF5C6BC0), const Color(0xFF283593)];
-    }
-    if (s.contains('eksitu') || s.contains('flora')) {
-      return [const Color(0xFF7CB342), const Color(0xFF33691E)];
-    }
-    return [const Color(0xFF609008), const Color(0xFF3D5A05)];
-  }
-
-  String _emojiFor(String t) {
-    final s = t.toLowerCase();
-    if (s.contains('karnivora')) return '🐅';
-    if (s.contains('herbivora')) return '🐘';
-    if (s.contains('primata')) return '🐒';
-    if (s.contains('burung')) return '🦅';
-    if (s.contains('reptil') || s.contains('amfibi')) return '🦎';
-    if (s.contains('insekta')) return '🦋';
-    if (s.contains('fauna perairan')) return '🐟';
-    if (s.contains('eksitu') || s.contains('flora')) return '🌿';
-    return '🔍';
-  }
 }
 
 // ─── Dot pattern for card back ───────────────────────────────────────────────

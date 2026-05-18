@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/observation.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../services/koleksi_service.dart';
 import '../../services/sqlite_service.dart'; 
 import '../../widgets/species_card.dart';
 import '../../utils/constants.dart';
 import 'observation_detail_sheet.dart';
 
-class KoleksiScreen extends StatefulWidget {
+class KoleksiScreen extends ConsumerStatefulWidget {
   final Function(Observation)? onFlyTo;
   const KoleksiScreen({super.key, this.onFlyTo});
 
   @override
-  State<KoleksiScreen> createState() => _KoleksiScreenState();
+  ConsumerState<KoleksiScreen> createState() => _KoleksiScreenState();
 }
 
-class _KoleksiScreenState extends State<KoleksiScreen>
+class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final KoleksiService _service = KoleksiService();
@@ -36,7 +38,7 @@ class _KoleksiScreenState extends State<KoleksiScreen>
     _tabController = TabController(length: 2, vsync: this);
     _loadMyObservations();
     _loadUKFObservations();
-    _tabController.addListener(() {
+    _tabController.addListener(() {gi
       if (!_tabController.indexIsChanging) setState(() {});
     });
   }
@@ -121,6 +123,19 @@ class _KoleksiScreenState extends State<KoleksiScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Listen terhadap konektivitas
+    ref.listen<AsyncValue<bool>>(connectivityProvider, (previous, current) {
+      if (previous == null || previous.isLoading) return;
+      final wasOnline = previous.value ?? true;
+      final nowOnline = current.value ?? true;
+      
+      // Jika dari offline menjadi online, otomatis ambil ulang data
+      if (!wasOnline && nowOnline) {
+        _loadMyObservations();
+        _loadUKFObservations(query: _searchQuery.isEmpty ? null : _searchQuery);
+      }
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F2),
       body: NestedScrollView(
@@ -292,50 +307,54 @@ class _KoleksiScreenState extends State<KoleksiScreen>
     if (_ukfLoading) return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     if (_ukfError != null) return Center(child: Text(_ukfError!));
     
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Cari spesies...',
-                prefixIcon: const Icon(Icons.search, color: AppColors.primary),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
-        ),
-        for (final entry in _ukfGrouped.entries) ...[
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () => _loadUKFObservations(query: _searchQuery.isEmpty ? null : _searchQuery),
+      child: CustomScrollView(
+        slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
-              child: Text('DIVISI ${entry.key}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverGrid(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) => SpeciesCard(
-                  observation: entry.value[i],
-                  onTap: () => showObservationDetailSheet(context, entry.value[i], () {}, widget.onFlyTo),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: TextField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+                decoration: InputDecoration(
+                  hintText: 'Cari spesies...',
+                  prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                childCount: entry.value.length,
-              ),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, childAspectRatio: 0.72, crossAxisSpacing: 12, mainAxisSpacing: 12,
               ),
             ),
           ),
+          for (final entry in _ukfGrouped.entries) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
+                child: Text('DIVISI ${entry.key}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverGrid(
+                delegate: SliverChildBuilderDelegate(
+                  (_, i) => SpeciesCard(
+                    observation: entry.value[i],
+                    onTap: () => showObservationDetailSheet(context, entry.value[i], () {}, widget.onFlyTo),
+                  ),
+                  childCount: entry.value.length,
+                ),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2, childAspectRatio: 0.72, crossAxisSpacing: 12, mainAxisSpacing: 12,
+                ),
+              ),
+            ),
+          ],
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
-      ],
+      ),
     );
   }
 }

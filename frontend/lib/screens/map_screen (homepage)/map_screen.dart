@@ -12,7 +12,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/connectivity_provider.dart';
 import '../../utils/constants.dart';
 import '../../models/observation.dart';
 import '../../widgets/navbar.dart';
@@ -27,14 +29,14 @@ import '../login_screen/login_screen.dart';
 import '_marker_click_listener.dart';
 import 'dart:math' as math;
 
-class MapScreen extends StatefulWidget {
+class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
 
   @override
-  State<MapScreen> createState() => _MapScreenState();
+  ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
+class _MapScreenState extends ConsumerState<MapScreen> {
   int _currentIndex = 0;
   MapboxMap? _mapboxMap;
   PointAnnotationManager? _annotationManager;
@@ -749,7 +751,7 @@ class _MapScreenState extends State<MapScreen> {
   // ─────────────────────────────────────────────────────────
   // BUILD KONTEN BERDASARKAN TAB
   // ─────────────────────────────────────────────────────────
-  Widget _buildMapContent() {
+  Widget _buildMapContent(bool isOnline) {
     final unsyncedCount = _observations.where((o) => !o.isSynced).length;
 
     return Stack(
@@ -795,6 +797,32 @@ class _MapScreenState extends State<MapScreen> {
           ),
         if (_userPosition != null)
           MapTopOverlay(unsyncedCount: unsyncedCount),
+        if (!isOnline)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 72,
+            left: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.red.shade600.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.wifi_off, color: Colors.white, size: 14),
+                  SizedBox(width: 6),
+                  Text(
+                    'Offline',
+                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ),
         if (_selectedObservation != null)
           ObservationDetailCard(
             obs: _selectedObservation!,
@@ -891,18 +919,95 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  void _showConnectivityBanner(BuildContext context, String message, bool isOnline) {
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 4,
+        left: 24,
+        right: 24,
+        child: Material(
+          color: Colors.transparent,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 300),
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, -50 * (1 - value)),
+                child: Opacity(
+                  opacity: value,
+                  child: child,
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: isOnline ? Colors.green.shade600 : Colors.red.shade600,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isOnline ? Icons.wifi : Icons.wifi_off,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+    
+    // Auto remove after 3.0 seconds
+    Future.delayed(const Duration(milliseconds: 3000), () {
+      if (entry.mounted) {
+        entry.remove();
+      }
+    });
+  }
+
   // ─────────────────────────────────────────────────────────
   // BUILD
   // ─────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final connectivityState = ref.watch(connectivityProvider);
+    final isOnline = connectivityState.value ?? true;
+
+    ref.listen<AsyncValue<bool>>(connectivityProvider, (previous, current) {
+      if (previous == null || previous.isLoading) return;
+      final wasOnline = previous.value ?? true;
+      final nowOnline = current.value ?? true;
+      
+      if (wasOnline && !nowOnline) {
+        _showConnectivityBanner(context, 'Koneksi terputus. Mode Offline aktif', false);
+      } else if (!wasOnline && nowOnline) {
+        _showConnectivityBanner(context, 'Kembali Online. Menyinkronkan data', true);
+      }
+    });
+
     return Scaffold(
       body: Stack(
         children: [
           IndexedStack(
             index: _currentIndex,
             children: [
-              _buildMapContent(),
+              _buildMapContent(isOnline),
               Padding(
                 padding: const EdgeInsets.only(bottom: 80),
                 child: KoleksiScreen(
