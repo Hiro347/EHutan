@@ -92,7 +92,7 @@ class _SpeciesCardState extends State<SpeciesCard>
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFF5C842), width: 5), // TCG yellow border
+        border: Border.all(color: Colors.transparent, width: 0), // TcgStyleUtils.getRingColorFor(obs.kategoriTakson), width: 5
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,

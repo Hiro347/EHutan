@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/observation.dart';
 import '../utils/constants.dart';
+import '../utils/tcg_style_utils.dart';
 
 class ObservationCard extends StatelessWidget {
   final Observation obs;
@@ -98,8 +99,8 @@ class ObservationCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFFFFF176) : const Color(0xFFD4AF37), // Highlight emas lebih terang kalau isSelected
-            width: isSelected ? 4 : 3,
+            color: Colors.transparent, // isSelected ? const Color(0xFFFFF176) : TcgStyleUtils.getRingColorFor(obs.kategoriTakson),
+            width: 0, // isSelected ? 4 : 3,
           ),
           gradient: LinearGradient(
             begin: Alignment.topLeft,

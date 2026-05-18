@@ -38,7 +38,7 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
     _tabController = TabController(length: 2, vsync: this);
     _loadMyObservations();
     _loadUKFObservations();
-    _tabController.addListener(() {gi
+    _tabController.addListener(() {
       if (!_tabController.indexIsChanging) setState(() {});
     });
   }
