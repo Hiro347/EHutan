@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/observation.dart';
 import '../utils/constants.dart';
@@ -54,174 +53,156 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
         snap: true,
         snapSizes: const [AppLayout.sheetMinSize, 0.45, AppLayout.sheetMaxSize],
         builder: (context, scrollController) {
-          return ValueListenableBuilder<double>(
-            valueListenable: widget.sheetExtent,
-            builder: (_, extent, child) {
-              // Only activate BackdropFilter GPU pass when sheet is expanded
-              final isExpanded = extent > 0.35;
-
-              final container = ClipRRect(
+          return ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                child: Container(
-                  decoration: BoxDecoration(
-                    // Slightly more opaque when blur is off so sheet stays solid
-                    color: Colors.white.withValues(alpha: isExpanded ? 0.85 : 0.97),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                    border: Border(
-                      top: BorderSide(
-                        color: Colors.grey.withValues(alpha: 0.2),
-                        width: 1.5,
-                      ),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, -4),
-                      ),
-                    ],
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.grey.withValues(alpha: 0.2),
+                    width: 1.5,
                   ),
-                  child: child,
                 ),
-              );
-
-              if (!isExpanded) return container;
-
-              return BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: container,
-              );
-            },
-            child: ListView.builder(
-              controller: scrollController,
-              padding: const EdgeInsets.only(bottom: 100), // Space for Navbar
-              itemCount: filteredObservations.length + 2, // Header + Search + List
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  // Handle Bar + Title Header
-                  return Column(
-                    children: [
-                      // Handle Bar
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        alignment: Alignment.center,
-                        child: Container(
-                          width: 50,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade400.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: ListView.builder(
+                controller: scrollController,
+                padding: const EdgeInsets.only(bottom: 100),
+                itemCount: filteredObservations.length + 2,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return Column(
+                      children: [
+                        // Handle Bar
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          alignment: Alignment.center,
+                          child: Container(
+                            width: 50,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade400.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
-                      ),
-                      // Title Header
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'E-Hutan Explore',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF1E3A2B),
-                                    letterSpacing: -0.8,
-                                  ),
-                                ),
-                                Text(
-                                  'Temukan keanekaragaman hayati',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade600,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary,
-                                    AppColors.primary.withValues(alpha: 0.8),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
+                        // Title Header
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.location_on, size: 14, color: Colors.white),
-                                  const SizedBox(width: 4),
+                                  const Text(
+                                    'E-Hutan Explore',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF1E3A2B),
+                                      letterSpacing: -0.8,
+                                    ),
+                                  ),
                                   Text(
-                                    '${widget.observations.length}',
-                                    style: const TextStyle(
+                                    'Temukan keanekaragaman hayati',
+                                    style: TextStyle(
                                       fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.primary,
+                                      AppColors.primary.withValues(alpha: 0.8),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary.withValues(alpha: 0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.location_on, size: 14, color: Colors.white),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${widget.observations.length}',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  );
-                }
+                      ],
+                    );
+                  }
 
-                if (index == 1) {
-                  // Search Bar
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          setState(() => _searchQuery = value);
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Cari spesies atau takson...',
-                          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                          prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade400),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  if (index == 1) {
+                    // Search Bar
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() => _searchQuery = value);
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Cari spesies atau takson...',
+                            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                            prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade400),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
                         ),
                       ),
+                    );
+                  }
+
+                  // Observation Cards
+                  final obs = filteredObservations[index - 2];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    child: ObservationCard(
+                      obs: obs,
+                      isSelected: widget.selectedObservationId == obs.id,
+                      onTap: () => widget.onObservationTap(obs),
                     ),
                   );
-                }
-
-                // Observation Cards
-                final obs = filteredObservations[index - 2];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                  child: ObservationCard(
-                    obs: obs,
-                    isSelected: widget.selectedObservationId == obs.id,
-                    onTap: () => widget.onObservationTap(obs),
-                  ),
-                );
-              },
+                },
+              ),
             ),
           );
         },
