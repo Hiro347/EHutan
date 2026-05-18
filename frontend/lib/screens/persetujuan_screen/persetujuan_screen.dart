@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/observation.dart';
 import '../../models/user_profile.dart';
 import '../../services/persetujuan_service.dart';

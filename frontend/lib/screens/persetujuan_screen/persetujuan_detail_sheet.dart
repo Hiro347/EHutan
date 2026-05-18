@@ -149,7 +149,7 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
                           height: 200,
                           width: double.infinity,
                           fit: BoxFit.cover,
-                          errorBuilder: (_,__,___) => Container(
+                          errorBuilder: (_,_,_) => Container(
                             height: 200,
                             color: Colors.grey.shade300,
                             child: const Center(child: Icon(Icons.broken_image, size: 50)),
