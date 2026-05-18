@@ -72,7 +72,7 @@ class ObservationCard extends StatelessWidget {
             BoxShadow(
               color: isSelected 
                   ? AppColors.primary.withValues(alpha:0.15) 
-                  : Colors.black.withValues(alpha:0.06),
+                  : Colors.transparent,
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),

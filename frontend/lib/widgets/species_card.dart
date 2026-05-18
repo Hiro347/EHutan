@@ -575,7 +575,7 @@ class _SpeciesCardState extends State<SpeciesCard>
       return Image.network(
         url,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholder(),
+        errorBuilder: (_, _, _) => _placeholder(),
         loadingBuilder: (_, child, p) =>
             p == null ? child : _placeholder(loading: true),
       );
@@ -623,22 +623,30 @@ class _SpeciesCardState extends State<SpeciesCard>
   /// Warna dominan card (untuk gradient back + glow)
   List<Color> _gradientFor(String t) {
     final s = t.toLowerCase();
-    if (s.contains('karnivora'))
+    if (s.contains('karnivora')) {
       return [const Color(0xFFD4451A), const Color(0xFF8B2010)];
-    if (s.contains('herbivora'))
+    }
+    if (s.contains('herbivora')) {
       return [const Color(0xFF2E9B5E), const Color(0xFF1A6B3E)];
-    if (s.contains('primata'))
+    }
+    if (s.contains('primata')) {
       return [const Color(0xFFA0522D), const Color(0xFF6B3418)];
-    if (s.contains('burung'))
+    }
+    if (s.contains('burung')) {
       return [const Color(0xFF2196F3), const Color(0xFF0D47A1)];
-    if (s.contains('reptil') || s.contains('amfibi'))
+    }
+    if (s.contains('reptil') || s.contains('amfibi')) {
       return [const Color(0xFF00897B), const Color(0xFF004D40)];
-    if (s.contains('insekta'))
+    }
+    if (s.contains('insekta')) {
       return [const Color(0xFFFF8F00), const Color(0xFFE65100)];
-    if (s.contains('fauna perairan'))
+    }
+    if (s.contains('fauna perairan')) {
       return [const Color(0xFF5C6BC0), const Color(0xFF283593)];
-    if (s.contains('eksitu') || s.contains('flora'))
+    }
+    if (s.contains('eksitu') || s.contains('flora')) {
       return [const Color(0xFF7CB342), const Color(0xFF33691E)];
+    }
     return [const Color(0xFF609008), const Color(0xFF3D5A05)];
   }
 
