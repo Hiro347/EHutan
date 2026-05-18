@@ -35,8 +35,20 @@ class _FormScreenState extends ConsumerState<FormScreen> {
   final _habitatCustomController = TextEditingController();
   final _posisiCustomController = TextEditingController();
 
-  DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = TimeOfDay.now();
+  late final TextEditingController _latController;
+  late final TextEditingController _lngController;
+  late final TextEditingController _dateController;
+  late final TextEditingController _timeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _latController = TextEditingController(text: widget.lat.toStringAsFixed(6));
+    _lngController = TextEditingController(text: widget.lng.toStringAsFixed(6));
+    final now = DateTime.now();
+    _dateController = TextEditingController(text: DateFormat('yyyy-MM-dd').format(now));
+    _timeController = TextEditingController(text: DateFormat('HH:mm').format(now));
+  }
   String? _fotoPath;
   bool _isLoading = false;
 
@@ -64,6 +76,10 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
   @override
   void dispose() {
+    _latController.dispose();
+    _lngController.dispose();
+    _dateController.dispose();
+    _timeController.dispose();
     _spesiesController.dispose();
     _lokalController.dispose();
     _jumlahController.dispose();
@@ -78,13 +94,20 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
   // --- FUNGSI PICKER WAKTU & GAMBAR ---
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime.now());
-    if (picked != null) setState(() => _selectedDate = picked);
+    final parsedDate = DateTime.tryParse(_dateController.text) ?? DateTime.now();
+    final picked = await showDatePicker(context: context, initialDate: parsedDate, firstDate: DateTime(2020), lastDate: DateTime.now());
+    if (picked != null) {
+      _dateController.text = DateFormat('yyyy-MM-dd').format(picked);
+    }
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _selectedTime);
-    if (picked != null) setState(() => _selectedTime = picked);
+    final picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+    if (picked != null && mounted) {
+      final now = DateTime.now();
+      final dt = DateTime(now.year, now.month, now.day, picked.hour, picked.minute);
+      _timeController.text = DateFormat('HH:mm').format(dt);
+    }
   }
 
   void _showImageSourceDialog() {
@@ -218,7 +241,27 @@ class _FormScreenState extends ConsumerState<FormScreen> {
     setState(() => _isLoading = true);
 
     // Gabungkan Tanggal & Waktu Custom
-    final finalWaktu = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, _selectedTime.hour, _selectedTime.minute);
+    DateTime finalWaktu = DateTime.now();
+    try {
+      final dateParts = _dateController.text.split('-');
+      final timeParts = _timeController.text.split(':');
+      finalWaktu = DateTime(
+        int.parse(dateParts[0]), 
+        int.parse(dateParts[1]), 
+        int.parse(dateParts[2]),
+        int.parse(timeParts[0]),
+        int.parse(timeParts[1]),
+      );
+    } catch (_) {
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Format tanggal/waktu salah! (Gunakan YYYY-MM-DD dan HH:MM)')));
+         setState(() => _isLoading = false);
+      }
+      return;
+    }
+
+    final latParsed = double.tryParse(_latController.text) ?? widget.lat;
+    final lngParsed = double.tryParse(_lngController.text) ?? widget.lng;
 
     // Ambil nilai akhir (Dropdown vs Custom Text)
     final kesehatanFinal = _statusKesehatan == 'Lainnya' ? _kesehatanCustomController.text : _statusKesehatan;
@@ -231,8 +274,8 @@ class _FormScreenState extends ConsumerState<FormScreen> {
         namaSpesies: _spesiesController.text,
         namaLokal: _lokalController.text,
         kategoriTakson: _kategoriTakson,
-        latitude: widget.lat,
-        longitude: widget.lng,
+        latitude: latParsed,
+        longitude: lngParsed,
         idPetugas: Supabase.instance.client.auth.currentUser?.id ?? '',
         localFotoPath: _fotoPath ?? '',
         jumlahIndividu: int.tryParse(_jumlahController.text),
@@ -262,21 +305,90 @@ class _FormScreenState extends ConsumerState<FormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _buildSectionHeader('1. WAKTU & LOKASI'),
+            _buildSectionHeader('1. WAKTU PENGAMATAN'),
             _buildCard(children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.calendar_today, color: AppColors.primary), title: Text(DateFormat('dd MMM yyyy').format(_selectedDate), style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('Tanggal'), onTap: _pickDate)),
-                  Container(width: 1, height: 40, color: Colors.grey.shade300),
-                  Expanded(child: ListTile(contentPadding: const EdgeInsets.only(left: 16), leading: const Icon(Icons.access_time, color: Colors.orange), title: Text(_selectedTime.format(context), style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('Waktu'), onTap: _pickTime)),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _dateController,
+                      decoration: InputDecoration(
+                        labelText: 'Tanggal (YYYY-MM-DD)', 
+                        border: const OutlineInputBorder(), 
+                        prefixIcon: const Icon(Icons.calendar_today, size: 18),
+                        suffixIcon: IconButton(icon: const Icon(Icons.edit_calendar), onPressed: _pickDate),
+                      ),
+                      validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _timeController,
+                      decoration: InputDecoration(
+                        labelText: 'Waktu (HH:MM)', 
+                        border: const OutlineInputBorder(), 
+                        prefixIcon: const Icon(Icons.access_time, size: 18),
+                        suffixIcon: IconButton(icon: const Icon(Icons.schedule), onPressed: _pickTime),
+                      ),
+                      validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
+                    ),
+                  ),
                 ],
               ),
-              const Divider(),
-              ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.location_on, color: Colors.redAccent), title: Text('${widget.lat.toStringAsFixed(5)}, ${widget.lng.toStringAsFixed(5)}'), subtitle: const Text('Koordinat GPS (Auto)')),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  final now = DateTime.now();
+                  _dateController.text = DateFormat('yyyy-MM-dd').format(now);
+                  _timeController.text = DateFormat('HH:mm').format(now);
+                },
+                icon: const Icon(Icons.update),
+                label: const Text('Gunakan Waktu Saat Ini (Auto)'),
+                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
+              )
             ]),
             const SizedBox(height: 16),
 
-            _buildSectionHeader('2. FOTO OBSERVASI'),
+            _buildSectionHeader('2. LOKASI PENGAMATAN (KOORDINAT)'),
+            _buildCard(children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _latController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      decoration: const InputDecoration(labelText: 'Latitude', border: OutlineInputBorder(), prefixIcon: Icon(Icons.location_on, size: 18, color: Colors.redAccent)),
+                      validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _lngController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      decoration: const InputDecoration(labelText: 'Longitude', border: OutlineInputBorder(), prefixIcon: Icon(Icons.location_on, size: 18, color: Colors.redAccent)),
+                      validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  _latController.text = widget.lat.toStringAsFixed(6);
+                  _lngController.text = widget.lng.toStringAsFixed(6);
+                },
+                icon: const Icon(Icons.gps_fixed),
+                label: const Text('Gunakan Lokasi GPS Terkini (Auto)'),
+                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
+              )
+            ]),
+            const SizedBox(height: 16),
+
+            _buildSectionHeader('3. FOTO OBSERVASI'),
             _buildCard(children: [
               Center(
                 child: GestureDetector(
@@ -317,7 +429,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
               const SizedBox(height: 16),
             ],
 
-            _buildSectionHeader('3. IDENTIFIKASI SATWA'),
+            _buildSectionHeader('4. IDENTIFIKASI SATWA'),
             _buildCard(children: [
               if (_aiApplied) ...[
                 Container(
@@ -348,7 +460,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
             ]),
             const SizedBox(height: 16),
 
-            _buildSectionHeader('4. KONDISI & PERILAKU'),
+            _buildSectionHeader('5. KONDISI & PERILAKU'),
             _buildCard(children: [
               _buildDropdownWithCustom(label: 'Status Kesehatan', value: _statusKesehatan, list: _listKesehatan, customController: _kesehatanCustomController, onChanged: (v) => setState(() => _statusKesehatan = v!)),
               const SizedBox(height: 16),
@@ -356,7 +468,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
             ]),
             const SizedBox(height: 16),
 
-            _buildSectionHeader('5. DETAIL HABITAT'),
+            _buildSectionHeader('6. DETAIL HABITAT'),
             _buildCard(children: [
               _buildDropdownWithCustom(label: 'Tipe Habitat', value: _tipeHabitat, list: _listHabitat, customController: _habitatCustomController, onChanged: (v) => setState(() => _tipeHabitat = v!)),
               const SizedBox(height: 16),
@@ -366,7 +478,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
             ]),
             const SizedBox(height: 16),
 
-            _buildSectionHeader('6. CATATAN TAMBAHAN'),
+            _buildSectionHeader('7. CATATAN TAMBAHAN'),
             _buildCard(children: [
               TextFormField(controller: _catatanController, maxLines: 3, decoration: const InputDecoration(labelText: 'Catatan Tambahan', border: OutlineInputBorder())),
             ]),
