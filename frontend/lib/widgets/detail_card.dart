@@ -90,9 +90,16 @@ class ObservationDetailCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: Colors.transparent, // TcgStyleUtils.getRingColorFor(obs.kategoriTakson),
-              width: 0, // 3,
+              color: const Color(0xFFD4AF37),
+              width: 3,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,

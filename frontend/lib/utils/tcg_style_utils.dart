@@ -44,33 +44,4 @@ class TcgStyleUtils {
     return '🔍';
   }
 
-  /// Warna ring/bingkai card sesuai material (Emas, Besi, Perunggu, dll)
-  static Color getRingColorFor(String t) {
-    final s = t.toLowerCase();
-    if (s.contains('karnivora')) {
-      return const Color(0xFF8A9AAB); // Besi / Realistic Steel Metallic
-    }
-    if (s.contains('herbivora')) {
-      return const Color(0xFFCD7F32); // Perunggu / Bronze
-    }
-    if (s.contains('primata')) {
-      return const Color(0xFFC84C09); // Tembaga / Rich Copper
-    }
-    if (s.contains('burung')) {
-      return const Color(0xFFE2E2E2); // Perak / Bright Silver
-    }
-    if (s.contains('reptil') || s.contains('amfibi')) {
-      return const Color(0xFF50C878); // Zamrud / Emerald
-    }
-    if (s.contains('insekta')) {
-      return const Color(0xFFFFBF00); // Batu Ambar / Amber
-    }
-    if (s.contains('fauna perairan')) {
-      return const Color(0xFFE0E5E5); // Mutiara / Pearl White
-    }
-    if (s.contains('eksitu') || s.contains('flora')) {
-      return const Color(0xFFD4AF37); // Emas / Classic Gold
-    }
-    return const Color(0xFFB5A642); // Kuningan / Brass (Default)
-  }
 }

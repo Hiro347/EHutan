@@ -92,7 +92,7 @@ class _SpeciesCardState extends State<SpeciesCard>
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.transparent, width: 0), // TcgStyleUtils.getRingColorFor(obs.kategoriTakson), width: 5
+        border: Border.all(color: const Color(0xFFD4AF37), width: 5),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -106,7 +106,12 @@ class _SpeciesCardState extends State<SpeciesCard>
         ),
         boxShadow: [
           BoxShadow(
-            color: grad[1].withValues(alpha: 0.4),
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: grad[1].withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 5),
           ),
