@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/observation.dart';
 import '../utils/constants.dart';
-import '../utils/tcg_style_utils.dart';
 
 class ObservationDetailCard extends StatelessWidget {
   final Observation obs;
@@ -90,7 +89,7 @@ class ObservationDetailCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: const Color(0xFFD4AF37),
+              color: const Color(0xFFFFE658),
               width: 3,
             ),
             boxShadow: [
@@ -315,3 +314,5 @@ class ObservationDetailCard extends StatelessWidget {
     return const Color(0xFF80D8FF); // Biru muda
   }
 }
+
+
