@@ -31,7 +31,8 @@ class KoleksiService {
     created_at,
     updated_at,
     jumlah_individu,
-    aktivitas_termati
+    aktivitas_termati,
+    profiles!id_petugas ( nama_lengkap, avatar_url )
   ''';
 
   /// Fetch observasi milik user yang sedang login (tab "Observasi Saya")
