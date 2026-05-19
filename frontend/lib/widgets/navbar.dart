@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'stacked_3d_button.dart';
 
 class Navbar extends StatelessWidget {
   final int currentIndex;
@@ -21,7 +22,7 @@ class Navbar extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -66,31 +67,8 @@ class Navbar extends StatelessWidget {
             ],
           ),
           Positioned(
-            top: -24, // Raise the button
-            child: GestureDetector(
-              onTap: onAddTap,
-              child: Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2E604A), // Dark Green like in the image
-                  borderRadius: BorderRadius.circular(20), // Squircle shape
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF2E604A).withValues(alpha:0.3),
-                      blurRadius: 12,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.add,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-            ),
+            top: -16, // Raise the button slightly less
+            child: Stacked3DButton(size: 64, onTap: onAddTap),
           ),
         ],
       ),
@@ -120,7 +98,9 @@ class Navbar extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: isSelected ? const Color(0xFF2E604A) : Colors.grey.shade400,
+              color: isSelected
+                  ? const Color(0xFF2E604A)
+                  : Colors.grey.shade400,
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
