@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/observation.dart';
@@ -335,24 +336,37 @@ class _SpeciesCardState extends State<SpeciesCard>
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  BACK SIDE — Gradient data card
+  //  BACK SIDE — Reporter Profile Card
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildBack() {
     final obs = widget.observation;
     final grad = TcgStyleUtils.getGradientFor(obs.kategoriTakson);
-    final dateStr = DateFormat('dd MMM yyyy').format(obs.waktuPengamatan);
+    final timeStr = DateFormat('dd MMM yyyy  •  HH:mm').format(obs.waktuPengamatan);
+    final divisiLabel = obs.kategoriTakson
+        .replaceAll('DK ', 'DK. ')
+        .toUpperCase();
+    final reporterName = obs.reporterNama ?? 'Anonim';
+    final avatarUrl = obs.reporterAvatarUrl;
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.zero,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD4AF37), width: 5),
         gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [grad[0], grad[1]]),
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [grad[0], grad[1], grad[1], grad[0]],
+          stops: const [0.0, 0.3, 0.7, 1.0],
+        ),
         boxShadow: [
           BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
             color: grad[1].withValues(alpha: 0.30),
-            blurRadius: 14,
+            blurRadius: 12,
             offset: const Offset(0, 5),
           ),
         ],
@@ -360,63 +374,180 @@ class _SpeciesCardState extends State<SpeciesCard>
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
+          // ─ Dot pattern background ───────────────────────────────────
           Positioned.fill(
             child: CustomPaint(
               painter: _DotPatternPainter(
-                  color: Colors.white.withValues(alpha: 0.06)),
+                  color: Colors.white.withValues(alpha: 0.07)),
             ),
           ),
+
+          // ─ Konten utama ──────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(children: [
-                  Text(TcgStyleUtils.getEmojiFor(obs.kategoriTakson),
-                      style: const TextStyle(fontSize: 18)),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text('Detail',
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.5)),
+                // ─ Badge divisi kiri atas (diposisikan via Stack di luar) ─
+                const Spacer(),
+
+                // ─ Foto profil reporter (tengah) ─
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFD4AF37), width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle),
-                    child: const Icon(Icons.swipe_rounded,
-                        color: Colors.white70, size: 12),
-                  ),
-                ]),
-                const SizedBox(height: 8),
-                Divider(color: Colors.white.withValues(alpha: 0.2), height: 1),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    child: Column(
-                      children: [
-                        _infoRow(Icons.science_rounded, 'Latin',
-                            obs.namaSpesies),
-                        _infoRow(Icons.label_rounded, 'Lokal',
-                            obs.namaLokal ?? '-'),
-                        _infoRow(Icons.category_rounded, 'Takson',
-                            obs.kategoriTakson),
-                        _infoRow(Icons.groups_rounded, 'Individu',
-                            '${obs.jumlahIndividu ?? 1} ekor'),
-                        _infoRow(Icons.directions_walk_rounded, 'Aktivitas',
-                            obs.aktivitasTermati ?? '-'),
-                        _infoRow(Icons.calendar_today_rounded, 'Tanggal',
-                            dateStr),
-                      ],
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundColor: grad[0],
+                    child: ClipOval(
+                      child: avatarUrl != null && avatarUrl.startsWith('http')
+                          ? CachedNetworkImage(
+                              imageUrl: avatarUrl,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => _avatarPlaceholder(grad),
+                              errorWidget: (_, __, ___) => _avatarPlaceholder(grad),
+                            )
+                          : _avatarPlaceholder(grad),
                     ),
                   ),
                 ),
+                const SizedBox(height: 10),
+
+                // ─ Nama reporter ─
+                Text(
+                  reporterName,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    shadows: [Shadow(color: Colors.black45, blurRadius: 3, offset: Offset(1, 1))],
+                  ),
+                ),
+                const SizedBox(height: 4),
+
+                // ─ Label "Pelapor" ─
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                  ),
+                  child: const Text(
+                    'PELAPOR',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+
+                const Spacer(),
               ],
+            ),
+          ),
+
+          // ─ Badge divisi — KIRI ATAS ──────────────────────────────
+          Positioned(
+            top: 10,
+            left: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFFE8E8E8), Color(0xFFBDBDBD)],
+                ),
+                border: Border.all(color: const Color(0xFFAAAAAA)),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 1))
+                ],
+              ),
+              child: Text(
+                divisiLabel,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 7,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ),
+          ),
+
+          // ─ Logo UKF — KANAN BAWAH ─────────────────────────────
+          Positioned(
+            bottom: 10,
+            right: 10,
+            child: Opacity(
+              opacity: 0.85,
+              child: Image.asset(
+                'lib/assets/logoUKF.png',
+                width: 32,
+                height: 32,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+
+          // ─ Waktu observasi — KIRI BAWAH ─────────────────────────
+          Positioned(
+            bottom: 10,
+            left: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.access_time_rounded, size: 8, color: Colors.white70),
+                  const SizedBox(width: 4),
+                  Text(
+                    timeStr,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 7,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ─ Hint swipe — KANAN ATAS ──────────────────────────────
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.swipe_rounded, color: Colors.white60, size: 12),
             ),
           ),
         ],
@@ -424,42 +555,16 @@ class _SpeciesCardState extends State<SpeciesCard>
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child:
-              Icon(icon, size: 12, color: Colors.white.withValues(alpha: 0.9)),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.55),
-                      fontSize: 8,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5)),
-              Text(value,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      height: 1.2),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-            ],
-          ),
-        ),
-      ]),
+  Widget _avatarPlaceholder(List<Color> grad) {
+    return Container(
+      width: 80,
+      height: 80,
+      color: grad[0].withValues(alpha: 0.3),
+      child: Icon(
+        Icons.person_rounded,
+        size: 40,
+        color: Colors.white.withValues(alpha: 0.7),
+      ),
     );
   }
 

@@ -31,6 +31,10 @@ class Observation {
   final String? localFotoPath;
   final bool isSynced;
 
+  // Data dari JOIN profiles (hanya ada saat fetch dari Supabase)
+  final String? reporterNama;
+  final String? reporterAvatarUrl;
+
   const Observation({
     required this.id,
     required this.idPetugas,
@@ -53,6 +57,8 @@ class Observation {
     this.jumlahIndividu,
     this.aktivitasTermati,
     this.isSynced = false,
+    this.reporterNama,
+    this.reporterAvatarUrl,
   });
 
   factory Observation.fromSQLite(Map<String, dynamic> map) {
@@ -81,6 +87,8 @@ class Observation {
       aktivitasTermati: map['aktivitas_termati'] as String?,
       localFotoPath: map['local_foto_path'] as String?,
       isSynced: (map['is_synced'] as int? ?? 0) == 1,
+      reporterNama: null,
+      reporterAvatarUrl: null,
     );
   }
 
@@ -110,6 +118,13 @@ class Observation {
       jumlahIndividu: map['jumlah_individu'] as int?,
       aktivitasTermati: map['aktivitas_termati'] as String?,
       isSynced: true,
+      // Ambil dari data join profiles jika ada
+      reporterNama: map['profiles'] != null
+          ? (map['profiles'] as Map<String, dynamic>)['nama_lengkap'] as String?
+          : null,
+      reporterAvatarUrl: map['profiles'] != null
+          ? (map['profiles'] as Map<String, dynamic>)['avatar_url'] as String?
+          : null,
     );
   }
 
@@ -180,6 +195,8 @@ class Observation {
       aktivitasTermati: aktivitasTermati ?? this.aktivitasTermati,
       localFotoPath: localFotoPath ?? this.localFotoPath,
       isSynced: isSynced ?? this.isSynced,
+      reporterNama: reporterNama ?? this.reporterNama,
+      reporterAvatarUrl: reporterAvatarUrl ?? this.reporterAvatarUrl,
     );
   }
 }

@@ -26,6 +26,7 @@ import '../koleksi_screen/koleksi_screen.dart';
 import '../persetujuan_screen/persetujuan_screen.dart';
 import '../form_screen/form_screen.dart';
 import '../login_screen/login_screen.dart';
+import '../profil_screen/profil_screen.dart';
 import '_marker_click_listener.dart';
 import 'dart:math' as math;
 
@@ -853,70 +854,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   Widget _buildProfilScreen() {
-    final user = Supabase.instance.client.auth.currentUser;
-    final email = user?.email ?? 'Tidak diketahui';
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Profil',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF1E3A2B),
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const CircleAvatar(
-              radius: 48,
-              backgroundColor: AppColors.primary,
-              child: Icon(Icons.person, size: 48, color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              email,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E3A2B),
-              ),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  await Supabase.instance.client.auth.signOut();
-                  if (mounted) {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      (route) => false,
-                    );
-                  }
-                },
-                icon: const Icon(Icons.logout),
-                label: const Text('Keluar'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade400,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return const ProfilScreen();
   }
 
   void _showConnectivityBanner(BuildContext context, String message, bool isOnline) {
