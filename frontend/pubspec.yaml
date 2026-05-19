@@ -49,6 +49,7 @@ dependencies:
   flutter_compass: ^0.8.1
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
+  image_cropper: ^12.2.1
 
 
 dev_dependencies:
@@ -76,6 +77,7 @@ flutter:
   assets:
     - .env
     - lib/assets/petugas.glb
+    - lib/assets/logoUKF.png
     # - lib/assets/images/empty_nature.png # Saya comment sementara karena file ini tidak ditemukan dan menyebabkan error saat build
     - lib/assets/cards/
 
