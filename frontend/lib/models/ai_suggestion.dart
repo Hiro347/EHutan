@@ -76,11 +76,9 @@ class AiSuggestion {
       commonName: (json['common_name'] as String?)?.trim() ?? '',
       confidence: confidence.clamp(0.0, 1.0),
       category: (json['category'] as String?)?.trim() ?? 'Fauna',
-      taxonomy:
-          AiTaxonomy.fromJson(json['taxonomy'] as Map<String, dynamic>?),
+      taxonomy: AiTaxonomy.fromJson(json['taxonomy'] as Map<String, dynamic>?),
       habitatHint: (json['habitat_hint'] as String?)?.trim(),
-      conservationStatus:
-          (json['conservation_status'] as String?)?.trim(),
+      conservationStatus: (json['conservation_status'] as String?)?.trim(),
       processingTimeMs: json['processing_time_ms'] is num
           ? (json['processing_time_ms'] as num).toInt()
           : null,

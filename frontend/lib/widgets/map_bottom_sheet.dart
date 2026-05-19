@@ -36,7 +36,9 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final filteredObservations = widget.observations.where((obs) {
-      return obs.namaSpesies.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+      return obs.namaSpesies.toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
           obs.kategoriTakson.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
@@ -58,7 +60,9 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(32),
+                ),
                 border: Border(
                   top: BorderSide(
                     color: Colors.grey.withValues(alpha: 0.2),
@@ -90,7 +94,9 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                             width: 50,
                             height: 6,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade400.withValues(alpha: 0.5),
+                              color: Colors.grey.shade400.withValues(
+                                alpha: 0.5,
+                              ),
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
@@ -109,7 +115,7 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                                     style: TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.w900,
-                                      color: Color(0xFF1E3A2B),
+                                      color: Color(0xFF062A0E),
                                       letterSpacing: -0.8,
                                     ),
                                   ),
@@ -125,7 +131,9 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
@@ -136,7 +144,9 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.3),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.3,
+                                      ),
                                       blurRadius: 8,
                                       offset: const Offset(0, 4),
                                     ),
@@ -144,7 +154,11 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.location_on, size: 14, color: Colors.white),
+                                    const Icon(
+                                      Icons.location_on,
+                                      size: 14,
+                                      color: Colors.white,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       '${widget.observations.length}',
@@ -167,7 +181,10 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                   if (index == 1) {
                     // Search Bar
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
@@ -181,10 +198,18 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                           },
                           decoration: InputDecoration(
                             hintText: 'Cari spesies atau takson...',
-                            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                            prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade400),
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 14,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search_rounded,
+                              color: Colors.grey.shade400,
+                            ),
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                            ),
                           ),
                         ),
                       ),
@@ -194,7 +219,10 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                   // Observation Cards
                   final obs = filteredObservations[index - 2];
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 4,
+                    ),
                     child: ObservationCard(
                       obs: obs,
                       isSelected: widget.selectedObservationId == obs.id,

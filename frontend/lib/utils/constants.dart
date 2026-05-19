@@ -3,9 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppColors {
   // Warna utama kehutanan
-  static const Color primary = Color(0xFF609008);
-  static const Color primaryDark = Color(0xFF3D5A05);
-  static const Color primaryLight = Color(0xFF8BBF2A);
+  static const Color primary = Color(0xFF1FB840);
+  static const Color primaryDark = Color(0xFF0D5C1E);
+  static const Color primaryLight = Color(0xFF5DE870);
 
   // Warna background
   static const Color background = Color(0xFFF8FAFC);
@@ -25,9 +25,9 @@ class AppColors {
   static const Color markerDefault = Color(0xFF6B7280);
 
   // Warna location marker
-  static const Color locationDot = Color(0xFF609008);
-  static const Color locationPulse = Color(0x66609008);
-  static const Color locationAccuracy = Color(0x22609008);
+  static const Color locationDot = Color(0xFF1FB840);
+  static const Color locationPulse = Color(0x661FB840);
+  static const Color locationAccuracy = Color(0x221FB840);
 }
 
 class AppStrings {
@@ -55,8 +55,8 @@ class AppStrings {
 }
 
 class AppMapbox {
-  static const String styleUrl = 
-    'mapbox://styles/arya347/cmor4slcc000c01s09xgmfbby';
+  static const String styleUrl =
+      'mapbox://styles/arya347/cmor4slcc000c01s09xgmfbby';
 
   // Bounding box wilayah Indonesia
   static const double boundsMinLat = -11.0;
@@ -132,8 +132,11 @@ Color markerColorForTakson(String takson) {
   final t = takson.toLowerCase();
   if (t.contains('burung')) return AppColors.markerBurung;
   if (t.contains('eksitu')) return AppColors.markerFlora;
-  if (t.contains('reptil') || t.contains('amfibi')) return AppColors.markerReptil;
-  if (t.contains('karnivora') || t.contains('herbivora') || t.contains('primata')) {
+  if (t.contains('reptil') || t.contains('amfibi'))
+    return AppColors.markerReptil;
+  if (t.contains('karnivora') ||
+      t.contains('herbivora') ||
+      t.contains('primata')) {
     return AppColors.markerMamalia;
   }
   if (t.contains('insekta') || t.contains('fauna perairan')) {

@@ -17,15 +17,23 @@ class ObservationCard extends StatelessWidget {
 
   List<Color> _gradientFor(String t) {
     final lower = t.toLowerCase();
-    if (lower.contains('flora') || lower.contains('tumbuhan') || lower.contains('plantae')) {
+    if (lower.contains('flora') ||
+        lower.contains('tumbuhan') ||
+        lower.contains('plantae')) {
       return const [Color(0xFF81C784), Color(0xFF388E3C)]; // Hijau muda
     }
-    if (lower.contains('herbivora')) return const [Color(0xFF2E7D32), Color(0xFF1B5E20)];
-    if (lower.contains('karnivora')) return const [Color(0xFFC62828), Color(0xFF8E0000)];
-    if (lower.contains('primata')) return const [Color(0xFF8D6E63), Color(0xFF4E342E)]; // Coklat
-    if (lower.contains('aves')) return const [Color(0xFF0277BD), Color(0xFF01579B)];
-    if (lower.contains('amfibi')) return const [Color(0xFF00695C), Color(0xFF004D40)];
-    if (lower.contains('reptil')) return const [Color(0xFF4E342E), Color(0xFF3E2723)];
+    if (lower.contains('herbivora'))
+      return const [Color(0xFF2E7D32), Color(0xFF1B5E20)];
+    if (lower.contains('karnivora'))
+      return const [Color(0xFFC62828), Color(0xFF8E0000)];
+    if (lower.contains('primata'))
+      return const [Color(0xFF8D6E63), Color(0xFF4E342E)]; // Coklat
+    if (lower.contains('aves'))
+      return const [Color(0xFF0277BD), Color(0xFF01579B)];
+    if (lower.contains('amfibi'))
+      return const [Color(0xFF00695C), Color(0xFF004D40)];
+    if (lower.contains('reptil'))
+      return const [Color(0xFF4E342E), Color(0xFF3E2723)];
     if (lower.contains('serangga') || lower.contains('insekta')) {
       return const [Color(0xFFEF6C00), Color(0xFFE65100)];
     }
@@ -63,12 +71,8 @@ class ObservationCard extends StatelessWidget {
 
   Widget _buildPlaceholder(Color color, String emoji) {
     return Container(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
-      ),
-      child: Center(
-        child: Text(emoji, style: const TextStyle(fontSize: 32)),
-      ),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.2)),
+      child: Center(child: Text(emoji, style: const TextStyle(fontSize: 32))),
     );
   }
 
@@ -98,7 +102,9 @@ class ObservationCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFFFFF176) : const Color(0xFFFFE658),
+            color: isSelected
+                ? const Color(0xFFFFF176)
+                : const Color(0xFFFFE658),
             width: isSelected ? 4 : 3,
           ),
           boxShadow: [
@@ -111,12 +117,7 @@ class ObservationCard extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              grad[0].withValues(alpha: 0.9),
-              grad[0],
-              grad[1],
-              grad[0],
-            ],
+            colors: [grad[0].withValues(alpha: 0.9), grad[0], grad[1], grad[0]],
             stops: const [0.0, 0.3, 0.7, 1.0],
           ),
         ),
@@ -131,7 +132,11 @@ class ObservationCard extends StatelessWidget {
                   border: Border.all(color: const Color(0xFFBDBDBD), width: 2),
                   color: Colors.black,
                   boxShadow: const [
-                    BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2))
+                    BoxShadow(
+                      color: Colors.black45,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
                   ],
                 ),
                 clipBehavior: Clip.hardEdge,
@@ -149,11 +154,16 @@ class ObservationCard extends StatelessWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(6),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha:0.6),
+                            color: Colors.black.withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.white.withValues(alpha:0.2)),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
                           ),
                           child: Text(
                             '$confidence%',
@@ -170,9 +180,9 @@ class ObservationCard extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             const SizedBox(width: 12),
-            
+
             // --- KANAN: Informasi ---
             Expanded(
               child: Column(
@@ -183,7 +193,10 @@ class ObservationCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(4),
                           gradient: const LinearGradient(
@@ -193,11 +206,17 @@ class ObservationCard extends StatelessWidget {
                           ),
                           border: Border.all(color: const Color(0xFFAAAAAA)),
                           boxShadow: const [
-                            BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 1))
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 2,
+                              offset: Offset(0, 1),
+                            ),
                           ],
                         ),
                         child: Text(
-                          obs.kategoriTakson.replaceAll('DK ', '').toUpperCase(),
+                          obs.kategoriTakson
+                              .replaceAll('DK ', '')
+                              .toUpperCase(),
                           style: const TextStyle(
                             color: Colors.black87,
                             fontSize: 8,
@@ -207,12 +226,16 @@ class ObservationCard extends StatelessWidget {
                         ),
                       ),
                       if (!obs.isSynced)
-                        const Icon(Icons.cloud_off_rounded, size: 14, color: Colors.orangeAccent),
+                        const Icon(
+                          Icons.cloud_off_rounded,
+                          size: 14,
+                          color: Colors.orangeAccent,
+                        ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 6),
-                  
+
                   // Nama Spesies
                   FittedBox(
                     fit: BoxFit.scaleDown,
@@ -224,17 +247,27 @@ class ObservationCard extends StatelessWidget {
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
                         fontStyle: FontStyle.italic,
-                        shadows: [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(1, 1))],
+                        shadows: [
+                          Shadow(
+                            color: Colors.black45,
+                            blurRadius: 2,
+                            offset: Offset(1, 1),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 4),
-                  
+
                   // Koordinat (LAT / LNG ditulis langsung)
                   Row(
                     children: [
-                      const Icon(Icons.location_on, size: 10, color: Colors.white70),
+                      const Icon(
+                        Icons.location_on,
+                        size: 10,
+                        color: Colors.white70,
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
@@ -251,9 +284,9 @@ class ObservationCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  
+
                   const Spacer(),
-                  
+
                   // Footer Status & Waktu Berlalu
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -268,13 +301,21 @@ class ObservationCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        obs.statusApproval == 'MENUNGGU_VERIFIKASI' ? 'MENUNGGU' : obs.statusApproval,
+                        obs.statusApproval == 'MENUNGGU_VERIFIKASI'
+                            ? 'MENUNGGU'
+                            : obs.statusApproval,
                         style: TextStyle(
                           color: _statusColor(obs.statusApproval),
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
-                          shadows: const [Shadow(color: Colors.black87, blurRadius: 2, offset: Offset(1, 1))],
+                          shadows: const [
+                            Shadow(
+                              color: Colors.black87,
+                              blurRadius: 2,
+                              offset: Offset(1, 1),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -289,7 +330,8 @@ class ObservationCard extends StatelessWidget {
   }
 
   Color _statusColor(String status) {
-    if (status == 'TERVERIFIKASI') return const Color(0xFF69F0AE); // Hijau terang
+    if (status == 'TERVERIFIKASI')
+      return const Color(0xFF69F0AE); // Hijau terang
     if (status == 'PERLU_DIREVISI') return const Color(0xFFFFAB40); // Orange
     return const Color(0xFF80D8FF); // Biru muda
   }

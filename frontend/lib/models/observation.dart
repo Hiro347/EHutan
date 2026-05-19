@@ -11,7 +11,7 @@ class Observation {
   final String idPetugas;
   final int? idKegiatan;
   final String namaSpesies;
-  final String? namaLokal;         // ← Baru
+  final String? namaLokal; // ← Baru
   final String kategoriTakson;
   final double latitude;
   final double longitude;
@@ -24,8 +24,8 @@ class Observation {
   final DateTime? waktuVerifikasi;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final int? jumlahIndividu;       // ← Baru
-  final String? aktivitasTermati;  // ← Baru
+  final int? jumlahIndividu; // ← Baru
+  final String? aktivitasTermati; // ← Baru
 
   // Hanya ada di SQLite lokal — tidak dikirim ke Supabase
   final String? localFotoPath;

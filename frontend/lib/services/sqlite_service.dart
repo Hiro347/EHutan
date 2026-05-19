@@ -68,9 +68,7 @@ class SqliteService {
       );
     }
     if (oldVersion < 3) {
-      await db.execute(
-        'ALTER TABLE data_observasi ADD COLUMN nama_lokal TEXT',
-      );
+      await db.execute('ALTER TABLE data_observasi ADD COLUMN nama_lokal TEXT');
       await db.execute(
         'ALTER TABLE data_observasi ADD COLUMN jumlah_individu INTEGER',
       );
@@ -93,10 +91,7 @@ class SqliteService {
 
   Future<void> markAsSynced(String id, String storageUrl) async {
     final db = await database;
-    final updates = <String, dynamic>{
-      'is_synced': 1,
-      'foto_url': storageUrl,
-    };
+    final updates = <String, dynamic>{'is_synced': 1, 'foto_url': storageUrl};
     // Hanya hapus local_foto_path kalau foto sudah berhasil upload (storageUrl ada isinya)
     if (storageUrl.isNotEmpty) {
       updates['local_foto_path'] = null;
@@ -125,10 +120,7 @@ class SqliteService {
   /// Semua observasi lokal (untuk tab "Observasi Saya" di KoleksiScreen)
   Future<List<Map<String, dynamic>>> getAllObservasi() async {
     final db = await database;
-    return await db.query(
-      'data_observasi',
-      orderBy: 'waktu_pengamatan DESC',
-    );
+    return await db.query('data_observasi', orderBy: 'waktu_pengamatan DESC');
   }
 
   /// Observasi milik satu user (filter by id_petugas)
@@ -145,10 +137,6 @@ class SqliteService {
   //Menghapus data observasi
   Future<void> deleteObservasi(String id) async {
     final db = await database;
-    await db.delete(
-      'data_observasi',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('data_observasi', where: 'id = ?', whereArgs: [id]);
   }
 }

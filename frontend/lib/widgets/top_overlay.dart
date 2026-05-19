@@ -13,7 +13,7 @@ class MapTopOverlay extends StatelessWidget {
 
     return Positioned(
       // Tambahkan tinggi status bar dengan jarak ekstra (misal 16)
-      top: statusBarHeight + 16, 
+      top: statusBarHeight + 16,
       left: 16,
       right: 16,
       // Hapus SafeArea, langsung gunakan Row
@@ -68,7 +68,7 @@ class MapTopOverlay extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha:0.92),
+        color: Colors.white.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(99),
         boxShadow: const [
           BoxShadow(

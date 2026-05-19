@@ -28,7 +28,7 @@ class TcgStyleUtils {
     if (s.contains('eksitu') || s.contains('flora')) {
       return [const Color(0xFF7CB342), const Color(0xFF33691E)];
     }
-    return [const Color(0xFF609008), const Color(0xFF3D5A05)];
+    return [const Color(0xFF1FB840), const Color(0xFF0D5C1E)];
   }
 
   static String getEmojiFor(String t) {
@@ -43,5 +43,4 @@ class TcgStyleUtils {
     if (s.contains('eksitu') || s.contains('flora')) return '🌿';
     return '🔍';
   }
-
 }

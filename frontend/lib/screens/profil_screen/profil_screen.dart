@@ -26,7 +26,11 @@ class ProfilScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.statusRevisi),
+              const Icon(
+                Icons.error_outline,
+                size: 48,
+                color: AppColors.statusRevisi,
+              ),
               const SizedBox(height: 12),
               Text('Gagal memuat profil\n$e', textAlign: TextAlign.center),
               const SizedBox(height: 16),
@@ -69,7 +73,8 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
   void didUpdateWidget(_ProfilContent oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Saat profil berhasil diupdate, refresh controller
-    if (oldWidget.profile.fullName != widget.profile.fullName && !_isEditingName) {
+    if (oldWidget.profile.fullName != widget.profile.fullName &&
+        !_isEditingName) {
       _nameCtrl.text = widget.profile.fullName ?? '';
     }
   }
@@ -84,9 +89,9 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
   Future<void> _saveName() async {
     final trimmed = _nameCtrl.text.trim();
     if (trimmed.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama tidak boleh kosong')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Nama tidak boleh kosong')));
       return;
     }
     setState(() => _isSavingName = true);
@@ -104,7 +109,10 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal: $e'), backgroundColor: AppColors.statusRevisi),
+          SnackBar(
+            content: Text('Gagal: $e'),
+            backgroundColor: AppColors.statusRevisi,
+          ),
         );
       }
     } finally {
@@ -126,7 +134,8 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
@@ -141,7 +150,10 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
               ListTile(
                 leading: const CircleAvatar(
                   backgroundColor: Color(0xFFE8F5E9),
-                  child: Icon(Icons.camera_alt_rounded, color: Color(0xFF2E604A)),
+                  child: Icon(
+                    Icons.camera_alt_rounded,
+                    color: Color(0xFF0D5C1E),
+                  ),
                 ),
                 title: const Text('Ambil dari Kamera'),
                 onTap: () {
@@ -152,7 +164,10 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
               ListTile(
                 leading: const CircleAvatar(
                   backgroundColor: Color(0xFFE3F2FD),
-                  child: Icon(Icons.photo_library_rounded, color: Color(0xFF1565C0)),
+                  child: Icon(
+                    Icons.photo_library_rounded,
+                    color: Color(0xFF1565C0),
+                  ),
                 ),
                 title: const Text('Pilih dari Galeri'),
                 onTap: () {
@@ -169,7 +184,9 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
 
   Future<void> _doUpdateAvatar({required bool fromCamera}) async {
     try {
-      await ref.read(profileProvider.notifier).updateAvatar(fromCamera: fromCamera);
+      await ref
+          .read(profileProvider.notifier)
+          .updateAvatar(fromCamera: fromCamera);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -199,9 +216,15 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
         title: const Text('Keluar'),
         content: const Text('Apakah kamu yakin ingin keluar dari akun ini?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade400, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade400,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Keluar'),
           ),
@@ -231,7 +254,7 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
         SliverAppBar(
           expandedHeight: 220,
           pinned: true,
-          backgroundColor: const Color(0xFF2E604A),
+          backgroundColor: const Color(0xFF0D5C1E),
           automaticallyImplyLeading: false,
           flexibleSpace: FlexibleSpaceBar(
             background: Stack(
@@ -240,24 +263,42 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                 Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF1E3A2B), Color(0xFF2E604A)],
+                      colors: [Color(0xFF062A0E), Color(0xFF0D5C1E)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                   ),
                 ),
                 // Decorative circles
-                Positioned(top: -40, right: -40,
-                  child: Container(width: 180, height: 180,
-                    decoration: BoxDecoration(shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.06)))),
-                Positioned(bottom: -20, left: -30,
-                  child: Container(width: 130, height: 130,
-                    decoration: BoxDecoration(shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.04)))),
+                Positioned(
+                  top: -40,
+                  right: -40,
+                  child: Container(
+                    width: 180,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: -20,
+                  left: -30,
+                  child: Container(
+                    width: 130,
+                    height: 130,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.04),
+                    ),
+                  ),
+                ),
                 // Avatar di tengah
                 Positioned(
-                  left: 0, right: 0, bottom: 20,
+                  left: 0,
+                  right: 0,
+                  bottom: 20,
                   child: Column(
                     children: [
                       GestureDetector(
@@ -265,23 +306,36 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                         child: Stack(
                           alignment: Alignment.bottomRight,
                           children: [
-                            _AvatarWidget(avatarUrl: profile.avatarUrl, radius: 52),
+                            _AvatarWidget(
+                              avatarUrl: profile.avatarUrl,
+                              radius: 52,
+                            ),
                             if (!isUpdating)
                               Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF609008),
+                                  color: const Color(0xFF1FB840),
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
                                 ),
-                                child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
                               ),
                             if (isUpdating)
                               const Positioned.fill(
                                 child: CircleAvatar(
                                   radius: 52,
                                   backgroundColor: Colors.black26,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               ),
                           ],
@@ -306,7 +360,10 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _SectionTitle(title: 'Informasi Akun', icon: Icons.badge_outlined),
+                      _SectionTitle(
+                        title: 'Informasi Akun',
+                        icon: Icons.badge_outlined,
+                      ),
                       const SizedBox(height: 16),
 
                       // Email (readonly)
@@ -333,7 +390,10 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _SectionTitle(title: 'Nama Lengkap', icon: Icons.person_outline),
+                      _SectionTitle(
+                        title: 'Nama Lengkap',
+                        icon: Icons.person_outline,
+                      ),
                       const SizedBox(height: 16),
                       if (_isEditingName) ...[
                         TextField(
@@ -347,7 +407,10 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
-                            prefixIcon: const Icon(Icons.edit_rounded, size: 18),
+                            prefixIcon: const Icon(
+                              Icons.edit_rounded,
+                              size: 18,
+                            ),
                           ),
                           onSubmitted: (_) => _saveName(),
                         ),
@@ -373,8 +436,14 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                               ),
                               onPressed: _isSavingName ? null : _saveName,
                               icon: _isSavingName
-                                  ? const SizedBox(width: 16, height: 16,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
                                   : const Icon(Icons.check, size: 18),
                               label: const Text('Simpan'),
                             ),
@@ -392,13 +461,14 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: profile.fullName?.isNotEmpty == true
-                                      ? const Color(0xFF1E3A2B)
+                                      ? const Color(0xFF062A0E)
                                       : Colors.grey,
                                 ),
                               ),
                             ),
                             IconButton(
-                              onPressed: () => setState(() => _isEditingName = true),
+                              onPressed: () =>
+                                  setState(() => _isEditingName = true),
                               icon: const Icon(Icons.edit_rounded, size: 20),
                               color: AppColors.primary,
                               tooltip: 'Ubah nama',
@@ -416,7 +486,10 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _SectionTitle(title: 'Foto Profil', icon: Icons.photo_camera_outlined),
+                      _SectionTitle(
+                        title: 'Foto Profil',
+                        icon: Icons.photo_camera_outlined,
+                      ),
                       const SizedBox(height: 16),
                       OutlinedButton.icon(
                         onPressed: isUpdating ? null : _showAvatarSourceSheet,
@@ -470,10 +543,14 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
 
   String _formatRole(String? role) {
     switch (role) {
-      case 'Petugas_Lapangan': return 'Petugas Lapangan';
-      case 'Kordinator_Divisi': return 'Kordinator Divisi';
-      case 'Admin': return 'Admin';
-      default: return role ?? '-';
+      case 'Petugas_Lapangan':
+        return 'Petugas Lapangan';
+      case 'Kordinator_Divisi':
+        return 'Kordinator Divisi';
+      case 'Admin':
+        return 'Admin';
+      default:
+        return role ?? '-';
     }
   }
 }
@@ -499,7 +576,8 @@ class _AvatarWidget extends StatelessWidget {
             width: radius * 2,
             height: radius * 2,
             fit: BoxFit.cover,
-            placeholder: (_, __) => const CircularProgressIndicator(strokeWidth: 2),
+            placeholder: (_, __) =>
+                const CircularProgressIndicator(strokeWidth: 2),
             errorWidget: (_, __, ___) => _PlaceholderAvatar(radius: radius),
           ),
         ),
@@ -517,7 +595,7 @@ class _PlaceholderAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: radius,
-      backgroundColor: const Color(0xFF2E604A),
+      backgroundColor: const Color(0xFF0D5C1E),
       child: Icon(Icons.person_rounded, size: radius, color: Colors.white70),
     );
   }
@@ -577,7 +655,11 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -590,14 +672,17 @@ class _InfoRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
               const SizedBox(height: 2),
               Text(
                 value,
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E3A2B),
+                  color: Color(0xFF062A0E),
                 ),
               ),
             ],

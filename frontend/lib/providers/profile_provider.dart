@@ -72,10 +72,7 @@ class ProfileNotifier extends AsyncNotifier<EditableProfile> {
 
     if (data == null) {
       // Baris belum ada, kembalikan profil kosong dari data auth saja
-      return EditableProfile(
-        id: user.id,
-        email: user.email ?? '',
-      );
+      return EditableProfile(id: user.id, email: user.email ?? '');
     }
 
     return EditableProfile.fromJson(data, email: user.email ?? '');
@@ -113,7 +110,7 @@ class ProfileNotifier extends AsyncNotifier<EditableProfile> {
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: 'Potong Foto Profil',
-          toolbarColor: const Color(0xFF2E604A),
+          toolbarColor: const Color(0xFF0D5C1E),
           toolbarWidgetColor: const Color(0xFFFFFFFF),
           initAspectRatio: CropAspectRatioPreset.square,
           lockAspectRatio: true,
@@ -136,15 +133,18 @@ class ProfileNotifier extends AsyncNotifier<EditableProfile> {
       final storagePath = 'public/${current.id}.$ext';
 
       // 3. Upload ke bucket `avatars` (upsert = overwrite jika sudah ada)
-      await _supabase.storage.from('avatars').upload(
+      await _supabase.storage
+          .from('avatars')
+          .upload(
             storagePath,
             file,
             fileOptions: const FileOptions(upsert: true),
           );
 
       // 4. Dapatkan public URL
-      final publicUrl =
-          _supabase.storage.from('avatars').getPublicUrl(storagePath);
+      final publicUrl = _supabase.storage
+          .from('avatars')
+          .getPublicUrl(storagePath);
 
       // 5. Update kolom avatar_url di tabel `profiles`
       await _supabase
@@ -163,7 +163,8 @@ class ProfileNotifier extends AsyncNotifier<EditableProfile> {
   }
 }
 
-final profileProvider =
-    AsyncNotifierProvider<ProfileNotifier, EditableProfile>(() {
-  return ProfileNotifier();
-});
+final profileProvider = AsyncNotifierProvider<ProfileNotifier, EditableProfile>(
+  () {
+    return ProfileNotifier();
+  },
+);

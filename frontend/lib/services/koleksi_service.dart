@@ -56,7 +56,10 @@ class KoleksiService {
     var query = _client
         .from(_table)
         .select(_selectColumns)
-        .eq('status_approval', 'TERVERIFIKASI'); // Hanya tampilkan yang sudah terverifikasi
+        .eq(
+          'status_approval',
+          'TERVERIFIKASI',
+        ); // Hanya tampilkan yang sudah terverifikasi
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
       query = query.or(

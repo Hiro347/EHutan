@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../screens/map_screen (homepage)/map_screen.dart'; 
+import '../../screens/map_screen (homepage)/map_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -32,14 +32,13 @@ class _LoginScreenState extends State<LoginScreen> {
         email: email,
         password: password,
       );
-      
+
       if (!mounted) return;
-      
+
       // Jika berhasil login, navigasi ke MapScreen dan hapus LoginScreen dari history
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MapScreen()),
-      );
-      
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const MapScreen()));
     } on AuthException catch (e) {
       // Tangkap error spesifik dari Supabase (misal: password salah, user tidak ada)
       _showError(e.message);
@@ -53,10 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
     );
   }
 
@@ -70,7 +66,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FAF8), // Warna background soft khas E-Hutan
+      backgroundColor: const Color(
+        0xFFF7FAF8,
+      ), // Warna background soft khas E-Hutan
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -83,10 +81,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Icon(
                   Icons.forest_rounded,
                   size: 80,
-                  color: Color(0xFF2E604A),
+                  color: Color(0xFF0D5C1E),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Judul
                 const Text(
                   'Masuk ke E-Hutan',
@@ -94,17 +92,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E3A2B),
+                    color: Color(0xFF062A0E),
                   ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   'Silakan login untuk mulai mendata observasi lapangan.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
                 const SizedBox(height: 48),
 
@@ -120,7 +115,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF2E604A), width: 2),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF0D5C1E),
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
@@ -138,7 +136,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF2E604A), width: 2),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF0D5C1E),
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
@@ -150,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _signIn,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2E604A),
+                      backgroundColor: const Color(0xFF0D5C1E),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

@@ -43,11 +43,9 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.light,
       theme: ThemeData(
-        primaryColor: const Color(0xFF609008),
+        primaryColor: const Color(0xFF1FB840),
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF609008),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1FB840)),
       ),
       home: Supabase.instance.client.auth.currentSession != null
           ? const MapScreen()

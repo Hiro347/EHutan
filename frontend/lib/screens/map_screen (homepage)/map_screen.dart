@@ -10,7 +10,7 @@ import 'package:geolocator/geolocator.dart' as geo;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_compass/flutter_compass.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; 
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -53,14 +53,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   bool _is3DPov = true;
   bool _isModelMode = true;
   static const double _zoomThreshold = 15.0; // batas zoom
-  final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(AppLayout.sheetInitialSize);
-  final DraggableScrollableController _sheetController = DraggableScrollableController();
+  final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(
+    AppLayout.sheetInitialSize,
+  );
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
   final Map<String, Uint8List> _markerCache = {};
 
   Position? _targetPosition;
   Timer? _moveTimer;
   Timer? _zoomCheckTimer;
-  static const int _moveSteps = 20;      // Jumlah langkah animasi
+  static const int _moveSteps = 20; // Jumlah langkah animasi
   static const int _moveIntervalMs = 50; // 50ms × 20 = 1 detik total
   double? _lastRenderLng;
   double? _lastRenderLat;
@@ -127,7 +130,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       CompassSettings(
         enabled: true,
         position: OrnamentPosition.TOP_RIGHT,
-        marginTop: 50,   // ← turunkan sesuai kebutuhan
+        marginTop: 50, // ← turunkan sesuai kebutuhan
         marginRight: 16,
       ),
     );
@@ -137,29 +140,43 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ScaleBarSettings(
         enabled: true,
         position: OrnamentPosition.TOP_LEFT,
-        marginTop: 30,   // sesuaikan
+        marginTop: 30, // sesuaikan
         marginLeft: 16,
       ),
     );
 
     if (_userPosition != null) {
-      await _mapboxMap?.setCamera(CameraOptions(
-        center: Point(coordinates: _userPosition!),
-        zoom: _is3DPov ? 18.5 : 16.0,
-        pitch: _is3DPov ? 65.0 : 0.0,
-        bearing: 0.0,
-      ));
+      await _mapboxMap?.setCamera(
+        CameraOptions(
+          center: Point(coordinates: _userPosition!),
+          zoom: _is3DPov ? 18.5 : 16.0,
+          pitch: _is3DPov ? 65.0 : 0.0,
+          bearing: 0.0,
+        ),
+      );
     }
 
     try {
-      await _mapboxMap?.setBounds(CameraBoundsOptions(
-        bounds: CoordinateBounds(
-          southwest: Point(coordinates: Position(AppMapbox.boundsMinLng, AppMapbox.boundsMinLat)),
-          northeast: Point(coordinates: Position(AppMapbox.boundsMaxLng, AppMapbox.boundsMaxLat)),
-          infiniteBounds: false,
+      await _mapboxMap?.setBounds(
+        CameraBoundsOptions(
+          bounds: CoordinateBounds(
+            southwest: Point(
+              coordinates: Position(
+                AppMapbox.boundsMinLng,
+                AppMapbox.boundsMinLat,
+              ),
+            ),
+            northeast: Point(
+              coordinates: Position(
+                AppMapbox.boundsMaxLng,
+                AppMapbox.boundsMaxLat,
+              ),
+            ),
+            infiniteBounds: false,
+          ),
+          minZoom: AppMapbox.minZoom,
         ),
-        minZoom: AppMapbox.minZoom,
-      ));
+      );
     } catch (e) {
       debugPrint('Set bounds error: $e');
     }
@@ -176,8 +193,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     await _fetchObservations();
     if (!isReinit) {
-      await _setupBeamEffect();      // ← tambahkan ini SEBELUM setupPetugasModel
-      await _setupPetugasModel();    // supaya model 3D render di atas beam
+      await _setupBeamEffect(); // ← tambahkan ini SEBELUM setupPetugasModel
+      await _setupPetugasModel(); // supaya model 3D render di atas beam
       await _setupLocationIndicator();
     }
   }
@@ -200,12 +217,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final map = _mapboxMap;
     if (map == null) return;
 
-    final pos = _userPosition;  // ← capture dulu, hindari null race
-    if (pos == null) return;    // ← guard eksplisit
+    final pos = _userPosition; // ← capture dulu, hindari null race
+    if (pos == null) return; // ← guard eksplisit
 
     try {
       final glbPath = await _extractGlbToTemp('lib/assets/petugas.glb');
-      if (!mounted) return;     // ← cek setelah await
+      if (!mounted) return; // ← cek setelah await
 
       await map.style.addStyleModel('petugas-model', 'file://$glbPath');
 
@@ -213,7 +230,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         GeoJsonSource(
           id: 'petugas-location-source',
           data: _buildGeoJsonPoint(
-            pos.lng.toDouble(),  // ← pakai captured variable
+            pos.lng.toDouble(), // ← pakai captured variable
             pos.lat.toDouble(),
           ),
         ),
@@ -228,9 +245,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       modelLayer.modelRotation = [0.0, 0.0, -180.0];
       modelLayer.modelTranslation = [0.0, 0.0, 8.0];
       modelLayer.modelType = ModelType.COMMON_3D;
-      
-      await map.style.addLayer(modelLayer);
 
+      await map.style.addLayer(modelLayer);
     } catch (e) {
       debugPrint('Setup petugas model error: $e');
     }
@@ -240,29 +256,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   // OBSERVATION MARKERS
   // ─────────────────────────────────────────────────────────
   Future<void> _addObservationMarkers() async {
-  // Hapus marker lama jika ada (mencegah duplikat kalau fetch diulang)
+    // Hapus marker lama jika ada (mencegah duplikat kalau fetch diulang)
     if (_annotationManager != null) {
       await _annotationManager?.deleteAll();
     } else {
-      _annotationManager = await _mapboxMap?.annotations.createPointAnnotationManager();
+      _annotationManager = await _mapboxMap?.annotations
+          .createPointAnnotationManager();
     }
 
-    final optionsList = await Future.wait(_observations.map((obs) async {
-      Uint8List imageBytes;
-      if (_markerCache.containsKey(obs.id)) {
-        imageBytes = _markerCache[obs.id]!;
-      } else {
-        imageBytes = await _createCustomMarkerImage(obs);
-        _markerCache[obs.id] = imageBytes;
-      }
+    final optionsList = await Future.wait(
+      _observations.map((obs) async {
+        Uint8List imageBytes;
+        if (_markerCache.containsKey(obs.id)) {
+          imageBytes = _markerCache[obs.id]!;
+        } else {
+          imageBytes = await _createCustomMarkerImage(obs);
+          _markerCache[obs.id] = imageBytes;
+        }
 
-      return PointAnnotationOptions(
-        geometry: Point(coordinates: Position(obs.longitude, obs.latitude)),
-        image: imageBytes,
-        iconSize: 1.2,
-        iconAnchor: IconAnchor.BOTTOM,
-      );
-    }));
+        return PointAnnotationOptions(
+          geometry: Point(coordinates: Position(obs.longitude, obs.latitude)),
+          image: imageBytes,
+          iconSize: 1.2,
+          iconAnchor: IconAnchor.BOTTOM,
+        );
+      }),
+    );
 
     if (optionsList.isNotEmpty && _annotationManager != null) {
       await _annotationManager!.createMulti(optionsList);
@@ -360,7 +379,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final map = _mapboxMap;
     if (map == null) return;
 
-    final pos = _userPosition;  // ← sama
+    final pos = _userPosition; // ← sama
     if (pos == null) return;
 
     try {
@@ -368,88 +387,135 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       final lat = pos.lat.toDouble();
 
       // ── Layer 1: Outer glow (lebar, sangat transparan) ──
-      await map.style.addSource(GeoJsonSource(
-        id: 'beam-outer-source',
-        data: _buildBeamGeoJson(lng, lat, _heading, 0.0012),
-      ));
-      await map.style.addLayer(FillLayer(
-        id: 'beam-outer-layer',
-        sourceId: 'beam-outer-source',
-      ));
-      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-color', '#FFFDE7');
-      await map.style.setStyleLayerProperty('beam-outer-layer', 'fill-opacity', 0.18);
+      await map.style.addSource(
+        GeoJsonSource(
+          id: 'beam-outer-source',
+          data: _buildBeamGeoJson(lng, lat, _heading, 0.0012),
+        ),
+      );
+      await map.style.addLayer(
+        FillLayer(id: 'beam-outer-layer', sourceId: 'beam-outer-source'),
+      );
+      await map.style.setStyleLayerProperty(
+        'beam-outer-layer',
+        'fill-color',
+        '#FFFDE7',
+      );
+      await map.style.setStyleLayerProperty(
+        'beam-outer-layer',
+        'fill-opacity',
+        0.18,
+      );
 
       // ── Layer 2: Mid beam ──
-      await map.style.addSource(GeoJsonSource(
-        id: 'beam-mid-source',
-        data: _buildBeamGeoJson(lng, lat, _heading, 0.0007),
-      ));
-      await map.style.addLayer(FillLayer(
-        id: 'beam-mid-layer',
-        sourceId: 'beam-mid-source',
-      ));
-      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-color', '#FFF9C4');
-      await map.style.setStyleLayerProperty('beam-mid-layer', 'fill-opacity', 0.28);
+      await map.style.addSource(
+        GeoJsonSource(
+          id: 'beam-mid-source',
+          data: _buildBeamGeoJson(lng, lat, _heading, 0.0007),
+        ),
+      );
+      await map.style.addLayer(
+        FillLayer(id: 'beam-mid-layer', sourceId: 'beam-mid-source'),
+      );
+      await map.style.setStyleLayerProperty(
+        'beam-mid-layer',
+        'fill-color',
+        '#FFF9C4',
+      );
+      await map.style.setStyleLayerProperty(
+        'beam-mid-layer',
+        'fill-opacity',
+        0.28,
+      );
 
       // ── Layer 3: Inner core (sempit, paling terang) ──
-      await map.style.addSource(GeoJsonSource(
-        id: 'beam-inner-source',
-        data: _buildBeamGeoJson(lng, lat, _heading, 0.0004),
-      ));
-      await map.style.addLayer(FillLayer(
-        id: 'beam-inner-layer',
-        sourceId: 'beam-inner-source',
-      ));
-      await map.style.setStyleLayerProperty('beam-inner-layer', 'fill-color', '#FFFFFF');
-      await map.style.setStyleLayerProperty('beam-inner-layer', 'fill-opacity', 0.45);
+      await map.style.addSource(
+        GeoJsonSource(
+          id: 'beam-inner-source',
+          data: _buildBeamGeoJson(lng, lat, _heading, 0.0004),
+        ),
+      );
+      await map.style.addLayer(
+        FillLayer(id: 'beam-inner-layer', sourceId: 'beam-inner-source'),
+      );
+      await map.style.setStyleLayerProperty(
+        'beam-inner-layer',
+        'fill-color',
+        '#FFFFFF',
+      );
+      await map.style.setStyleLayerProperty(
+        'beam-inner-layer',
+        'fill-opacity',
+        0.45,
+      );
 
       // ── Line edge: tepi beam ──
-      await map.style.addLayer(LineLayer(
-        id: 'beam-edge-layer',
-        sourceId: 'beam-inner-source',
-      ));
-      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-color', '#FFE082');
-      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-opacity', 0.70);
-      await map.style.setStyleLayerProperty('beam-edge-layer', 'line-width', 1.5);
-
+      await map.style.addLayer(
+        LineLayer(id: 'beam-edge-layer', sourceId: 'beam-inner-source'),
+      );
+      await map.style.setStyleLayerProperty(
+        'beam-edge-layer',
+        'line-color',
+        '#FFE082',
+      );
+      await map.style.setStyleLayerProperty(
+        'beam-edge-layer',
+        'line-opacity',
+        0.70,
+      );
+      await map.style.setStyleLayerProperty(
+        'beam-edge-layer',
+        'line-width',
+        1.5,
+      );
     } catch (e) {
       debugPrint('Beam setup error: $e');
     }
   }
 
-  String _buildBeamGeoJson(double lng, double lat, double headingDeg, double radiusDeg) {
-  const int segments = 20;
-  const double beamWidth = 45.0; // Total lebar sorotan (derajat)
+  String _buildBeamGeoJson(
+    double lng,
+    double lat,
+    double headingDeg,
+    double radiusDeg,
+  ) {
+    const int segments = 20;
+    const double beamWidth = 45.0; // Total lebar sorotan (derajat)
 
-  // Konversi heading kompas ke standar matematika (0° = Timur)
-  // Formula: MathAngle = 90 - CompassHeading
-  final double centerRad = (90.0 - headingDeg) * math.pi / 180.0;
-  final double halfRad = (beamWidth / 2) * math.pi / 180.0;
+    // Konversi heading kompas ke standar matematika (0° = Timur)
+    // Formula: MathAngle = 90 - CompassHeading
+    final double centerRad = (90.0 - headingDeg) * math.pi / 180.0;
+    final double halfRad = (beamWidth / 2) * math.pi / 180.0;
 
-  final List<List<double>> ring = [[lng, lat]]; // Titik pusat di posisi user
-  
-  for (int i = 0; i <= segments; i++) {
-    // Kita iterasi dari sisi kiri beam ke sisi kanan
-    final double angle = (centerRad + halfRad) - (i * (2 * halfRad) / segments);
-    ring.add([
-      lng + radiusDeg * math.cos(angle),
-      lat + radiusDeg * math.sin(angle),
-    ]);
+    final List<List<double>> ring = [
+      [lng, lat],
+    ]; // Titik pusat di posisi user
+
+    for (int i = 0; i <= segments; i++) {
+      // Kita iterasi dari sisi kiri beam ke sisi kanan
+      final double angle =
+          (centerRad + halfRad) - (i * (2 * halfRad) / segments);
+      ring.add([
+        lng + radiusDeg * math.cos(angle),
+        lat + radiusDeg * math.sin(angle),
+      ]);
+    }
+
+    ring.add([lng, lat]); // Tutup kembali ke pusat
+
+    return jsonEncode({
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'geometry': {
+            'type': 'Polygon',
+            'coordinates': [ring],
+          },
+        },
+      ],
+    });
   }
-  
-  ring.add([lng, lat]); // Tutup kembali ke pusat
-
-  return jsonEncode({
-    'type': 'FeatureCollection',
-    'features': [{
-      'type': 'Feature',
-      'geometry': {
-        'type': 'Polygon',
-        'coordinates': [ring],
-      },
-    }],
-  });
-}
 
   // ─────────────────────────────────────────────────────────
   // CAMERA
@@ -485,8 +551,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _mapboxMap?.flyTo(
       CameraOptions(
         center: Point(coordinates: _userPosition!),
-        zoom: _is3DPov ? 17.5 : 16.0, 
-        pitch: _is3DPov ? 70.0 : 0.0, 
+        zoom: _is3DPov ? 17.5 : 16.0,
+        pitch: _is3DPov ? 70.0 : 0.0,
         bearing: _is3DPov ? _heading : 0.0,
       ),
       MapAnimationOptions(duration: 800),
@@ -508,7 +574,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _startLocationTracking() async {
     _locationSubscription?.cancel();
     _compassSubscription?.cancel();
-    
+
     try {
       final initialPosition = await geo.Geolocator.getCurrentPosition(
         locationSettings: const geo.LocationSettings(
@@ -520,14 +586,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       debugPrint('Gagal mendapatkan lokasi awal: $e');
     }
 
-    _locationSubscription = geo.Geolocator.getPositionStream(
-      locationSettings: const geo.LocationSettings(
-        accuracy: geo.LocationAccuracy.high,
-        distanceFilter: 2,
-      ),
-    ).listen((geo.Position position) {
-      _updateUserPosition(position.latitude, position.longitude);
-    });
+    _locationSubscription =
+        geo.Geolocator.getPositionStream(
+          locationSettings: const geo.LocationSettings(
+            accuracy: geo.LocationAccuracy.high,
+            distanceFilter: 2,
+          ),
+        ).listen((geo.Position position) {
+          _updateUserPosition(position.latitude, position.longitude);
+        });
 
     _compassSubscription = FlutterCompass.events?.listen((CompassEvent event) {
       final heading = event.heading ?? 0.0;
@@ -536,49 +603,50 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   Future<void> _updateHeading(double heading) async {
-  if (!mounted) return;
-  
-  // Optimisasi: Batasi pembaruan visual agar tidak dipanggil terlalu sering (misal 60fps)
-  double diff = (_heading - heading).abs();
-  if (diff > 180) diff = 360 - diff;
-  if (diff < 2.0) return; // Hanya update jika perubahan > 2 derajat
+    if (!mounted) return;
 
-  _heading = heading; // Tanpa setState untuk mencegah rebuild UI berulang kali
+    // Optimisasi: Batasi pembaruan visual agar tidak dipanggil terlalu sering (misal 60fps)
+    double diff = (_heading - heading).abs();
+    if (diff > 180) diff = 360 - diff;
+    if (diff < 2.0) return; // Hanya update jika perubahan > 2 derajat
 
-  final map = _mapboxMap;
-  if (map == null) return;
+    _heading =
+        heading; // Tanpa setState untuk mencegah rebuild UI berulang kali
 
-  try {
-    await map.style.setStyleLayerProperty(
-      'petugas-model-layer',
-      'model-rotation',
-      [0.0, 0.0, heading - 180.0],
-    );
-  } catch (e) {
-    debugPrint('Update heading model error: $e');
-  }
+    final map = _mapboxMap;
+    if (map == null) return;
 
-  // Update Beam (posisi tetap di user, arah mengikuti heading)
-  if (_userPosition == null) return;
-  final lng = _userPosition!.lng.toDouble();
-  final lat = _userPosition!.lat.toDouble();
-  
-  final layers = {
-    'beam-outer-source': 0.0012,
-    'beam-mid-source': 0.0007,
-    'beam-inner-source': 0.0004,
-  };
-
-  for (var entry in layers.entries) {
     try {
-      await map.style.setStyleSourceProperty(
-        entry.key, 
-        'data',
-        _buildBeamGeoJson(lng, lat, heading, entry.value),
+      await map.style.setStyleLayerProperty(
+        'petugas-model-layer',
+        'model-rotation',
+        [0.0, 0.0, heading - 180.0],
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Update heading model error: $e');
+    }
+
+    // Update Beam (posisi tetap di user, arah mengikuti heading)
+    if (_userPosition == null) return;
+    final lng = _userPosition!.lng.toDouble();
+    final lat = _userPosition!.lat.toDouble();
+
+    final layers = {
+      'beam-outer-source': 0.0012,
+      'beam-mid-source': 0.0007,
+      'beam-inner-source': 0.0004,
+    };
+
+    for (var entry in layers.entries) {
+      try {
+        await map.style.setStyleSourceProperty(
+          entry.key,
+          'data',
+          _buildBeamGeoJson(lng, lat, heading, entry.value),
+        );
+      } catch (_) {}
+    }
   }
-}
 
   void _animateModelToPosition(double toLng, double toLat) {
     _moveTimer?.cancel();
@@ -588,40 +656,39 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     int step = 0;
 
-    _moveTimer = Timer.periodic(
-      const Duration(milliseconds: _moveIntervalMs),
-      (timer) async {
-        if (!mounted) {
-          timer.cancel();
-          return;
-        }
-        step++;
-        final t = step / _moveSteps; // 0.0 → 1.0
-        
-        // Linear interpolation
-        final currentLng = fromLng + (toLng - fromLng) * t;
-        final currentLat = fromLat + (toLat - fromLat) * t;
+    _moveTimer = Timer.periodic(const Duration(milliseconds: _moveIntervalMs), (
+      timer,
+    ) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      step++;
+      final t = step / _moveSteps; // 0.0 → 1.0
 
-        _lastRenderLng = currentLng;
-        _lastRenderLat = currentLat;
+      // Linear interpolation
+      final currentLng = fromLng + (toLng - fromLng) * t;
+      final currentLat = fromLat + (toLat - fromLat) * t;
 
-        final map = _mapboxMap;
-        if (map == null || !mounted) {
-          timer.cancel();
-          return;
-        }
+      _lastRenderLng = currentLng;
+      _lastRenderLat = currentLat;
 
-        try {
-          await map.style.setStyleSourceProperty(
-            'petugas-location-source',
-            'data',
-            _buildGeoJsonPoint(currentLng, currentLat),
-          );
-        } catch (_) {}
+      final map = _mapboxMap;
+      if (map == null || !mounted) {
+        timer.cancel();
+        return;
+      }
 
-        if (step >= _moveSteps) timer.cancel();
-      },
-    );
+      try {
+        await map.style.setStyleSourceProperty(
+          'petugas-location-source',
+          'data',
+          _buildGeoJsonPoint(currentLng, currentLat),
+        );
+      } catch (_) {}
+
+      if (step >= _moveSteps) timer.cancel();
+    });
   }
 
   Future<void> _updateUserPosition(double lat, double lng) async {
@@ -635,8 +702,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       // and _onMapCreated will initialize everything at this _userPosition.
       return;
     }
-    
-    // Optimisasi: Tanpa setState untuk mencegah rebuild Scaffold dan widget lain 
+
+    // Optimisasi: Tanpa setState untuk mencegah rebuild Scaffold dan widget lain
     // secara berulang setiap kali ada perubahan lokasi kecil.
     _userPosition = Position(lng, lat);
 
@@ -645,12 +712,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     if (!_firstLocationFixed) {
       _firstLocationFixed = true;
-      map.setCamera(CameraOptions(
-        center: Point(coordinates: Position(lng, lat)),
-        zoom: _is3DPov ? 18.5 : 16.0,
-        pitch: _is3DPov ? 65.0 : 0.0,
-        bearing: _is3DPov ? _heading : 0.0,
-      ));
+      map.setCamera(
+        CameraOptions(
+          center: Point(coordinates: Position(lng, lat)),
+          zoom: _is3DPov ? 18.5 : 16.0,
+          pitch: _is3DPov ? 65.0 : 0.0,
+          bearing: _is3DPov ? _heading : 0.0,
+        ),
+      );
     }
 
     _animateModelToPosition(lng, lat);
@@ -660,15 +729,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       final beamLng = _userPosition!.lng.toDouble();
       final beamLat = _userPosition!.lat.toDouble();
       await map.style.setStyleSourceProperty(
-        'beam-outer-source', 'data',
+        'beam-outer-source',
+        'data',
         _buildBeamGeoJson(beamLng, beamLat, _heading, 0.0012),
       );
       await map.style.setStyleSourceProperty(
-        'beam-mid-source', 'data',
+        'beam-mid-source',
+        'data',
         _buildBeamGeoJson(beamLng, beamLat, _heading, 0.0007),
       );
       await map.style.setStyleSourceProperty(
-        'beam-inner-source', 'data',
+        'beam-inner-source',
+        'data',
         _buildBeamGeoJson(beamLng, beamLat, _heading, 0.0004),
       );
     } catch (e) {
@@ -719,7 +791,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         final file = await DefaultCacheManager().getSingleFile(resolvedUrl);
         imageBytes = await file.readAsBytes();
       } catch (e) {
-        debugPrint('Error downloading image for marker [${obs.namaSpesies}]: $e');
+        debugPrint(
+          'Error downloading image for marker [${obs.namaSpesies}]: $e',
+        );
       }
     }
 
@@ -728,7 +802,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       colorValue: color.toARGB32(),
       emoji: emoji,
     );
-    
+
     return await _renderMarkerImage(renderData);
   }
 
@@ -766,7 +840,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 SizedBox(height: 16),
                 Text(
                   'Mencari lokasi Anda...',
-                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -796,8 +873,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               }
             },
           ),
-        if (_userPosition != null)
-          MapTopOverlay(unsyncedCount: unsyncedCount),
+        if (_userPosition != null) MapTopOverlay(unsyncedCount: unsyncedCount),
         if (!isOnline)
           Positioned(
             top: MediaQuery.of(context).padding.top + 72,
@@ -808,7 +884,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 color: Colors.red.shade600.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
                 ],
               ),
               child: const Row(
@@ -818,7 +898,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   SizedBox(width: 6),
                   Text(
                     'Offline',
-                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -857,7 +941,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return const ProfilScreen();
   }
 
-  void _showConnectivityBanner(BuildContext context, String message, bool isOnline) {
+  void _showConnectivityBanner(
+    BuildContext context,
+    String message,
+    bool isOnline,
+  ) {
     final overlay = Overlay.of(context);
     final entry = OverlayEntry(
       builder: (context) => Positioned(
@@ -872,10 +960,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             builder: (context, value, child) {
               return Transform.translate(
                 offset: Offset(0, -50 * (1 - value)),
-                child: Opacity(
-                  opacity: value,
-                  child: child,
-                ),
+                child: Opacity(opacity: value, child: child),
               );
             },
             child: Container(
@@ -884,7 +969,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 color: isOnline ? Colors.green.shade600 : Colors.red.shade600,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
                 ],
               ),
               child: Row(
@@ -898,7 +987,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   Expanded(
                     child: Text(
                       message,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -910,7 +1002,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
 
     overlay.insert(entry);
-    
+
     // Auto remove after 3.0 seconds
     Future.delayed(const Duration(milliseconds: 3000), () {
       if (entry.mounted) {
@@ -931,11 +1023,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (previous == null || previous.isLoading) return;
       final wasOnline = previous.value ?? true;
       final nowOnline = current.value ?? true;
-      
+
       if (wasOnline && !nowOnline) {
-        _showConnectivityBanner(context, 'Koneksi terputus. Mode Offline aktif', false);
+        _showConnectivityBanner(
+          context,
+          'Koneksi terputus. Mode Offline aktif',
+          false,
+        );
       } else if (!wasOnline && nowOnline) {
-        _showConnectivityBanner(context, 'Kembali Online. Menyinkronkan data', true);
+        _showConnectivityBanner(
+          context,
+          'Kembali Online. Menyinkronkan data',
+          true,
+        );
       }
     });
 
@@ -987,20 +1087,28 @@ class _MarkerRenderData {
   final int colorValue;
   final String emoji;
 
-  _MarkerRenderData({this.imageBytes, required this.colorValue, required this.emoji});
+  _MarkerRenderData({
+    this.imageBytes,
+    required this.colorValue,
+    required this.emoji,
+  });
 }
 
 Future<Uint8List> _renderMarkerImage(_MarkerRenderData data) async {
   ui.Image? markerImage;
   if (data.imageBytes != null) {
-    final codec = await ui.instantiateImageCodec(data.imageBytes!, targetWidth: 150);
+    final codec = await ui.instantiateImageCodec(
+      data.imageBytes!,
+      targetWidth: 150,
+    );
     final frameInfo = await codec.getNextFrame();
     markerImage = frameInfo.image;
   }
 
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
-  const double radius = 55.0; // Sedikit lebih besar untuk border putih yang jelas
+  const double radius =
+      55.0; // Sedikit lebih besar untuk border putih yang jelas
   const double pointerHeight = 22.0;
   const double width = radius * 2;
   const double height = radius * 2 + pointerHeight;
@@ -1011,7 +1119,7 @@ Future<Uint8List> _renderMarkerImage(_MarkerRenderData data) async {
   final shadowPaint = Paint()
     ..color = Colors.black.withValues(alpha: 0.25)
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-  
+
   final path = Path();
   path.addArc(
     Rect.fromCircle(center: const Offset(radius, radius), radius: radius),
@@ -1045,19 +1153,23 @@ Future<Uint8List> _renderMarkerImage(_MarkerRenderData data) async {
   if (markerImage != null) {
     canvas.save();
     // Clipping untuk gambar di dalam marker
-    canvas.clipPath(Path()
-      ..addOval(Rect.fromCircle(
+    canvas.clipPath(
+      Path()..addOval(
+        Rect.fromCircle(
           center: const Offset(radius, radius),
-          radius: radius - borderSize - 2)));
-    
+          radius: radius - borderSize - 2,
+        ),
+      ),
+    );
+
     final double imgW = markerImage.width.toDouble();
     final double imgH = markerImage.height.toDouble();
     final double targetSize = (radius - borderSize - 2) * 2;
-    
+
     double scale = math.max(targetSize / imgW, targetSize / imgH);
     double dw = imgW * scale;
     double dh = imgH * scale;
-    
+
     canvas.translate(radius - dw / 2, radius - dh / 2);
     canvas.scale(scale, scale);
     canvas.drawImage(markerImage, Offset.zero, Paint());

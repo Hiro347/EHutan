@@ -9,7 +9,11 @@ import '../utils/tcg_style_utils.dart';
 class SpeciesCard extends StatefulWidget {
   final Observation observation;
   final VoidCallback onTap;
-  const SpeciesCard({super.key, required this.observation, required this.onTap});
+  const SpeciesCard({
+    super.key,
+    required this.observation,
+    required this.onTap,
+  });
 
   @override
   State<SpeciesCard> createState() => _SpeciesCardState();
@@ -25,7 +29,9 @@ class _SpeciesCardState extends State<SpeciesCard>
   void initState() {
     super.initState();
     _flipCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 420));
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
     _flipCtrl.addListener(() {
       final back = _flipCtrl.value >= 0.5;
       if (back != _isBack) setState(() => _isBack = back);
@@ -97,12 +103,7 @@ class _SpeciesCardState extends State<SpeciesCard>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            grad[0],
-            grad[1],
-            grad[1],
-            grad[0],
-          ],
+          colors: [grad[0], grad[1], grad[1], grad[0]],
           stops: const [0.0, 0.3, 0.7, 1.0],
         ),
         boxShadow: [
@@ -139,7 +140,11 @@ class _SpeciesCardState extends State<SpeciesCard>
                   ),
                   border: Border.all(color: const Color(0xFFAAAAAA)),
                   boxShadow: const [
-                    BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 1))
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
+                    ),
                   ],
                 ),
                 child: Text(
@@ -152,7 +157,7 @@ class _SpeciesCardState extends State<SpeciesCard>
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: 6),
 
               // Nama Spesies (Kanan)
@@ -168,7 +173,13 @@ class _SpeciesCardState extends State<SpeciesCard>
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
                       fontStyle: FontStyle.italic,
-                      shadows: [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(1, 1))],
+                      shadows: [
+                        Shadow(
+                          color: Colors.black45,
+                          blurRadius: 2,
+                          offset: Offset(1, 1),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -187,7 +198,11 @@ class _SpeciesCardState extends State<SpeciesCard>
                 border: Border.all(color: const Color(0xFFBDBDBD), width: 2),
                 color: Colors.black,
                 boxShadow: const [
-                  BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2))
+                  BoxShadow(
+                    color: Colors.black45,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
                 ],
               ),
               clipBehavior: Clip.hardEdge,
@@ -195,10 +210,7 @@ class _SpeciesCardState extends State<SpeciesCard>
                 children: [
                   // Gambar utama
                   Expanded(
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: _photo(obs),
-                    ),
+                    child: SizedBox(width: double.infinity, child: _photo(obs)),
                   ),
 
                   // Silver bar bawah gambar (Info Spasial)
@@ -210,9 +222,7 @@ class _SpeciesCardState extends State<SpeciesCard>
                         end: Alignment.bottomCenter,
                         colors: [Color(0xFFD0D0D0), Color(0xFFB0B0B0)],
                       ),
-                      border: Border(
-                        top: BorderSide(color: Color(0xFFAAAAAA)),
-                      ),
+                      border: Border(top: BorderSide(color: Color(0xFFAAAAAA))),
                     ),
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
@@ -221,7 +231,11 @@ class _SpeciesCardState extends State<SpeciesCard>
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.location_on, size: 8, color: Colors.black87),
+                            const Icon(
+                              Icons.location_on,
+                              size: 8,
+                              color: Colors.black87,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               'LAT $lat • LNG $lng',
@@ -253,7 +267,10 @@ class _SpeciesCardState extends State<SpeciesCard>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(6),
                 color: Colors.white.withValues(alpha: 0.15),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  width: 1,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,8 +281,8 @@ class _SpeciesCardState extends State<SpeciesCard>
                     children: [
                       Expanded(
                         child: Text(
-                          obs.namaLokal != null && obs.namaLokal!.isNotEmpty 
-                              ? obs.namaLokal! 
+                          obs.namaLokal != null && obs.namaLokal!.isNotEmpty
+                              ? obs.namaLokal!
                               : 'Spesies Liar',
                           style: const TextStyle(
                             color: Colors.white,
@@ -277,17 +294,26 @@ class _SpeciesCardState extends State<SpeciesCard>
                         ),
                       ),
                       if (!obs.isSynced)
-                        const Icon(Icons.cloud_off_rounded, size: 12, color: Colors.orangeAccent)
+                        const Icon(
+                          Icons.cloud_off_rounded,
+                          size: 12,
+                          color: Colors.orangeAccent,
+                        )
                       else
-                        const Icon(Icons.cloud_done_rounded, size: 12, color: Colors.white70),
+                        const Icon(
+                          Icons.cloud_done_rounded,
+                          size: 12,
+                          color: Colors.white70,
+                        ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  
+
                   // Habitat / Catatan
                   Expanded(
                     child: Text(
-                      obs.catatanHabitat != null && obs.catatanHabitat!.isNotEmpty
+                      obs.catatanHabitat != null &&
+                              obs.catatanHabitat!.isNotEmpty
                           ? obs.catatanHabitat!
                           : 'Ditemukan di habitat alami. Tidak ada catatan tambahan.',
                       style: const TextStyle(
@@ -300,7 +326,7 @@ class _SpeciesCardState extends State<SpeciesCard>
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  
+
                   // Footer (Tanggal & Status)
                   const Divider(color: Colors.white30, height: 6),
                   FittedBox(
@@ -310,15 +336,20 @@ class _SpeciesCardState extends State<SpeciesCard>
                       children: [
                         Text(
                           DateFormat('dd MMM yyyy').format(obs.waktuPengamatan),
-                          style: const TextStyle(color: Colors.white60, fontSize: 9),
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 9,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           obs.statusApproval,
                           style: TextStyle(
-                            color: obs.statusApproval == 'TERVERIFIKASI' 
-                                ? Colors.greenAccent 
-                                : (obs.statusApproval == 'PERLU_DIREVISI' ? Colors.redAccent : Colors.orangeAccent),
+                            color: obs.statusApproval == 'TERVERIFIKASI'
+                                ? Colors.greenAccent
+                                : (obs.statusApproval == 'PERLU_DIREVISI'
+                                      ? Colors.redAccent
+                                      : Colors.orangeAccent),
                             fontSize: 8,
                             fontWeight: FontWeight.bold,
                           ),
@@ -341,7 +372,9 @@ class _SpeciesCardState extends State<SpeciesCard>
   Widget _buildBack() {
     final obs = widget.observation;
     final grad = TcgStyleUtils.getGradientFor(obs.kategoriTakson);
-    final timeStr = DateFormat('dd MMM yyyy  •  HH:mm').format(obs.waktuPengamatan);
+    final timeStr = DateFormat(
+      'dd MMM yyyy  •  HH:mm',
+    ).format(obs.waktuPengamatan);
     final divisiLabel = obs.kategoriTakson
         .replaceAll('DK ', 'DK. ')
         .toUpperCase();
@@ -378,7 +411,8 @@ class _SpeciesCardState extends State<SpeciesCard>
           Positioned.fill(
             child: CustomPaint(
               painter: _DotPatternPainter(
-                  color: Colors.white.withValues(alpha: 0.07)),
+                color: Colors.white.withValues(alpha: 0.07),
+              ),
             ),
           ),
 
@@ -396,7 +430,10 @@ class _SpeciesCardState extends State<SpeciesCard>
                 Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFD4AF37), width: 3),
+                    border: Border.all(
+                      color: const Color(0xFFD4AF37),
+                      width: 3,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.3),
@@ -416,7 +453,8 @@ class _SpeciesCardState extends State<SpeciesCard>
                               height: 80,
                               fit: BoxFit.cover,
                               placeholder: (_, __) => _avatarPlaceholder(grad),
-                              errorWidget: (_, __, ___) => _avatarPlaceholder(grad),
+                              errorWidget: (_, __, ___) =>
+                                  _avatarPlaceholder(grad),
                             )
                           : _avatarPlaceholder(grad),
                     ),
@@ -434,18 +472,29 @@ class _SpeciesCardState extends State<SpeciesCard>
                     color: Colors.white,
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    shadows: [Shadow(color: Colors.black45, blurRadius: 3, offset: Offset(1, 1))],
+                    shadows: [
+                      Shadow(
+                        color: Colors.black45,
+                        blurRadius: 3,
+                        offset: Offset(1, 1),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 4),
 
                 // ─ Label "Pelapor" ─
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: const Text(
                     'PELAPOR',
@@ -478,7 +527,11 @@ class _SpeciesCardState extends State<SpeciesCard>
                 ),
                 border: Border.all(color: const Color(0xFFAAAAAA)),
                 boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 1))
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 2,
+                    offset: Offset(0, 1),
+                  ),
                 ],
               ),
               child: Text(
@@ -521,7 +574,11 @@ class _SpeciesCardState extends State<SpeciesCard>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.access_time_rounded, size: 8, color: Colors.white70),
+                  const Icon(
+                    Icons.access_time_rounded,
+                    size: 8,
+                    color: Colors.white70,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     timeStr,
@@ -547,7 +604,11 @@ class _SpeciesCardState extends State<SpeciesCard>
                 color: Colors.white.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.swipe_rounded, color: Colors.white60, size: 12),
+              child: const Icon(
+                Icons.swipe_rounded,
+                color: Colors.white60,
+                size: 12,
+              ),
             ),
           ),
         ],
@@ -599,10 +660,7 @@ class _SpeciesCardState extends State<SpeciesCard>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            g[0].withValues(alpha: 0.15),
-            g[1].withValues(alpha: 0.25),
-          ],
+          colors: [g[0].withValues(alpha: 0.15), g[1].withValues(alpha: 0.25)],
         ),
       ),
       child: Center(
@@ -610,10 +668,13 @@ class _SpeciesCardState extends State<SpeciesCard>
             ? SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2.5, color: g[1]))
-            : Icon(Icons.photo_camera_outlined,
-                color: g[1].withValues(alpha: 0.5), size: 32),
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: g[1]),
+              )
+            : Icon(
+                Icons.photo_camera_outlined,
+                color: g[1].withValues(alpha: 0.5),
+                size: 32,
+              ),
       ),
     );
   }

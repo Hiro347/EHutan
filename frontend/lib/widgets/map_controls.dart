@@ -35,9 +35,7 @@ class MapControls extends StatelessWidget {
                 foregroundColor: AppColors.primary,
                 elevation: 4,
                 onPressed: onTogglePov,
-                child: Icon(
-                  is3DPov ? Icons.map_outlined : Icons.view_in_ar,
-                ),
+                child: Icon(is3DPov ? Icons.map_outlined : Icons.view_in_ar),
               ),
               const SizedBox(height: 12),
               FloatingActionButton.small(

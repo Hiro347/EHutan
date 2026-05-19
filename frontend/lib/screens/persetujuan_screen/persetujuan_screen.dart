@@ -118,7 +118,11 @@ class _PersetujuanScreenState extends State<PersetujuanScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.assignment_turned_in_outlined, size: 64, color: Colors.grey.shade400),
+            Icon(
+              Icons.assignment_turned_in_outlined,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
             const SizedBox(height: 16),
             Text(
               _userProfile!.isPetugasLapangan

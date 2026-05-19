@@ -34,7 +34,7 @@ class AiService {
   final SupabaseClient _client;
 
   AiService({SupabaseClient? client})
-      : _client = client ?? Supabase.instance.client;
+    : _client = client ?? Supabase.instance.client;
 
   Future<AiSuggestion> identify(File imageFile) async {
     if (!await imageFile.exists()) {
@@ -60,10 +60,7 @@ class AiService {
       final response = await _client.functions
           .invoke(
             _functionName,
-            body: {
-              'image_base64': base64Image,
-              'media_type': mediaType,
-            },
+            body: {'image_base64': base64Image, 'media_type': mediaType},
           )
           .timeout(_timeout);
 

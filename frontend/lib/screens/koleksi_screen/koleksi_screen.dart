@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/observation.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../services/koleksi_service.dart';
-import '../../services/sqlite_service.dart'; 
+import '../../services/sqlite_service.dart';
 import '../../widgets/species_card.dart';
 import '../../utils/constants.dart';
 import 'observation_detail_sheet.dart';
@@ -128,7 +128,7 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
       if (previous == null || previous.isLoading) return;
       final wasOnline = previous.value ?? true;
       final nowOnline = current.value ?? true;
-      
+
       // Jika dari offline menjadi online, otomatis ambil ulang data
       if (!wasOnline && nowOnline) {
         _loadMyObservations();
@@ -144,10 +144,7 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
         ],
         body: TabBarView(
           controller: _tabController,
-          children: [
-            _buildMyObservationsTab(),
-            _buildUKFTab(),
-          ],
+          children: [_buildMyObservationsTab(), _buildUKFTab()],
         ),
       ),
     );
@@ -162,7 +159,12 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
       shadowColor: Colors.black12,
       title: const Text(
         'KOLEKSI',
-        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 2, color: Color(0xFF1A2400)),
+        style: TextStyle(
+          fontWeight: FontWeight.w900,
+          fontSize: 18,
+          letterSpacing: 2,
+          color: Color(0xFF1A2400),
+        ),
       ),
       centerTitle: true,
       bottom: TabBar(
@@ -173,13 +175,19 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
         indicatorColor: AppColors.primary,
         indicatorWeight: 3,
         dividerColor: const Color(0xFFE8EDE0),
-        tabs: const [Tab(text: 'Observasi Saya'), Tab(text: 'Observasi UKF')],
+        tabs: const [
+          Tab(text: 'Observasi Saya'),
+          Tab(text: 'Observasi UKF'),
+        ],
       ),
     );
   }
 
   Widget _buildMyObservationsTab() {
-    if (_myLoading) return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+    if (_myLoading)
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
     if (_myError != null) return Center(child: Text(_myError!));
     if (_myObservations.isEmpty) {
       return _buildEmptyState();
@@ -190,9 +198,7 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
       onRefresh: _loadMyObservations,
       child: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(
-            child: _buildMyStats(),
-          ),
+          SliverToBoxAdapter(child: _buildMyStats()),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
             sliver: SliverGrid(
@@ -200,7 +206,7 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
                 (_, i) => SpeciesCard(
                   observation: _myObservations[i],
                   onTap: () => showObservationDetailSheet(
-                    context, 
+                    context,
                     _myObservations[i],
                     () => _loadMyObservations(), // REFRESH SETELAH HAPUS
                     widget.onFlyTo,
@@ -232,7 +238,11 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
               color: AppColors.primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.travel_explore_rounded, size: 80, color: AppColors.primary.withValues(alpha: 0.7)),
+            child: Icon(
+              Icons.travel_explore_rounded,
+              size: 80,
+              color: AppColors.primary.withValues(alpha: 0.7),
+            ),
           ),
           const SizedBox(height: 24),
           const Text(
@@ -263,18 +273,34 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
   }
 
   Widget _buildMyStats() {
-    final verified = _myObservations.where((o) => o.statusApproval == 'TERVERIFIKASI').length;
-    final pending = _myObservations.where((o) => o.statusApproval == 'MENUNGGU_VERIFIKASI').length;
+    final verified = _myObservations
+        .where((o) => o.statusApproval == 'TERVERIFIKASI')
+        .length;
+    final pending = _myObservations
+        .where((o) => o.statusApproval == 'MENUNGGU_VERIFIKASI')
+        .length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       child: Row(
         children: [
-          _simpleStatItem(Icons.nature_people_rounded, '${_myObservations.length} Total', Colors.blueGrey),
+          _simpleStatItem(
+            Icons.nature_people_rounded,
+            '${_myObservations.length} Total',
+            Colors.blueGrey,
+          ),
           const SizedBox(width: 8),
-          _simpleStatItem(Icons.verified_rounded, '$verified Valid', Colors.green.shade600),
+          _simpleStatItem(
+            Icons.verified_rounded,
+            '$verified Valid',
+            Colors.green.shade600,
+          ),
           const SizedBox(width: 8),
-          _simpleStatItem(Icons.hourglass_empty_rounded, '$pending Pending', Colors.orange.shade700),
+          _simpleStatItem(
+            Icons.hourglass_empty_rounded,
+            '$pending Pending',
+            Colors.orange.shade700,
+          ),
         ],
       ),
     );
@@ -295,7 +321,14 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
             const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(text, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -304,12 +337,17 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
   }
 
   Widget _buildUKFTab() {
-    if (_ukfLoading) return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+    if (_ukfLoading)
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
     if (_ukfError != null) return Center(child: Text(_ukfError!));
-    
+
     return RefreshIndicator(
       color: AppColors.primary,
-      onRefresh: () => _loadUKFObservations(query: _searchQuery.isEmpty ? null : _searchQuery),
+      onRefresh: () => _loadUKFObservations(
+        query: _searchQuery.isEmpty ? null : _searchQuery,
+      ),
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -320,10 +358,16 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
                 onChanged: _onSearchChanged,
                 decoration: InputDecoration(
                   hintText: 'Cari spesies...',
-                  prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: AppColors.primary,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -333,7 +377,13 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
-                child: Text('DIVISI ${entry.key}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                child: Text(
+                  'DIVISI ${entry.key}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
             ),
             SliverPadding(
@@ -342,12 +392,20 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
                 delegate: SliverChildBuilderDelegate(
                   (_, i) => SpeciesCard(
                     observation: entry.value[i],
-                    onTap: () => showObservationDetailSheet(context, entry.value[i], () {}, widget.onFlyTo),
+                    onTap: () => showObservationDetailSheet(
+                      context,
+                      entry.value[i],
+                      () {},
+                      widget.onFlyTo,
+                    ),
                   ),
                   childCount: entry.value.length,
                 ),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, childAspectRatio: 0.72, crossAxisSpacing: 12, mainAxisSpacing: 12,
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.72,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
                 ),
               ),
             ),

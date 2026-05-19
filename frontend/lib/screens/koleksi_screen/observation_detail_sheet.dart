@@ -7,12 +7,21 @@ import '../../utils/constants.dart';
 import '../../utils/tcg_style_utils.dart';
 import '../../providers/observation_provider.dart';
 
-Future<void> showObservationDetailSheet(BuildContext context, Observation observation, VoidCallback onDeleted, [Function(Observation)? onFlyTo]) {
+Future<void> showObservationDetailSheet(
+  BuildContext context,
+  Observation observation,
+  VoidCallback onDeleted, [
+  Function(Observation)? onFlyTo,
+]) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => ObservationDetailSheet(observation: observation, onDeleted: onDeleted, onFlyTo: onFlyTo),
+    builder: (_) => ObservationDetailSheet(
+      observation: observation,
+      onDeleted: onDeleted,
+      onFlyTo: onFlyTo,
+    ),
   );
 }
 
@@ -21,7 +30,12 @@ class ObservationDetailSheet extends ConsumerWidget {
   final VoidCallback onDeleted;
   final Function(Observation)? onFlyTo;
 
-  const ObservationDetailSheet({super.key, required this.observation, required this.onDeleted, this.onFlyTo});
+  const ObservationDetailSheet({
+    super.key,
+    required this.observation,
+    required this.onDeleted,
+    this.onFlyTo,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,7 +65,7 @@ class ObservationDetailSheet extends ConsumerWidget {
                 children: [
                   // 1. HEADER FOTO DENGAN ZOOM
                   _buildHeaderPhoto(context),
-                  
+
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(
@@ -68,22 +82,42 @@ class ObservationDetailSheet extends ConsumerWidget {
                                   Text(
                                     observation.namaSpesies,
                                     style: const TextStyle(
-                                      fontSize: 24, 
-                                      fontWeight: FontWeight.w900, 
-                                      fontStyle: FontStyle.italic, 
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      fontStyle: FontStyle.italic,
                                       color: Colors.white,
-                                      shadows: [Shadow(color: Colors.black45, blurRadius: 2, offset: Offset(1, 1))],
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black45,
+                                          blurRadius: 2,
+                                          offset: Offset(1, 1),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      Text(TcgStyleUtils.getEmojiFor(observation.kategoriTakson), style: const TextStyle(fontSize: 16)),
+                                      Text(
+                                        TcgStyleUtils.getEmojiFor(
+                                          observation.kategoriTakson,
+                                        ),
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
                                       const SizedBox(width: 6),
                                       Expanded(
                                         child: Text(
-                                          observation.namaLokal != null && observation.namaLokal!.isNotEmpty ? observation.namaLokal! : 'Nama lokal tidak diketahui',
-                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white70),
+                                          observation.namaLokal != null &&
+                                                  observation
+                                                      .namaLokal!
+                                                      .isNotEmpty
+                                              ? observation.namaLokal!
+                                              : 'Nama lokal tidak diketahui',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white70,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -99,11 +133,19 @@ class ObservationDetailSheet extends ConsumerWidget {
                         const SizedBox(height: 20),
 
                         // 3. WAKTU & LOKASI
-                        _buildInfoRow(Icons.calendar_month_rounded, '${DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(observation.waktuPengamatan)} WIB'),
+                        _buildInfoRow(
+                          Icons.calendar_month_rounded,
+                          '${DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(observation.waktuPengamatan)} WIB',
+                        ),
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            Expanded(child: _buildInfoRow(Icons.location_on_rounded, '${observation.latitude.toStringAsFixed(6)}, ${observation.longitude.toStringAsFixed(6)}')),
+                            Expanded(
+                              child: _buildInfoRow(
+                                Icons.location_on_rounded,
+                                '${observation.latitude.toStringAsFixed(6)}, ${observation.longitude.toStringAsFixed(6)}',
+                              ),
+                            ),
                             if (onFlyTo != null)
                               Container(
                                 margin: const EdgeInsets.only(left: 8),
@@ -112,7 +154,10 @@ class ObservationDetailSheet extends ConsumerWidget {
                                   shape: BoxShape.circle,
                                 ),
                                 child: IconButton(
-                                  icon: const Icon(Icons.map_rounded, color: Colors.white),
+                                  icon: const Icon(
+                                    Icons.map_rounded,
+                                    color: Colors.white,
+                                  ),
                                   tooltip: 'Lihat di Peta',
                                   onPressed: () {
                                     Navigator.pop(context);
@@ -122,39 +167,88 @@ class ObservationDetailSheet extends ConsumerWidget {
                               ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 20),
                         const Divider(height: 1, color: Colors.white24),
                         const SizedBox(height: 20),
 
                         // 4. GRID DETAIL DATA (Dengan Icon Menarik)
-                        const Text('DETAIL OBSERVASI', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white70, letterSpacing: 1.2)),
+                        const Text(
+                          'DETAIL OBSERVASI',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            color: Colors.white70,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white24)),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white24),
+                          ),
                           child: Column(
                             children: [
-                              _buildDetailGridItem(Icons.category_rounded, Colors.white, 'Taksonomi', observation.kategoriTakson),
+                              _buildDetailGridItem(
+                                Icons.category_rounded,
+                                Colors.white,
+                                'Taksonomi',
+                                observation.kategoriTakson,
+                              ),
                               const Divider(height: 24, color: Colors.white24),
-                              _buildDetailGridItem(Icons.groups_rounded, Colors.white, 'Jumlah Individu', observation.jumlahIndividu != null ? '${observation.jumlahIndividu} Ekor' : '-'),
+                              _buildDetailGridItem(
+                                Icons.groups_rounded,
+                                Colors.white,
+                                'Jumlah Individu',
+                                observation.jumlahIndividu != null
+                                    ? '${observation.jumlahIndividu} Ekor'
+                                    : '-',
+                              ),
                               const Divider(height: 24, color: Colors.white24),
-                              _buildDetailGridItem(Icons.directions_run_rounded, Colors.white, 'Aktivitas', observation.aktivitasTermati ?? '-'),
+                              _buildDetailGridItem(
+                                Icons.directions_run_rounded,
+                                Colors.white,
+                                'Aktivitas',
+                                observation.aktivitasTermati ?? '-',
+                              ),
                             ],
                           ),
                         ),
-                        
+
                         const SizedBox(height: 20),
 
                         // 5. CATATAN HABITAT & KONDISI
-                        if (observation.catatanHabitat != null && observation.catatanHabitat!.isNotEmpty) ...[
-                          const Text('KONDISI & HABITAT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.white70, letterSpacing: 1.2)),
+                        if (observation.catatanHabitat != null &&
+                            observation.catatanHabitat!.isNotEmpty) ...[
+                          const Text(
+                            'KONDISI & HABITAT',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              color: Colors.white70,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
                           const SizedBox(height: 16),
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white24)),
-                            child: Text(observation.catatanHabitat!, style: const TextStyle(fontSize: 14, height: 1.6, color: Colors.white)),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white24),
+                            ),
+                            child: Text(
+                              observation.catatanHabitat!,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                height: 1.6,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ],
 
@@ -163,7 +257,7 @@ class ObservationDetailSheet extends ConsumerWidget {
                           const SizedBox(height: 20),
                           _DraftBanner(),
                         ],
-                        
+
                         const SizedBox(height: 100), // Ruang untuk tombol hapus
                       ],
                     ),
@@ -179,10 +273,22 @@ class ObservationDetailSheet extends ConsumerWidget {
                   heroTag: 'delete_obs',
                   backgroundColor: Colors.red.shade50,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.red.shade200)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.red.shade200),
+                  ),
                   onPressed: () => _confirmDelete(context, ref),
-                  icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade700),
-                  label: Text('Hapus', style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold)),
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    color: Colors.red.shade700,
+                  ),
+                  label: Text(
+                    'Hapus',
+                    style: TextStyle(
+                      color: Colors.red.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -195,7 +301,8 @@ class ObservationDetailSheet extends ConsumerWidget {
   // --- WIDGET HELPER ---
   String? _resolveImagePath() {
     final local = observation.localFotoPath;
-    if (local != null && local.isNotEmpty && File(local).existsSync()) return local;
+    if (local != null && local.isNotEmpty && File(local).existsSync())
+      return local;
     return resolveSupabaseFotoUrl(observation.fotoUrl);
   }
 
@@ -218,9 +325,19 @@ class ObservationDetailSheet extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.image_not_supported_outlined, size: 48, color: Colors.grey.shade400),
+                      Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 48,
+                        color: Colors.grey.shade400,
+                      ),
                       const SizedBox(height: 8),
-                      Text('Tidak ada foto', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                      Text(
+                        'Tidak ada foto',
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -231,7 +348,10 @@ class ObservationDetailSheet extends ConsumerWidget {
           left: 16,
           child: CircleAvatar(
             backgroundColor: Colors.black45,
-            child: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
           ),
         ),
         // Tombol Zoom Fullscreen
@@ -242,9 +362,18 @@ class ObservationDetailSheet extends ConsumerWidget {
             child: CircleAvatar(
               backgroundColor: Colors.black45,
               child: IconButton(
-                icon: const Icon(Icons.zoom_out_map_rounded, color: Colors.white),
+                icon: const Icon(
+                  Icons.zoom_out_map_rounded,
+                  color: Colors.white,
+                ),
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => FullScreenImageViewer(imagePath: imagePath)));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          FullScreenImageViewer(imagePath: imagePath),
+                    ),
+                  );
                 },
               ),
             ),
@@ -262,9 +391,16 @@ class ObservationDetailSheet extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.broken_image_outlined, size: 48, color: Colors.grey.shade400),
+              Icon(
+                Icons.broken_image_outlined,
+                size: 48,
+                color: Colors.grey.shade400,
+              ),
               const SizedBox(height: 8),
-              Text('Gagal memuat foto', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+              Text(
+                'Gagal memuat foto',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -275,7 +411,11 @@ class ObservationDetailSheet extends ConsumerWidget {
       return Image.file(file, fit: BoxFit.cover);
     }
     return Center(
-      child: Icon(Icons.image_not_supported_outlined, size: 48, color: Colors.grey.shade400),
+      child: Icon(
+        Icons.image_not_supported_outlined,
+        size: 48,
+        color: Colors.grey.shade400,
+      ),
     );
   }
 
@@ -284,17 +424,34 @@ class ObservationDetailSheet extends ConsumerWidget {
       children: [
         Icon(icon, size: 22, color: Colors.white70),
         const SizedBox(width: 12),
-        Expanded(child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white))),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildDetailGridItem(IconData icon, Color iconColor, String label, String value) {
+  Widget _buildDetailGridItem(
+    IconData icon,
+    Color iconColor,
+    String label,
+    String value,
+  ) {
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Icon(icon, size: 20, color: iconColor),
         ),
         const SizedBox(width: 16),
@@ -302,9 +459,23 @@ class ObservationDetailSheet extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: Colors.white54, fontWeight: FontWeight.w600)),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.white54,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
             ],
           ),
         ),
@@ -317,19 +488,26 @@ class ObservationDetailSheet extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus Data?'),
-        content: const Text('Data dummy ini akan dihapus permanen dari memori HP-mu.'),
+        content: const Text(
+          'Data dummy ini akan dihapus permanen dari memori HP-mu.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              await ref.read(localObservationProvider.notifier).deleteObservation(observation.id);
+              await ref
+                  .read(localObservationProvider.notifier)
+                  .deleteObservation(observation.id);
               if (context.mounted) {
                 Navigator.pop(ctx);
                 Navigator.pop(context);
                 onDeleted();
               }
-            }, 
+            },
             child: const Text('Hapus', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -347,13 +525,19 @@ class FullScreenImageViewer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, elevation: 0),
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: Center(
         child: InteractiveViewer(
           panEnabled: true,
           minScale: 0.5,
           maxScale: 4.0,
-          child: imagePath.startsWith('http') ? Image.network(imagePath) : Image.file(File(imagePath)),
+          child: imagePath.startsWith('http')
+              ? Image.network(imagePath)
+              : Image.file(File(imagePath)),
         ),
       ),
     );
@@ -368,14 +552,28 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, bg, fg) = switch (status) {
-      'TERVERIFIKASI' => ('✓ Terverifikasi', const Color(0xFFE8F5E9), const Color(0xFF2E7D32)),
-      'PERLU_DIREVISI' => ('⚠ Revisi', const Color(0xFFFFF3E0), const Color(0xFFE65100)),
+      'TERVERIFIKASI' => (
+        '✓ Terverifikasi',
+        const Color(0xFFE8F5E9),
+        const Color(0xFF2E7D32),
+      ),
+      'PERLU_DIREVISI' => (
+        '⚠ Revisi',
+        const Color(0xFFFFF3E0),
+        const Color(0xFFE65100),
+      ),
       _ => ('⏳ Menunggu', const Color(0xFFE3F2FD), const Color(0xFF1565C0)),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
-      child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: fg)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: fg),
+      ),
     );
   }
 }
@@ -385,12 +583,25 @@ class _DraftBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.orange.shade300)),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.orange.shade300),
+      ),
       child: Row(
         children: [
-          Icon(Icons.cloud_off_rounded, color: Colors.orange.shade700, size: 18),
+          Icon(
+            Icons.cloud_off_rounded,
+            color: Colors.orange.shade700,
+            size: 18,
+          ),
           const SizedBox(width: 8),
-          Expanded(child: Text('Data ini tersimpan secara lokal dan belum tersinkronisasi ke server.', style: TextStyle(fontSize: 12, color: Colors.orange.shade900))),
+          Expanded(
+            child: Text(
+              'Data ini tersimpan secara lokal dan belum tersinkronisasi ke server.',
+              style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
+            ),
+          ),
         ],
       ),
     );

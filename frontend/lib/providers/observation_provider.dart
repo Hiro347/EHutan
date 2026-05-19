@@ -60,7 +60,7 @@ class LocalObservationNotifier
   /// Submit observasi baru — simpan lokal dulu, sync kalau online
   Future<void> addObservation({
     required String namaSpesies,
-    String? namaLokal,              // ← Baru
+    String? namaLokal, // ← Baru
     required String kategoriTakson,
     required double latitude,
     required double longitude,
@@ -68,8 +68,8 @@ class LocalObservationNotifier
     String localFotoPath = '',
     int? idKegiatan,
     String? catatanHabitat,
-    int? jumlahIndividu,            // ← Baru
-    String? aktivitasTermati,       // ← Baru
+    int? jumlahIndividu, // ← Baru
+    String? aktivitasTermati, // ← Baru
     DateTime? waktuPengamatan,
   }) async {
     state = const AsyncValue.loading();
@@ -121,7 +121,8 @@ class LocalObservationNotifier
 }
 
 final localObservationProvider =
-    AsyncNotifierProvider<LocalObservationNotifier,
-        List<Map<String, dynamic>>>(() {
-  return LocalObservationNotifier();
-});
+    AsyncNotifierProvider<LocalObservationNotifier, List<Map<String, dynamic>>>(
+      () {
+        return LocalObservationNotifier();
+      },
+    );

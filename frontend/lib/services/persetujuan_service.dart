@@ -31,8 +31,10 @@ class PersetujuanService {
         .toList();
   }
 
-  Future<List<Observation>> fetchMenungguVerifikasi(
-      {required bool isAdmin, String? divisi}) async {
+  Future<List<Observation>> fetchMenungguVerifikasi({
+    required bool isAdmin,
+    String? divisi,
+  }) async {
     var query = _client
         .from('data_observasi')
         .select()
@@ -55,12 +57,15 @@ class PersetujuanService {
     String? catatanRevisi,
   }) async {
     final kordinatorId = _client.auth.currentUser?.id;
-    
-    await _client.from('data_observasi').update({
-      'status_approval': statusApproval,
-      'catatan_revisi': catatanRevisi,
-      'id_kordinator': kordinatorId,
-      'waktu_verifikasi': DateTime.now().toIso8601String(),
-    }).eq('id', obsId);
+
+    await _client
+        .from('data_observasi')
+        .update({
+          'status_approval': statusApproval,
+          'catatan_revisi': catatanRevisi,
+          'id_kordinator': kordinatorId,
+          'waktu_verifikasi': DateTime.now().toIso8601String(),
+        })
+        .eq('id', obsId);
   }
 }
