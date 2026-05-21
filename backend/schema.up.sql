@@ -12,9 +12,11 @@ CREATE TYPE status_observasi AS ENUM ('MENUNGGU_VERIFIKASI', 'TERVERIFIKASI', 'P
 CREATE TABLE profiles (
   id               UUID REFERENCES auth.users(id) PRIMARY KEY,
   nama_lengkap     TEXT NOT NULL,
+  email            TEXT,
   role             user_role DEFAULT 'Petugas_Lapangan',
   divisi_takson    TEXT,
   status_aktivitas BOOLEAN DEFAULT true,
+  last_login       TIMESTAMPTZ,
   created_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -86,10 +88,11 @@ CREATE TRIGGER trg_observasi_updated_at
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, nama_lengkap, role)
+  INSERT INTO profiles (id, nama_lengkap, email, role)
   VALUES (
     NEW.id,
     NEW.raw_user_meta_data->>'nama_lengkap',
+    NEW.email,
     'Petugas_Lapangan'
   );
   RETURN NEW;

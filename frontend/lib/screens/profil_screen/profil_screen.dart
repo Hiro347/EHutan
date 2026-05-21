@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../providers/profile_provider.dart';
 import '../../utils/constants.dart';
 import '../login_screen/login_screen.dart';
+import '../organization_screen/organization_screen.dart';
 
 class ProfilScreen extends ConsumerWidget {
   const ProfilScreen({super.key});
@@ -512,6 +513,48 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                     ],
                   ),
                 ),
+                
+                if (profile.role == 'Admin') ...[
+                  const SizedBox(height: 16),
+                  _SectionCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SectionTitle(
+                          title: 'Administrasi',
+                          icon: Icons.admin_panel_settings_outlined,
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const OrganizationScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.business_rounded),
+                          label: const Text('Kelola Organisasi & Pengguna'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(color: AppColors.primary),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '💡 Akses khusus admin untuk menambah & mengatur akun',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
                 const SizedBox(height: 32),
 
                 // ── Tombol Logout ─────────────────────────────────────────

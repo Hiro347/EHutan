@@ -13,6 +13,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   // Fungsi untuk proses Login menggunakan Supabase
   Future<void> _signIn() async {
@@ -28,10 +29,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       // Hit ke API Supabase untuk otentikasi
-      await Supabase.instance.client.auth.signInWithPassword(
+      final authResponse = await Supabase.instance.client.auth.signInWithPassword(
         email: email,
         password: password,
       );
+
+      // Update last_login
+      if (authResponse.user != null) {
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'last_login': DateTime.now().toUtc().toIso8601String()})
+            .eq('id', authResponse.user!.id);
+      }
 
       if (!mounted) return;
 
@@ -127,10 +136,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Field Password
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: 'Password',
                     prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
