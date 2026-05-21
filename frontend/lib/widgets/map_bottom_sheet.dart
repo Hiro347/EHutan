@@ -266,10 +266,7 @@ class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Material(
       color: Colors.white,
-      child: SingleChildScrollView(
-        physics: const NeverScrollableScrollPhysics(),
-        child: child,
-      ),
+      child: child,
     );
   }
 
