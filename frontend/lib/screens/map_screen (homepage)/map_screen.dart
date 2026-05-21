@@ -69,6 +69,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   double? _lastRenderLat;
 
   // ─────────────────────────────────────────────────────────
+  // LONG PRESS STATE
+  // ─────────────────────────────────────────────────────────
+  Position? _longPressCoordinate;
+  PointAnnotationManager? _longPressAnnotationManager;
+
+  // ─────────────────────────────────────────────────────────
   // LIFECYCLE
   // ─────────────────────────────────────────────────────────
   @override
@@ -299,7 +305,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   // ─────────────────────────────────────────────────────────
-  // LOCATION INDICATOR
+  // LOCATION INDICATOR & POPUP
   // ─────────────────────────────────────────────────────────
   void _handleCameraChange(CameraChangedEventData data) {
     // Throttle: tunggu 300ms setelah kamera berhenti bergerak
@@ -308,6 +314,56 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       const Duration(milliseconds: 300),
       _onCameraChanged,
     );
+  }
+
+  Future<void> _handleLongPress(Position position) async {
+    setState(() {
+      _longPressCoordinate = position;
+    });
+
+    if (_longPressAnnotationManager == null && _mapboxMap != null) {
+      _longPressAnnotationManager = await _mapboxMap!.annotations.createPointAnnotationManager();
+      _longPressAnnotationManager!.addOnPointAnnotationClickListener(
+        _LongPressClickListener(
+          onTap: () {
+            if (_longPressCoordinate != null) {
+              final lat = _longPressCoordinate!.lat.toDouble();
+              final lng = _longPressCoordinate!.lng.toDouble();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FormScreen(lat: lat, lng: lng),
+                ),
+              ).then((_) {
+                _clearLongPress();
+                _fetchObservations();
+              });
+            }
+          }
+        )
+      );
+    }
+
+    if (_longPressAnnotationManager != null) {
+      await _longPressAnnotationManager!.deleteAll();
+      final imageBytes = await _renderLongPressMarker();
+      await _longPressAnnotationManager!.create(
+        PointAnnotationOptions(
+          geometry: Point(coordinates: position),
+          image: imageBytes,
+          iconAnchor: IconAnchor.BOTTOM, 
+        )
+      );
+    }
+  }
+
+  void _clearLongPress() {
+    if (_longPressCoordinate != null) {
+      setState(() {
+        _longPressCoordinate = null;
+      });
+      _longPressAnnotationManager?.deleteAll();
+    }
   }
 
   void _handleMapIdle(MapIdleEventData data) {
@@ -868,7 +924,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             styleUri: AppMapbox.styleUrl,
             onCameraChangeListener: _handleCameraChange,
             onMapIdleListener: _handleMapIdle,
+            onLongTapListener: (MapContentGestureContext context) {
+              _handleLongPress(context.point.coordinates);
+            },
+            onTapListener: (MapContentGestureContext context) {
+              _clearLongPress();
+            },
           ),
+        
         if (_userPosition != null)
           MapBottomSheet(
             controller: _sheetController,
@@ -1081,6 +1144,87 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ),
     );
   }
+}
+
+class _LongPressClickListener extends OnPointAnnotationClickListener {
+  final VoidCallback onTap;
+  _LongPressClickListener({required this.onTap});
+
+  @override
+  void onPointAnnotationClick(PointAnnotation annotation) {
+    onTap();
+  }
+}
+
+Future<Uint8List> _renderLongPressMarker() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  
+  // Ukuran dibesarkan sesuai permintaan menjadi 100px
+  const double pinWidth = 100.0;
+  const double pinHeight = 100.0;
+  const double boxWidth = 280.0;
+  const double boxHeight = 85.0;
+  const double padding = 16.0;
+  
+  // Make canvas symmetrical so the pin is exactly in the center
+  final width = pinWidth + (boxWidth + padding) * 2;
+  final height = math.max(pinHeight, boxHeight) + 20; // 20 for shadow padding
+  
+  final centerX = width / 2;
+  
+  final pinRect = Rect.fromLTWH(centerX - (pinWidth / 2), height - pinHeight - 20, pinWidth, pinHeight);
+  final boxRect = Rect.fromLTWH(centerX + (pinWidth / 2) + padding, height - boxHeight - 20 - (pinHeight - boxHeight) / 2, boxWidth, boxHeight);
+
+  // 1. Gambar shadow kotak
+  final shadowPaint = Paint()
+    ..color = Colors.black26
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+  
+  final boxRRect = RRect.fromRectAndRadius(boxRect, const Radius.circular(16));
+  canvas.save();
+  canvas.translate(0, 6);
+  canvas.drawRRect(boxRRect, shadowPaint);
+  canvas.restore();
+  
+  // 2. Gambar background kotak putih
+  canvas.drawRRect(boxRRect, Paint()..color = Colors.white);
+  
+  // 3. Teks
+  final textPainter = TextPainter(
+    text: const TextSpan(
+      text: '+ Tambah Hewan',
+      style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 26),
+    ),
+    textDirection: TextDirection.ltr,
+  );
+  textPainter.layout();
+  final textOffset = Offset(
+    boxRect.left + (boxRect.width - textPainter.width) / 2,
+    boxRect.top + (boxRect.height - textPainter.height) / 2,
+  );
+  textPainter.paint(canvas, textOffset);
+
+  // 4. Gambar pin
+  final iconPainter = TextPainter(
+    text: TextSpan(
+      text: String.fromCharCode(Icons.location_on.codePoint),
+      style: TextStyle(
+        fontSize: pinWidth,
+        fontFamily: Icons.location_on.fontFamily,
+        package: Icons.location_on.fontPackage,
+        color: Colors.red,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  );
+  iconPainter.layout();
+  iconPainter.paint(canvas, Offset(pinRect.left, pinRect.top));
+
+  final picture = recorder.endRecording();
+  final img = await picture.toImage(width.toInt(), height.toInt());
+  final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+  return byteData!.buffer.asUint8List();
 }
 
 class _MarkerRenderData {

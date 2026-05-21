@@ -7,6 +7,7 @@ import '../../models/ai_suggestion.dart';
 import '../../providers/observation_provider.dart';
 import '../../services/ai_service.dart';
 import '../../utils/constants.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 
 class FormScreen extends ConsumerStatefulWidget {
   final double lat;
@@ -506,9 +507,28 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
-                  onPressed: () {
-                    _latController.text = widget.lat.toStringAsFixed(6);
-                    _lngController.text = widget.lng.toStringAsFixed(6);
+                  onPressed: () async {
+                    try {
+                      // Fetch real GPS location instead of resetting to widget.lat
+                      final pos = await geo.Geolocator.getCurrentPosition(
+                        locationSettings: const geo.LocationSettings(
+                          accuracy: geo.LocationAccuracy.high,
+                        ),
+                      );
+                      if (mounted) {
+                        _latController.text = pos.latitude.toStringAsFixed(6);
+                        _lngController.text = pos.longitude.toStringAsFixed(6);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Lokasi diperbarui ke GPS Terkini! 📍')),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Gagal mendapatkan GPS: $e')),
+                        );
+                      }
+                    }
                   },
                   icon: const Icon(Icons.gps_fixed),
                   label: const Text('Gunakan Lokasi GPS Terkini (Auto)'),
