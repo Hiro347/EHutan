@@ -9,10 +9,12 @@ import '../utils/tcg_style_utils.dart';
 class SpeciesCard extends StatefulWidget {
   final Observation observation;
   final VoidCallback onTap;
+  final bool disableFlip;
   const SpeciesCard({
     super.key,
     required this.observation,
     required this.onTap,
+    this.disableFlip = false,
   });
 
   @override
@@ -45,6 +47,7 @@ class _SpeciesCardState extends State<SpeciesCard>
   }
 
   void _flip() {
+    if (widget.disableFlip) return;
     if (_isBack) {
       _flipCtrl.reverse();
     } else {

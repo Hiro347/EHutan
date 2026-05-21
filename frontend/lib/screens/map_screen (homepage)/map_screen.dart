@@ -19,7 +19,7 @@ import '../../utils/constants.dart';
 import '../../models/observation.dart';
 import '../../widgets/navbar.dart';
 import '../../widgets/map_bottom_sheet.dart';
-import '../../widgets/detail_card.dart';
+
 import '../../widgets/top_overlay.dart';
 import '../../widgets/map_controls.dart';
 import '../koleksi_screen/koleksi_screen.dart';
@@ -922,20 +922,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
           ),
-        if (_selectedObservation != null)
-          ObservationDetailCard(
-            obs: _selectedObservation!,
-            onClose: () {
-              setState(() => _selectedObservation = null);
-              if (_sheetController.isAttached) {
-                _sheetController.animateTo(
-                  AppLayout.sheetInitialSize,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              }
-            },
-          ),
+
         if (_userPosition != null)
           MapControls(
             sheetExtent: _sheetExtent,

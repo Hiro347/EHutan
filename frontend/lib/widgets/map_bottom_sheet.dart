@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/observation.dart';
 import '../utils/constants.dart';
-import 'observation_card.dart';
+import 'species_card.dart';
 
 class MapBottomSheet extends StatefulWidget {
   final List<Observation> observations;
@@ -263,25 +263,7 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                       slivers: [
                         SliverPadding(
                           padding: const EdgeInsets.only(top: 8, bottom: 100),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final obs = filteredObservations[index];
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 4,
-                                  ),
-                                  child: ObservationCard(
-                                    obs: obs,
-                                    isSelected: widget.selectedObservationId == obs.id,
-                                    onTap: () => widget.onObservationTap(obs),
-                                  ),
-                                );
-                              },
-                              childCount: filteredObservations.length,
-                            ),
-                          ),
+                          sliver: _buildGroupedList(filteredObservations),
                         ),
                       ],
                     ),
@@ -291,6 +273,102 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildGroupedList(List<Observation> obsList) {
+    if (obsList.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Text(
+              'Tidak ada data ditemukan',
+              style: TextStyle(color: Colors.grey.shade500),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final Map<String, List<Observation>> grouped = {};
+    for (var o in obsList) {
+      grouped.putIfAbsent(o.kategoriTakson, () => []).add(o);
+    }
+
+    final categories = grouped.keys.toList();
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final category = categories[index];
+          final items = grouped[category]!;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      category.replaceAll('DK ', '').toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF062A0E),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    if (items.length > 1)
+                      Row(
+                        children: [
+                          Text(
+                            'Geser',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 14,
+                            color: Colors.grey.shade400,
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 250, // Reduced Height for SpeciesCard
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: items.length,
+                  itemBuilder: (context, i) {
+                    final obs = items[i];
+                    return Container(
+                      width: 175, // Reduced Width for SpeciesCard
+                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      child: SpeciesCard(
+                        observation: obs,
+                        disableFlip: true,
+                        onTap: () => widget.onObservationTap(obs),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          );
+        },
+        childCount: categories.length,
       ),
     );
   }
