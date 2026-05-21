@@ -227,6 +227,15 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                             onChanged: (value) {
                               setState(() => _searchQuery = value);
                             },
+                            onTap: () {
+                              if (_effectiveController.isAttached) {
+                                _effectiveController.animateTo(
+                                  AppLayout.sheetMaxSize,
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeOutCubic,
+                                );
+                              }
+                            },
                             decoration: InputDecoration(
                               hintText: 'Cari spesies atau takson...',
                               hintStyle: TextStyle(

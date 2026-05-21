@@ -35,8 +35,8 @@ class _Stacked3DButtonState extends State<Stacked3DButton>
   }
 
   void _onTapDown(TapDownDetails _) => _controller.forward();
-  void _onTapUp(TapUpDetails _) {
-    _controller.reverse();
+  void _onTapUp(TapUpDetails _) async {
+    await _controller.reverse();
     widget.onTap?.call();
   }
 

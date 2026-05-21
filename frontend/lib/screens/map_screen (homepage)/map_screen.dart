@@ -814,8 +814,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final lng = _userPosition?.lng.toDouble() ?? 0.0;
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => FormScreen(lat: lat, lng: lng),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            FormScreen(lat: lat, lng: lng),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeOutCubic;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 400),
       ),
     ).then((_) {
       // Refresh data setelah kembali dari form
