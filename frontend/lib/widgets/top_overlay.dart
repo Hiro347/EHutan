@@ -19,23 +19,6 @@ class MapTopOverlay extends StatelessWidget {
       // Hapus SafeArea, langsung gunakan Row
       child: Row(
         children: [
-          _glassChip(
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.forest, color: AppColors.primary, size: 16),
-                SizedBox(width: 6),
-                Text(
-                  'E-Hutan',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primaryDark,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
           const Spacer(),
           if (unsyncedCount > 0)
             _glassChip(
