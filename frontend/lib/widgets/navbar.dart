@@ -18,7 +18,11 @@ class Navbar extends StatelessWidget {
     return Container(
       height: 80, // Adjust height as needed
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF7F8F3),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
@@ -91,7 +95,7 @@ class Navbar extends StatelessWidget {
         children: [
           Icon(
             isSelected ? activeIcon : icon,
-            color: isSelected ? const Color(0xFF0D5C1E) : Colors.grey.shade400,
+            color: isSelected ? const Color(0xFF32C84A) : const Color(0xFFB9B9B9),
             size: 26,
           ),
           const SizedBox(height: 4),
@@ -99,8 +103,8 @@ class Navbar extends StatelessWidget {
             label,
             style: TextStyle(
               color: isSelected
-                  ? const Color(0xFF0D5C1E)
-                  : Colors.grey.shade400,
+                  ? const Color(0xFF32C84A)
+                  : const Color(0xFFB9B9B9),
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
@@ -111,7 +115,7 @@ class Navbar extends StatelessWidget {
               width: 20,
               height: 3,
               decoration: BoxDecoration(
-                color: const Color(0xFF0D5C1E),
+                color: const Color(0xFF32C84A),
                 borderRadius: BorderRadius.circular(2),
               ),
             )

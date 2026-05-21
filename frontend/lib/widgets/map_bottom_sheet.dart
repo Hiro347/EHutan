@@ -64,7 +64,7 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xFFF4F6EE),
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(32),
                 ),
