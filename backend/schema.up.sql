@@ -13,6 +13,7 @@ CREATE TABLE profiles (
   id               UUID REFERENCES auth.users(id) PRIMARY KEY,
   nama_lengkap     TEXT NOT NULL,
   email            TEXT,
+  avatar_url       TEXT,
   role             user_role DEFAULT 'Petugas_Lapangan',
   divisi_takson    TEXT,
   status_aktivitas BOOLEAN DEFAULT true,
@@ -41,11 +42,15 @@ CREATE TABLE data_observasi (
 
   -- Data biologis
   nama_spesies     TEXT NOT NULL,
+  nama_lokal       TEXT,
   kategori_takson  TEXT NOT NULL,
+  jumlah_individu  INTEGER,
+  aktivitas_termati TEXT,
 
   -- Data spasial & media
   latitude         DOUBLE PRECISION NOT NULL,
   longitude        DOUBLE PRECISION NOT NULL,
+  detail_lokasi    TEXT,
 
   -- foto_url menyimpan storage path: observasi/{user_id}/{uuid}.ext
   -- Contoh: 'observasi/abc-123/xyz-456.jpg'
@@ -99,6 +104,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
@@ -174,6 +180,7 @@ CREATE POLICY "Petugas hapus observasi sendiri" ON data_observasi
 -- ============================================================
 -- 10. Storage Policies: Foto_Observasi  
 -- ============================================================
+DROP POLICY IF EXISTS "Petugas upload foto observasi" ON storage.objects;
 CREATE POLICY "Petugas upload foto observasi"
 ON storage.objects FOR INSERT
 WITH CHECK (
@@ -181,6 +188,7 @@ WITH CHECK (
   AND auth.role() = 'authenticated'
 );
 
+DROP POLICY IF EXISTS "User authenticated bisa lihat foto" ON storage.objects;
 CREATE POLICY "User authenticated bisa lihat foto"
 ON storage.objects FOR SELECT
 USING (
@@ -188,6 +196,7 @@ USING (
   AND auth.role() = 'authenticated'
 );
 
+DROP POLICY IF EXISTS "Petugas hapus foto milik sendiri" ON storage.objects;
 CREATE POLICY "Petugas hapus foto milik sendiri"
 ON storage.objects FOR DELETE
 USING (
@@ -195,7 +204,7 @@ USING (
   AND auth.uid()::text = (storage.foldername(name))[2]
 );
 
-- ============================================================
+-- ============================================================
 -- Tambahan
 -- ============================================================
 
@@ -212,7 +221,8 @@ BEGIN
             'DK Reptil Amfibi', 
             'DK Insekta', 
             'DK Fauna Perairan', 
-            'DK Eksitu'
+            'DK Eksitu',
+            'DK Flora'
         );
     END IF;
 END $$;
