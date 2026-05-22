@@ -125,12 +125,19 @@ CREATE POLICY "Lihat semua profil" ON profiles
 CREATE POLICY "Edit profil sendiri" ON profiles
   FOR UPDATE USING (auth.uid() = id);
 
-CREATE POLICY "Admin kelola profil" ON profiles
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid() AND role = 'Admin'
-    )
+CREATE POLICY "Admin update profil" ON profiles
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'Admin')
+  );
+
+CREATE POLICY "Admin delete profil" ON profiles
+  FOR DELETE USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'Admin')
+  );
+
+CREATE POLICY "Admin insert profil" ON profiles
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'Admin')
   );
 
 -- ============================================================
