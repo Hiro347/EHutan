@@ -1000,6 +1000,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ),
           
         AnimatedSelectedCard(
+          key: ValueKey(_animatingObservation?.id),
           observation: _animatingObservation,
           bottomSheetMinHeight: MediaQuery.of(context).size.height * 0.25,
           onClear: () {

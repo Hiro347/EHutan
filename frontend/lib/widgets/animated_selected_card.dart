@@ -42,9 +42,7 @@ class _AnimatedSelectedCardState extends State<AnimatedSelectedCard>
     super.didUpdateWidget(oldWidget);
     if (widget.observation != oldWidget.observation) {
       if (widget.observation != null) {
-        setState(() {
-          _currentObs = widget.observation;
-        });
+        _currentObs = widget.observation;
         _controller.forward(from: 0.0);
       } else {
         setState(() {
