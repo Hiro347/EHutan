@@ -345,7 +345,7 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                 ),
               ),
               SizedBox(
-                height: 250, // Reduced Height for SpeciesCard
+                height: 296, // Height adjusted for SpeciesCard (280 + 16 margin)
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -353,7 +353,7 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                   itemBuilder: (context, i) {
                     final obs = items[i];
                     return Container(
-                      width: 175, // Reduced Width for SpeciesCard
+                      width: 200, // Width adjusted for SpeciesCard
                       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       child: SpeciesCard(
                         observation: obs,

@@ -64,8 +64,8 @@ class _AnimatedSelectedCardState extends State<AnimatedSelectedCard>
 
     final screenSize = MediaQuery.of(context).size;
     
-    const double originalWidth = 220.0;
-    const double originalHeight = 310.0;
+    const double originalWidth = 250.0;
+    const double originalHeight = 350.0;
     const double targetScale = 0.45;
     const double visualHeight = originalHeight * targetScale;
     const double visualWidth = originalWidth * targetScale;

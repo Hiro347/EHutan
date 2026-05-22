@@ -57,7 +57,9 @@ class _SpeciesCardState extends State<SpeciesCard>
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+      child: Listener(
       onPointerDown: (e) => _dragStart = e.position,
       onPointerUp: (e) {
         if (_dragStart != null) {
@@ -86,7 +88,7 @@ class _SpeciesCardState extends State<SpeciesCard>
           },
         ),
       ),
-    );
+    ));
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -194,7 +196,7 @@ class _SpeciesCardState extends State<SpeciesCard>
 
           // ── Area gambar ──
           Expanded(
-            flex: 55,
+            flex: 50,
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(6),
@@ -263,7 +265,7 @@ class _SpeciesCardState extends State<SpeciesCard>
 
           // ── Area konten bawah (Deskripsi / Serangan) ──
           Expanded(
-            flex: 45,
+            flex: 50,
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
