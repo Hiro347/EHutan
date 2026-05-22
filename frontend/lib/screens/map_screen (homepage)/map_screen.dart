@@ -22,6 +22,7 @@ import '../../widgets/map_bottom_sheet.dart';
 
 import '../../widgets/top_overlay.dart';
 import '../../widgets/map_controls.dart';
+import '../../widgets/animated_selected_card.dart';
 import '../koleksi_screen/koleksi_screen.dart';
 import '../persetujuan_screen/persetujuan_screen.dart';
 import '../form_screen/form_screen.dart';
@@ -46,6 +47,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   Position? _userPosition;
   Observation? _selectedObservation;
+  Observation? _animatingObservation;
   StreamSubscription<geo.Position>? _locationSubscription;
   StreamSubscription<CompassEvent>? _compassSubscription;
   double _heading = 0.0;
@@ -580,7 +582,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     await _mapboxMap?.flyTo(
       CameraOptions(
         center: Point(
-          coordinates: Position(obs.longitude, obs.latitude - 0.002),
+          coordinates: Position(obs.longitude, obs.latitude - (_is3DPov ? 0.0001 : 0.0005)),
         ),
         zoom: _is3DPov ? 18.5 : 16.0,
         pitch: _is3DPov ? 65.0 : 0.0,
@@ -939,7 +941,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             selectedObservationId: _selectedObservation?.id,
             sheetExtent: _sheetExtent,
             onObservationTap: (obs) {
-              setState(() => _selectedObservation = obs);
+              setState(() {
+                _selectedObservation = obs;
+                _animatingObservation = obs;
+              });
               _flyToObservation(obs);
               if (_sheetController.isAttached) {
                 _sheetController.animateTo(
@@ -993,6 +998,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             onTogglePov: _togglePov,
             onRecenter: _recenterCamera,
           ),
+          
+        AnimatedSelectedCard(
+          observation: _animatingObservation,
+          bottomSheetMinHeight: MediaQuery.of(context).size.height * 0.25,
+          onClear: () {
+            setState(() {
+              _animatingObservation = null;
+            });
+          },
+        ),
       ],
     );
   }
@@ -1104,6 +1119,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     });
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           IndexedStack(
