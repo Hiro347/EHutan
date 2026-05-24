@@ -30,6 +30,78 @@ import '../login_screen/login_screen.dart';
 import '../profil_screen/profil_screen.dart';
 import '_marker_click_listener.dart';
 import 'dart:math' as math;
+import '../../providers/profile_provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
+class MapProfileWidget extends ConsumerWidget {
+  const MapProfileWidget({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(profileProvider);
+
+    return profileAsync.when(
+      data: (profile) {
+        final roleFormatted = profile.role?.replaceAll('_', ' ') ?? 'User';
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.0),
+              ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: AppColors.primary.withValues(alpha: 0.2),
+                backgroundImage: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
+                    ? CachedNetworkImageProvider(profile.avatarUrl!) 
+                    : null,
+                child: (profile.avatarUrl == null || profile.avatarUrl!.isEmpty)
+                    ? const Icon(Icons.person, color: AppColors.primary, size: 20)
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    profile.fullName ?? 'Anonim',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  Text(
+                    roleFormatted,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 6),
+            ],
+          ),
+        ),
+          ),
+        );
+      },
+      loading: () => const SizedBox(),
+      error: (_, __) => const SizedBox(),
+    );
+  }
+}
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -103,10 +175,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   // ─────────────────────────────────────────────────────────
   Future<void> _fetchObservations() async {
     try {
-      // Melakukan SELECT ALL dari tabel data_observasi
+      // Melakukan SELECT ALL dari tabel data_observasi beserta data profil (untuk avatar_url & nama_lengkap)
       final response = await Supabase.instance.client
           .from('data_observasi')
-          .select();
+          .select('*, profiles!id_petugas(nama_lengkap, avatar_url)');
 
       // Mapping data JSON ke model Observation
       final List<Observation> fetchedData = response
@@ -934,6 +1006,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             },
           ),
         
+        if (_userPosition != null)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 25,
+            left: 16,
+            child: const MapProfileWidget(),
+          ),
         if (_userPosition != null)
           MapBottomSheet(
             controller: _sheetController,

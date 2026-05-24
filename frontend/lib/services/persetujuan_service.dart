@@ -22,7 +22,7 @@ class PersetujuanService {
   Future<List<Observation>> fetchPersetujuanPetugas(String userId) async {
     final response = await _client
         .from('data_observasi')
-        .select()
+        .select('*, profiles!id_petugas(nama_lengkap, avatar_url)')
         .eq('id_petugas', userId)
         .order('waktu_pengamatan', ascending: false);
 
@@ -37,7 +37,7 @@ class PersetujuanService {
   }) async {
     var query = _client
         .from('data_observasi')
-        .select()
+        .select('*, profiles!id_petugas(nama_lengkap, avatar_url)')
         .eq('status_approval', 'MENUNGGU_VERIFIKASI');
 
     if (!isAdmin && divisi != null) {
