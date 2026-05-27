@@ -31,6 +31,7 @@ import '../profil_screen/profil_screen.dart';
 import '_marker_click_listener.dart';
 import 'dart:math' as math;
 import '../../providers/profile_provider.dart';
+import '../../models/user_profile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class MapProfileWidget extends ConsumerWidget {
@@ -175,15 +176,48 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   // ─────────────────────────────────────────────────────────
   Future<void> _fetchObservations() async {
     try {
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) return;
+
+      // Ambil profile lengkap untuk cek role dan divisi
+      final profileData = await client
+          .from('profiles')
+          .select()
+          .eq('id', user.id)
+          .maybeSingle();
+
+      UserProfile? userProfile;
+      if (profileData != null) {
+        userProfile = UserProfile.fromMap(profileData);
+      }
+
       // Melakukan SELECT ALL dari tabel data_observasi beserta data profil (untuk avatar_url & nama_lengkap)
-      final response = await Supabase.instance.client
+      final response = await client
           .from('data_observasi')
           .select('*, profiles!id_petugas(nama_lengkap, avatar_url)');
 
       // Mapping data JSON ke model Observation
-      final List<Observation> fetchedData = response
+      List<Observation> fetchedData = response
           .map((data) => Observation.fromSupabase(data))
           .toList();
+
+      // Filter berdasarkan role dan status
+      if (userProfile != null) {
+        fetchedData = fetchedData.where((obs) {
+          final isVerified = obs.statusApproval == 'TERVERIFIKASI';
+          if (isVerified) return true;
+
+          // Jika belum terverifikasi:
+          if (userProfile!.isAdmin) {
+            return true;
+          } else if (userProfile.isKordinator) {
+            return obs.kategoriTakson == userProfile!.divisiTakson;
+          } else {
+            return obs.idPetugas == user.id;
+          }
+        }).toList();
+      }
 
       setState(() {
         _observations = fetchedData;
@@ -897,6 +931,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   Future<Uint8List> _createCustomMarkerImage(Observation obs) async {
+    final bool isVerified = obs.statusApproval == 'TERVERIFIKASI';
     final color = markerColorForTakson(obs.kategoriTakson);
     final emoji = markerEmojiForTakson(obs.kategoriTakson);
 
@@ -931,6 +966,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       imageBytes: imageBytes,
       colorValue: color.toARGB32(),
       emoji: emoji,
+      isVerified: isVerified,
     );
 
     return await _renderMarkerImage(renderData);
@@ -1231,7 +1267,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             alignment: Alignment.bottomCenter,
             child: Navbar(
               currentIndex: _currentIndex,
-              onTap: (index) => setState(() => _currentIndex = index),
+              onTap: (index) {
+                if (index == 0 && _currentIndex != 0) {
+                  _markerCache.clear();
+                  _fetchObservations();
+                }
+                setState(() => _currentIndex = index);
+              },
               onAddTap: _onAddTap,
             ),
           ),
@@ -1326,11 +1368,13 @@ class _MarkerRenderData {
   final Uint8List? imageBytes;
   final int colorValue;
   final String emoji;
+  final bool isVerified;
 
   _MarkerRenderData({
     this.imageBytes,
     required this.colorValue,
     required this.emoji,
+    this.isVerified = true,
   });
 }
 
@@ -1375,11 +1419,11 @@ Future<Uint8List> _renderMarkerImage(_MarkerRenderData data) async {
   canvas.drawPath(path, shadowPaint);
   canvas.restore();
 
-  // Draw Main Background (White Border)
+  // Draw Main Background (White Border for Verified, Red for Unverified)
   canvas.drawPath(
     path,
     Paint()
-      ..color = Colors.white
+      ..color = data.isVerified ? Colors.white : Colors.red
       ..style = PaintingStyle.fill,
   );
 

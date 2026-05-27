@@ -51,6 +51,70 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
     super.dispose();
   }
 
+  void _showTopBanner(BuildContext context, String message, bool isSuccess) {
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final entry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 24,
+        right: 24,
+        child: Material(
+          color: Colors.transparent,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 300),
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, -50 * (1 - value)),
+                child: Opacity(opacity: value, child: child),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: isSuccess ? Colors.green.shade600 : Colors.red.shade600,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isSuccess ? Icons.check_circle_outline : Icons.error_outline,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+    Future.delayed(const Duration(milliseconds: 3000), () {
+      if (entry.mounted) {
+        entry.remove();
+      }
+    });
+  }
+
   Future<void> _updateStatus(String status) async {
     setState(() => _isSubmitting = true);
     try {
@@ -60,19 +124,12 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
         catatanRevisi: _notesController.text.trim(),
       );
       if (!mounted) return;
+      _showTopBanner(context, 'Status berhasil diperbarui menjadi $status', true);
       Navigator.pop(context);
       widget.onRefresh();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Status berhasil diperbarui menjadi \$status')),
-      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal memperbarui: \$e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showTopBanner(context, 'Gagal memperbarui: $e', false);
       setState(() => _isSubmitting = false);
     }
   }
