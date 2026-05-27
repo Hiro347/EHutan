@@ -11,6 +11,7 @@ import '../../providers/profile_provider.dart';
 import '../../utils/constants.dart';
 import '../login_screen/login_screen.dart';
 import '../organization_screen/organization_screen.dart';
+import '../../providers/observation_provider.dart';
 
 class ProfilScreen extends ConsumerWidget {
   const ProfilScreen({super.key});
@@ -235,6 +236,11 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
     if (confirm != true || !mounted) return;
     await Supabase.instance.client.auth.signOut();
     if (mounted) {
+      // Invalidate providers to clear cache of the logged-out user
+      ref.invalidate(profileProvider);
+      ref.invalidate(localObservationProvider);
+      ref.invalidate(unsyncedCountProvider);
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),

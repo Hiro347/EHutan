@@ -107,12 +107,12 @@ class SqliteService {
   // ── Read ──────────────────────────────────────────────────────────────────
 
   /// Hanya data yang belum tersinkron (untuk SyncService)
-  Future<List<Map<String, dynamic>>> getUnsyncedObservasi() async {
+  Future<List<Map<String, dynamic>>> getUnsyncedObservasi(String userId) async {
     final db = await database;
     return await db.query(
       'data_observasi',
-      where: 'is_synced = ?',
-      whereArgs: [0],
+      where: 'is_synced = ? AND id_petugas = ?',
+      whereArgs: [0, userId],
       orderBy: 'created_at DESC',
     );
   }

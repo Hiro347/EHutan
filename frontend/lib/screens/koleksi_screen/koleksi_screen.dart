@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/observation.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../services/koleksi_service.dart';
@@ -57,8 +58,11 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
       _myError = null;
     });
     try {
-      // 1. Ambil draft lokal dari SQLite (termasuk yang belum sync)
-      final localData = await SqliteService().getAllObservasi();
+      // 1. Ambil draft lokal dari SQLite (termasuk yang belum sync) khusus untuk user yang sedang login
+      final user = Supabase.instance.client.auth.currentUser;
+      final localData = user != null
+          ? await SqliteService().getObservasiByUser(user.id)
+          : await SqliteService().getAllObservasi();
       final localObs = localData.map((e) => Observation.fromSQLite(e)).toList();
       final localIds = localObs.map((o) => o.id).toSet();
 

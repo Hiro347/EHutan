@@ -10,7 +10,10 @@ class SyncService {
   SyncService(this._sqliteService);
 
   Future<void> syncData() async {
-    final unsyncedData = await _sqliteService.getUnsyncedObservasi();
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+    
+    final unsyncedData = await _sqliteService.getUnsyncedObservasi(user.id);
     if (unsyncedData.isEmpty) return;
 
     int successCount = 0;

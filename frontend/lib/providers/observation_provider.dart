@@ -3,6 +3,7 @@
 
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -22,7 +23,9 @@ final syncServiceProvider = Provider<SyncService>((ref) {
 // Provider untuk jumlah data belum sync (ditampilkan di UI)
 final unsyncedCountProvider = FutureProvider<int>((ref) async {
   final sqliteService = ref.read(sqliteServiceProvider);
-  final data = await sqliteService.getUnsyncedObservasi();
+  final userId = Supabase.instance.client.auth.currentUser?.id;
+  if (userId == null) return 0;
+  final data = await sqliteService.getUnsyncedObservasi(userId);
   return data.length;
 });
 
@@ -35,7 +38,9 @@ class LocalObservationNotifier
 
   Future<List<Map<String, dynamic>>> _fetchUnsyncedData() async {
     final sqliteService = ref.read(sqliteServiceProvider);
-    return await sqliteService.getUnsyncedObservasi();
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return [];
+    return await sqliteService.getUnsyncedObservasi(userId);
   }
 
   /// Ambil foto dari kamera/galeri, simpan ke local storage permanen
