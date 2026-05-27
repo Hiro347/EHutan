@@ -407,7 +407,7 @@ class _AddUserDialogState extends State<_AddUserDialog> {
       builder: (ctx) => AlertDialog(
         title: const Text('Buat Akun'),
         content: const Text(
-          'Perhatian: Akun Anda akan otomatis ter-logout setelah menekan OK.',
+          'Yakin ingin membuat akun pengguna baru ini?',
         ),
         actions: [
           TextButton(
@@ -428,30 +428,22 @@ class _AddUserDialogState extends State<_AddUserDialog> {
 
     try {
       final supabase = Supabase.instance.client;
-      final authResponse = await supabase.auth.signUp(
-        email: _emailCtrl.text.trim(),
-        password: _passwordCtrl.text,
-        data: {'nama_lengkap': _nameCtrl.text.trim()},
+      await supabase.functions.invoke(
+        'create-user',
+        body: {
+          'email': _emailCtrl.text.trim(),
+          'password': _passwordCtrl.text,
+          'nama_lengkap': _nameCtrl.text.trim(),
+          'role': _selectedRole,
+          'divisi_takson': _selectedDivisi,
+        },
       );
 
-      if (authResponse.user != null) {
-        final updateData = <String, dynamic>{'role': _selectedRole};
-        if (_selectedRole == 'Kordinator_Divisi' && _selectedDivisi != null) {
-          updateData['divisi_takson'] = _selectedDivisi;
-        }
-
-        await supabase
-            .from('profiles')
-            .update(updateData)
-            .eq('id', authResponse.user!.id);
-
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
-          );
-        }
+      if (mounted) {
+        Navigator.pop(context); // Menutup dialog tambah user
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Akun berhasil dibuat!')),
+        );
       }
     } catch (e) {
       if (mounted)
