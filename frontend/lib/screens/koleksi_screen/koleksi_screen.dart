@@ -74,13 +74,24 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
         // Offline — lanjut pakai data lokal saja
       }
 
-      // 3. Gabungkan: lokal lebih prioritas (mungkin ada update belum sync)
-      final merged = <Observation>[...localObs];
-      for (final obs in remoteObs) {
-        if (!localIds.contains(obs.id)) {
-          merged.add(obs);
+      // 3. Gabungkan: prioritaskan lokal jika belum sync, jika sudah sync gunakan remote (update dari server)
+      final merged = <Observation>[];
+      final remoteMap = {for (var o in remoteObs) o.id: o};
+
+      for (final local in localObs) {
+        if (local.isSynced && remoteMap.containsKey(local.id)) {
+          // Jika sudah sync, data dari server (remote) lebih up to date (misal verifikasi admin)
+          merged.add(remoteMap[local.id]!);
+          remoteMap.remove(local.id);
+        } else {
+          // Jika belum sync (baru/edit lokal) ATAU tidak ada di server
+          merged.add(local);
+          remoteMap.remove(local.id);
         }
       }
+      
+      // Tambahkan sisa data remote yang tidak ada di lokal (misal beda device)
+      merged.addAll(remoteMap.values);
 
       // Urutkan berdasarkan waktu pengamatan terbaru
       merged.sort((a, b) => b.waktuPengamatan.compareTo(a.waktuPengamatan));
