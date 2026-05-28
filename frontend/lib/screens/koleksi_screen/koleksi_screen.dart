@@ -410,7 +410,7 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
                     onTap: () => showObservationDetailSheet(
                       context,
                       entry.value[i],
-                      () {},
+                      () => _loadUKFObservations(query: _searchQuery.isEmpty ? null : _searchQuery),
                       widget.onFlyTo,
                     ),
                   ),

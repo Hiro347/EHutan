@@ -6,6 +6,7 @@ import '../../models/observation.dart';
 import '../../utils/constants.dart';
 import '../../utils/tcg_style_utils.dart';
 import '../../providers/observation_provider.dart';
+import '../../providers/profile_provider.dart';
 
 Future<void> showObservationDetailSheet(
   BuildContext context,
@@ -40,6 +41,18 @@ class ObservationDetailSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final grad = TcgStyleUtils.getGradientFor(observation.kategoriTakson);
+    final profileState = ref.watch(profileProvider);
+    final profile = profileState.value;
+
+    bool canDelete = false;
+    if (profile != null) {
+      if (profile.role == 'Admin') {
+        canDelete = true;
+      } else if (profile.role == 'Kordinator_Divisi' &&
+          profile.divisiTakson == observation.kategoriTakson) {
+        canDelete = true;
+      }
+    }
 
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
@@ -266,7 +279,8 @@ class ObservationDetailSheet extends ConsumerWidget {
               ),
 
               // TOMBOL HAPUS (Kanan Bawah)
-              Positioned(
+              if (canDelete)
+                Positioned(
                 right: 20,
                 bottom: 20,
                 child: FloatingActionButton.extended(
@@ -489,7 +503,7 @@ class ObservationDetailSheet extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus Data?'),
         content: const Text(
-          'Data dummy ini akan dihapus permanen dari memori HP-mu.',
+          'Apakah kamu yakin ingin menghapus data observasi ini secara permanen?',
         ),
         actions: [
           TextButton(

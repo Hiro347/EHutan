@@ -43,7 +43,10 @@ class MapProfileWidget extends ConsumerWidget {
 
     return profileAsync.when(
       data: (profile) {
-        final roleFormatted = profile.role?.replaceAll('_', ' ') ?? 'User';
+        String roleFormatted = profile.role?.replaceAll('_', ' ') ?? 'User';
+        if (profile.role == 'Kordinator_Divisi' && profile.divisiTakson != null) {
+          roleFormatted = 'Koordinator Divisi ${profile.divisiTakson}';
+        }
         return ClipRRect(
           borderRadius: BorderRadius.circular(30),
           child: BackdropFilter(

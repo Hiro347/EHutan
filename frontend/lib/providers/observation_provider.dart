@@ -120,6 +120,16 @@ class LocalObservationNotifier
     state = await AsyncValue.guard(() async {
       final sqliteService = ref.read(sqliteServiceProvider);
       await sqliteService.deleteObservasi(id);
+
+      try {
+        await Supabase.instance.client
+            .from('data_observasi')
+            .delete()
+            .eq('id', id);
+      } catch (e) {
+        print('Error deleting from Supabase: $e');
+      }
+
       return _fetchUnsyncedData();
     });
   }

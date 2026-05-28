@@ -20,6 +20,7 @@ class EditableProfile {
   final String? fullName;
   final String? avatarUrl;
   final String? role;
+  final String? divisiTakson;
 
   const EditableProfile({
     required this.id,
@@ -27,6 +28,7 @@ class EditableProfile {
     this.fullName,
     this.avatarUrl,
     this.role,
+    this.divisiTakson,
   });
 
   factory EditableProfile.fromJson(Map<String, dynamic> json, {String? email}) {
@@ -36,6 +38,7 @@ class EditableProfile {
       fullName: json['nama_lengkap'] as String?,
       avatarUrl: json['avatar_url'] as String?,
       role: json['role'] as String?,
+      divisiTakson: json['divisi_takson'] as String?,
     );
   }
 
@@ -46,6 +49,7 @@ class EditableProfile {
       fullName: fullName ?? this.fullName,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       role: role,
+      divisiTakson: divisiTakson,
     );
   }
 }
@@ -66,7 +70,7 @@ class ProfileNotifier extends AsyncNotifier<EditableProfile> {
     // Coba ambil dari tabel `profiles`
     final data = await _supabase
         .from('profiles')
-        .select('id, nama_lengkap, avatar_url, role')
+        .select('id, nama_lengkap, avatar_url, role, divisi_takson')
         .eq('id', user.id)
         .maybeSingle();
 

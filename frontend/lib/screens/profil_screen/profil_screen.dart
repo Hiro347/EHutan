@@ -387,6 +387,14 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                         label: 'Jabatan',
                         value: _formatRole(profile.role),
                       ),
+                      if (profile.role == 'Kordinator_Divisi' && profile.divisiTakson != null) ...[
+                        const Divider(height: 24),
+                        _InfoRow(
+                          icon: Icons.category_outlined,
+                          label: 'Koordinator Divisi',
+                          value: profile.divisiTakson!,
+                        ),
+                      ],
                     ],
                   ),
                 ),
