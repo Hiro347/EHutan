@@ -184,6 +184,21 @@ CREATE POLICY "Petugas hapus observasi sendiri" ON data_observasi
     AND status_approval = 'MENUNGGU_VERIFIKASI'
   );
 
+CREATE POLICY "Kordinator dan Admin hapus observasi" ON data_observasi
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid()
+        AND (
+          role = 'Admin' 
+          OR (
+            role = 'Kordinator_Divisi' 
+            AND divisi_takson = data_observasi.kategori_takson
+          )
+        )
+    )
+  );
+
 -- ============================================================
 -- 10. Storage Policies: Foto_Observasi  
 -- ============================================================
