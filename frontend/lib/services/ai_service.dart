@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/ai_suggestion.dart';
+import 'image_preprocessor.dart';
 
 class AiServiceException implements Exception {
   final String message;
@@ -52,9 +53,10 @@ class AiService {
       );
     }
 
-    final bytes = await imageFile.readAsBytes();
-    final base64Image = base64Encode(bytes);
-    final mediaType = _detectMediaType(imageFile.path);
+    final rawBytes = await imageFile.readAsBytes();
+    final enhancedBytes = ImagePreprocessor.enhance(rawBytes);
+    final base64Image = base64Encode(enhancedBytes);
+    final mediaType = 'image/jpeg';
 
     try {
       final response = await _client.functions
@@ -138,11 +140,5 @@ class AiService {
     }
   }
 
-  String _detectMediaType(String path) {
-    final lower = path.toLowerCase();
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    if (lower.endsWith('.heic') || lower.endsWith('.heif')) return 'image/heic';
-    return 'image/jpeg';
-  }
+
 }
