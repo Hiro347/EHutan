@@ -47,57 +47,76 @@ class MapProfileWidget extends ConsumerWidget {
         if (profile.role == 'Kordinator_Divisi' && profile.divisiTakson != null) {
           roleFormatted = 'Koordinator Divisi ${profile.divisiTakson}';
         }
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.45),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.0),
-              ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.2),
-                backgroundImage: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
-                    ? CachedNetworkImageProvider(profile.avatarUrl!) 
-                    : null,
-                child: (profile.avatarUrl == null || profile.avatarUrl!.isEmpty)
-                    ? const Icon(Icons.person, color: AppColors.primary, size: 20)
-                    : null,
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    profile.fullName ?? 'Anonim',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2937),
+        
+        String displayName = profile.fullName ?? 'Anonim';
+        if (displayName.length > 15) {
+          if (displayName.contains(' ')) {
+            displayName = displayName.split(' ').first;
+          }
+          if (displayName.length > 15) {
+            displayName = '${displayName.substring(0, 15)}...';
+          }
+        }
+
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilScreen()),
+            );
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.0),
+                ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.2),
+                  backgroundImage: profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty
+                      ? CachedNetworkImageProvider(profile.avatarUrl!) 
+                      : null,
+                  child: (profile.avatarUrl == null || profile.avatarUrl!.isEmpty)
+                      ? const Icon(Icons.person, color: AppColors.primary, size: 20)
+                      : null,
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1F2937),
+                      ),
                     ),
-                  ),
-                  Text(
-                    roleFormatted,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                    Text(
+                      roleFormatted,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 6),
-            ],
+                  ],
+                ),
+                const SizedBox(width: 6),
+              ],
+            ),
           ),
-        ),
+            ),
           ),
         );
       },

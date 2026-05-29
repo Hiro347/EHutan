@@ -414,8 +414,9 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                         TextField(
                           controller: _nameCtrl,
                           autofocus: true,
+                          maxLength: 20,
                           decoration: InputDecoration(
-                            hintText: 'Masukkan nama lengkap...',
+                            hintText: 'Masukkan nama (Maks 20 karakter)...',
                             filled: true,
                             fillColor: Colors.grey.shade100,
                             border: OutlineInputBorder(

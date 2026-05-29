@@ -299,7 +299,11 @@ class _EditUserDialogState extends State<_EditUserDialog> {
             children: [
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(labelText: 'Nama Lengkap'),
+                maxLength: 20,
+                decoration: const InputDecoration(
+                  labelText: 'Nama Lengkap',
+                  hintText: 'Maks 20 karakter',
+                ),
                 validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
               ),
               DropdownButtonFormField<String>(
@@ -475,7 +479,11 @@ class _AddUserDialogState extends State<_AddUserDialog> {
             children: [
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(labelText: 'Nama Lengkap'),
+                maxLength: 20,
+                decoration: const InputDecoration(
+                  labelText: 'Nama Lengkap',
+                  hintText: 'Maks 20 karakter',
+                ),
                 validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
               ),
               TextFormField(
