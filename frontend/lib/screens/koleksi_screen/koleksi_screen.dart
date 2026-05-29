@@ -225,6 +225,8 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
                     _myObservations[i],
                     () => _loadMyObservations(), // REFRESH SETELAH HAPUS
                     widget.onFlyTo,
+                    true,  // isOwner = true (observasi milik sendiri)
+                    () => _loadMyObservations(), // REFRESH SETELAH EDIT
                   ),
                 ),
                 childCount: _myObservations.length,
@@ -405,15 +407,23 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverGrid(
                 delegate: SliverChildBuilderDelegate(
-                  (_, i) => SpeciesCard(
-                    observation: entry.value[i],
-                    onTap: () => showObservationDetailSheet(
-                      context,
-                      entry.value[i],
-                      () => _loadUKFObservations(query: _searchQuery.isEmpty ? null : _searchQuery),
-                      widget.onFlyTo,
-                    ),
-                  ),
+                  (_, i) {
+                    final obs = entry.value[i];
+                    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+                    final isOwnData = currentUserId != null && obs.idPetugas == currentUserId;
+                    return SpeciesCard(
+                      observation: obs,
+                      isOwnData: isOwnData,
+                      onTap: () => showObservationDetailSheet(
+                        context,
+                        obs,
+                        () => _loadUKFObservations(
+                          query: _searchQuery.isEmpty ? null : _searchQuery,
+                        ),
+                        widget.onFlyTo,
+                      ),
+                    );
+                  },
                   childCount: entry.value.length,
                 ),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
