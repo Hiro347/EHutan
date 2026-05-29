@@ -28,7 +28,7 @@ class AiServiceException implements Exception {
 
 class AiService {
   static const int _maxBytes = 10 * 1024 * 1024; // 10 MB
-  static const Duration _timeout = Duration(seconds: 10);
+  static const Duration _timeout = Duration(seconds: 60);
   static const String _functionName = 'ai-identify';
 
   final SupabaseClient _client;
@@ -98,7 +98,7 @@ class AiService {
       rethrow;
     } on TimeoutException catch (e) {
       throw AiServiceException(
-        'Permintaan AI melebihi 10 detik.',
+        'Permintaan AI melebihi 60 detik.',
         code: 'timeout',
         cause: e,
       );

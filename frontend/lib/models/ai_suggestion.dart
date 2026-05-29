@@ -87,6 +87,12 @@ class AiSuggestion {
 
   bool get isConfident => confidence >= 0.5;
 
+  bool get isHumanDetected =>
+      speciesName.toLowerCase().contains('bukan fauna') ||
+      commonName.toLowerCase().contains('manusia') ||
+      speciesName.toLowerCase().contains('homo sapiens') ||
+      category.toLowerCase() == 'none';
+
   String get confidencePercent => '${(confidence * 100).round()}%';
 
   String get confidenceLabel {

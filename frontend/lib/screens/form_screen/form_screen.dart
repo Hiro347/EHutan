@@ -224,6 +224,18 @@ class _FormScreenState extends ConsumerState<FormScreen> {
     try {
       final result = await _aiService.identify(File(path));
       if (!mounted) return;
+
+      if (result.isHumanDetected) {
+        setState(() {
+          _aiError = const AiServiceException(
+            'Foto ini terdeteksi sebagai manusia. Silakan ambil foto fauna atau flora untuk identifikasi.',
+            code: 'human_detected',
+          );
+          _aiSuggestion = null;
+          _isAiLoading = false;
+        });
+        return;
+      }
       setState(() {
         _aiSuggestion = result;
         _isAiLoading = false;
@@ -838,11 +850,17 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
     if (_aiError != null) {
       final err = _aiError!;
-      final icon = err.isOffline
+      final isHuman = err.code == 'human_detected';
+      final icon = isHuman
+          ? Icons.person_off_rounded
+          : err.isOffline
           ? Icons.cloud_off_rounded
           : err.isTimeout
           ? Icons.timer_off_rounded
           : Icons.error_outline_rounded;
+      final title = isHuman
+          ? 'Bukan Fauna/Flora'
+          : 'Identifikasi AI Gagal';
       return _buildCard(
         children: [
           Row(
@@ -854,8 +872,8 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Identifikasi AI Gagal',
+                    Text(
+                      title,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: AppColors.statusRevisi,
