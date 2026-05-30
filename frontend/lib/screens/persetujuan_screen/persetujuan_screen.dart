@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/observation.dart';
 import '../../models/user_profile.dart';
 import '../../services/persetujuan_service.dart';
 import '../../widgets/observation_card.dart';
 import '../../utils/constants.dart';
+import '../../providers/observation_provider.dart';
 import 'persetujuan_detail_sheet.dart';
 
-class PersetujuanScreen extends StatefulWidget {
+class PersetujuanScreen extends ConsumerStatefulWidget {
   const PersetujuanScreen({super.key});
 
   @override
-  State<PersetujuanScreen> createState() => _PersetujuanScreenState();
+  ConsumerState<PersetujuanScreen> createState() => _PersetujuanScreenState();
 }
 
-class _PersetujuanScreenState extends State<PersetujuanScreen> {
+class _PersetujuanScreenState extends ConsumerState<PersetujuanScreen> {
   final PersetujuanService _service = PersetujuanService();
 
   UserProfile? _userProfile;
@@ -69,6 +71,10 @@ class _PersetujuanScreenState extends State<PersetujuanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(refreshTriggerProvider, (previous, current) {
+      _loadData();
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F2),
       appBar: AppBar(

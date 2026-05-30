@@ -166,6 +166,8 @@ CREATE POLICY "Petugas tambah observasi sendiri" ON data_observasi
 CREATE POLICY "Petugas edit observasi sendiri" ON data_observasi
   FOR UPDATE USING (
     auth.uid() = id_petugas
+  ) WITH CHECK (
+    auth.uid() = id_petugas
     AND status_approval = 'MENUNGGU_VERIFIKASI'
   );
 

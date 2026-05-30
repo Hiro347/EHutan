@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../../models/observation.dart';
 import '../../utils/constants.dart';
 import '../../utils/tcg_style_utils.dart';
@@ -37,6 +40,25 @@ class ObservationDetailSheet extends ConsumerWidget {
     required this.onDeleted,
     this.onFlyTo,
   });
+
+  Future<Uint8List> _createPinImage() async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()
+      ..color = Colors.red
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(25, 25), 12, paint);
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    canvas.drawCircle(const Offset(25, 25), 12, borderPaint);
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(50, 50);
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -180,6 +202,33 @@ class ObservationDetailSheet extends ConsumerWidget {
                               ),
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            height: 180,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.white24),
+                            ),
+                            child: MapWidget(
+                              styleUri: AppMapbox.styleUrl,
+                              onMapCreated: (mapboxMap) async {
+                                mapboxMap.setCamera(CameraOptions(
+                                  center: Point(coordinates: Position(observation.longitude, observation.latitude)),
+                                  zoom: 14.0,
+                                ));
+                                final annotationManager = await mapboxMap.annotations.createPointAnnotationManager();
+                                final pinBytes = await _createPinImage();
+                                annotationManager.create(PointAnnotationOptions(
+                                  geometry: Point(coordinates: Position(observation.longitude, observation.latitude)),
+                                  image: pinBytes,
+                                  iconAnchor: IconAnchor.CENTER,
+                                ));
+                              },
+                            ),
+                          ),
+                        ),
 
                         const SizedBox(height: 20),
                         const Divider(height: 1, color: Colors.white24),
@@ -315,8 +364,9 @@ class ObservationDetailSheet extends ConsumerWidget {
   // --- WIDGET HELPER ---
   String? _resolveImagePath() {
     final local = observation.localFotoPath;
-    if (local != null && local.isNotEmpty && File(local).existsSync())
+    if (local != null && local.isNotEmpty && File(local).existsSync()) {
       return local;
+    }
     return resolveSupabaseFotoUrl(observation.fotoUrl);
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/observation.dart';
 import '../../providers/connectivity_provider.dart';
+import '../../providers/observation_provider.dart';
 import '../../services/koleksi_service.dart';
 import '../../services/sqlite_service.dart';
 import '../../widgets/species_card.dart';
@@ -138,6 +139,12 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Listen to global refresh trigger
+    ref.listen<int>(refreshTriggerProvider, (previous, current) {
+      _loadMyObservations();
+      _loadUKFObservations(query: _searchQuery.isEmpty ? null : _searchQuery);
+    });
+
     // Listen terhadap konektivitas
     ref.listen<AsyncValue<bool>>(connectivityProvider, (previous, current) {
       if (previous == null || previous.isLoading) return;
@@ -352,10 +359,11 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
   }
 
   Widget _buildUKFTab() {
-    if (_ukfLoading)
+    if (_ukfLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
+    }
     if (_ukfError != null) return Center(child: Text(_ukfError!));
 
     return RefreshIndicator(

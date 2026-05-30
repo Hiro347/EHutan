@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/observation.dart';
 import '../../models/user_profile.dart';
 import '../../services/persetujuan_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/tcg_style_utils.dart';
+import '../../providers/observation_provider.dart';
 
 Future<void> showPersetujuanDetailSheet({
   required BuildContext context,
@@ -24,7 +26,7 @@ Future<void> showPersetujuanDetailSheet({
   );
 }
 
-class PersetujuanDetailSheet extends StatefulWidget {
+class PersetujuanDetailSheet extends ConsumerStatefulWidget {
   final Observation observation;
   final UserProfile userProfile;
   final VoidCallback onRefresh;
@@ -37,10 +39,10 @@ class PersetujuanDetailSheet extends StatefulWidget {
   });
 
   @override
-  State<PersetujuanDetailSheet> createState() => _PersetujuanDetailSheetState();
+  ConsumerState<PersetujuanDetailSheet> createState() => _PersetujuanDetailSheetState();
 }
 
-class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
+class _PersetujuanDetailSheetState extends ConsumerState<PersetujuanDetailSheet> {
   final PersetujuanService _service = PersetujuanService();
   final TextEditingController _notesController = TextEditingController();
   bool _isSubmitting = false;
@@ -124,6 +126,10 @@ class _PersetujuanDetailSheetState extends State<PersetujuanDetailSheet> {
         catatanRevisi: _notesController.text.trim(),
       );
       if (!mounted) return;
+      
+      // Memicu global refresh agar Map Screen dan Koleksi Screen ikut terupdate
+      ref.read(refreshTriggerProvider.notifier).trigger();
+      
       _showTopBanner(context, 'Status berhasil diperbarui menjadi $status', true);
       Navigator.pop(context);
       widget.onRefresh();

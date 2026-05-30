@@ -457,8 +457,8 @@ class _SpeciesCardState extends State<SpeciesCard>
                               width: 80,
                               height: 80,
                               fit: BoxFit.cover,
-                              placeholder: (_, __) => _avatarPlaceholder(grad),
-                              errorWidget: (_, __, ___) =>
+                              placeholder: (context, url) => _avatarPlaceholder(grad),
+                              errorWidget: (context, url, error) =>
                                   _avatarPlaceholder(grad),
                             )
                           : _avatarPlaceholder(grad),
