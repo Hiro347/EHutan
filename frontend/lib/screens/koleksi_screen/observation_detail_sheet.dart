@@ -221,6 +221,11 @@ class ObservationDetailSheet extends ConsumerWidget {
                             child: MapWidget(
                               styleUri: AppMapbox.styleUrl,
                               onMapCreated: (mapboxMap) async {
+                                await mapboxMap.compass.updateSettings(CompassSettings(enabled: false));
+                                await mapboxMap.scaleBar.updateSettings(ScaleBarSettings(enabled: false));
+                                await mapboxMap.logo.updateSettings(LogoSettings(enabled: false));
+                                await mapboxMap.attribution.updateSettings(AttributionSettings(enabled: false));
+
                                 mapboxMap.setCamera(CameraOptions(
                                   center: Point(coordinates: Position(observation.longitude, observation.latitude)),
                                   zoom: 14.0,

@@ -159,6 +159,11 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               _mapboxMap = mapboxMap;
               _annotationManager = await mapboxMap.annotations.createPointAnnotationManager();
 
+              await mapboxMap.compass.updateSettings(CompassSettings(enabled: false));
+              await mapboxMap.scaleBar.updateSettings(ScaleBarSettings(enabled: false));
+              await mapboxMap.logo.updateSettings(LogoSettings(enabled: false));
+              await mapboxMap.attribution.updateSettings(AttributionSettings(enabled: false));
+
               mapboxMap.setCamera(CameraOptions(
                 center: Point(coordinates: Position(_selectedLng, _selectedLat)),
                 zoom: 15.0,
