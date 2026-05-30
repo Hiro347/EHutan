@@ -7,12 +7,15 @@ import '../../utils/constants.dart';
 import '../../utils/tcg_style_utils.dart';
 import '../../providers/observation_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../form_screen/form_screen.dart';
 
 Future<void> showObservationDetailSheet(
   BuildContext context,
   Observation observation,
   VoidCallback onDeleted, [
   Function(Observation)? onFlyTo,
+  bool isOwner = false,
+  VoidCallback? onEdited,
 ]) {
   return showModalBottomSheet(
     context: context,
@@ -22,6 +25,8 @@ Future<void> showObservationDetailSheet(
       observation: observation,
       onDeleted: onDeleted,
       onFlyTo: onFlyTo,
+      isOwner: isOwner,
+      onEdited: onEdited,
     ),
   );
 }
@@ -30,12 +35,16 @@ class ObservationDetailSheet extends ConsumerWidget {
   final Observation observation;
   final VoidCallback onDeleted;
   final Function(Observation)? onFlyTo;
+  final bool isOwner;
+  final VoidCallback? onEdited;
 
   const ObservationDetailSheet({
     super.key,
     required this.observation,
     required this.onDeleted,
     this.onFlyTo,
+    this.isOwner = false,
+    this.onEdited,
   });
 
   @override
@@ -70,14 +79,12 @@ class ObservationDetailSheet extends ConsumerWidget {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           clipBehavior: Clip.antiAlias,
-          child: Stack(
+          child: ListView(
+            controller: scrollController,
+            padding: EdgeInsets.zero,
             children: [
-              ListView(
-                controller: scrollController,
-                padding: EdgeInsets.zero,
-                children: [
-                  // 1. HEADER FOTO DENGAN ZOOM
-                  _buildHeaderPhoto(context),
+              // 1. HEADER FOTO DENGAN ZOOM
+              _buildHeaderPhoto(context),
 
                   Padding(
                     padding: const EdgeInsets.all(20),
@@ -271,45 +278,138 @@ class ObservationDetailSheet extends ConsumerWidget {
                           _DraftBanner(),
                         ],
 
-                        const SizedBox(height: 100), // Ruang untuk tombol hapus
+                        // 7. TOMBOL AKSI (di bawah konten, tidak menghalangi)
+                        if (isOwner || canDelete) ...[
+                          const SizedBox(height: 24),
+                          const Divider(height: 1, color: Colors.white24),
+                          const SizedBox(height: 16),
+                          // isOwner → Edit + Hapus side by side
+                          // canDelete saja (Admin/Kordinator) → Hapus full width
+                          if (isOwner)
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: const Color(0xFF2E7D32), // Solid Green
+                                      side: BorderSide.none,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: () => _openEditForm(context),
+                                    icon: const Icon(
+                                      Icons.edit_rounded,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
+                                    label: const Text(
+                                      'Edit Observasi',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: Colors.red.shade700, // Solid Red
+                                      side: BorderSide.none,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: () =>
+                                        _confirmDelete(context, ref),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
+                                    label: const Text(
+                                      'Hapus',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else if (canDelete)
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: Colors.red.shade700, // Solid Red
+                                  side: BorderSide.none,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () => _confirmDelete(context, ref),
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.white,
+                                ),
+                                label: const Text(
+                                  'Hapus Observasi',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 32),
+                        ] else
+                          const SizedBox(height: 32),
                       ],
                     ),
                   ),
                 ],
               ),
 
-              // TOMBOL HAPUS (Kanan Bawah)
-              if (canDelete)
-                Positioned(
-                right: 20,
-                bottom: 20,
-                child: FloatingActionButton.extended(
-                  heroTag: 'delete_obs',
-                  backgroundColor: Colors.red.shade50,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.red.shade200),
-                  ),
-                  onPressed: () => _confirmDelete(context, ref),
-                  icon: Icon(
-                    Icons.delete_outline_rounded,
-                    color: Colors.red.shade700,
-                  ),
-                  label: Text(
-                    'Hapus',
-                    style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         );
       },
     );
+  }
+
+  // --- Navigasi ke FormScreen mode Edit ---
+  void _openEditForm(BuildContext context) {
+    Navigator.pop(context); // Tutup bottom sheet dulu
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FormScreen(
+          lat: observation.latitude,
+          lng: observation.longitude,
+          editingObservation: observation,
+        ),
+      ),
+    ).then((edited) {
+      // edited == true berarti user menyimpan perubahan
+      if (edited == true) {
+        onEdited?.call();
+        onDeleted(); // Refresh list (reuse callback yang sudah ada)
+      }
+    });
   }
 
   // --- WIDGET HELPER ---

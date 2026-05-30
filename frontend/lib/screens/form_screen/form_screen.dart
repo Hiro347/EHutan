@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/ai_suggestion.dart';
+import '../../models/observation.dart';
 import '../../providers/observation_provider.dart';
 import '../../services/ai_service.dart';
 import '../../utils/constants.dart';
@@ -12,8 +13,15 @@ import 'package:geolocator/geolocator.dart' as geo;
 class FormScreen extends ConsumerStatefulWidget {
   final double lat;
   final double lng;
+  /// Jika diisi, FormScreen berjalan dalam mode Edit
+  final Observation? editingObservation;
 
-  const FormScreen({super.key, required this.lat, required this.lng});
+  const FormScreen({
+    super.key,
+    required this.lat,
+    required this.lng,
+    this.editingObservation,
+  });
 
   @override
   ConsumerState<FormScreen> createState() => _FormScreenState();
@@ -44,18 +52,99 @@ class _FormScreenState extends ConsumerState<FormScreen> {
   @override
   void initState() {
     super.initState();
-    _latController = TextEditingController(text: widget.lat.toStringAsFixed(6));
-    _lngController = TextEditingController(text: widget.lng.toStringAsFixed(6));
-    final now = DateTime.now();
-    _dateController = TextEditingController(
-      text: DateFormat('yyyy-MM-dd').format(now),
-    );
-    _timeController = TextEditingController(
-      text: DateFormat('HH:mm').format(now),
-    );
+    final obs = widget.editingObservation;
+    if (obs != null) {
+      // ── MODE EDIT: pre-fill semua field dari data observasi ──
+      _latController = TextEditingController(
+        text: obs.latitude.toStringAsFixed(6),
+      );
+      _lngController = TextEditingController(
+        text: obs.longitude.toStringAsFixed(6),
+      );
+      _dateController = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(obs.waktuPengamatan),
+      );
+      _timeController = TextEditingController(
+        text: DateFormat('HH:mm').format(obs.waktuPengamatan),
+      );
+      _spesiesController.text = obs.namaSpesies;
+      _lokalController.text = obs.namaLokal ?? '';
+      _jumlahController.text = obs.jumlahIndividu?.toString() ?? '1';
+      _kategoriTakson = obs.kategoriTakson;
+      // Parse catatanHabitat: "Status: X | Habitat: Y | Posisi: Z | Veg: W | Note: N"
+      _parseCatatanHabitat(obs.catatanHabitat);
+      // Parse aktivitasTermati ke dropdown
+      if (obs.aktivitasTermati != null) {
+        if (_listAktivitas.contains(obs.aktivitasTermati)) {
+          _aktivitas = obs.aktivitasTermati!;
+        } else if (obs.aktivitasTermati!.isNotEmpty) {
+          _aktivitas = 'Lainnya';
+          _aktivitasCustomController.text = obs.aktivitasTermati!;
+        }
+      }
+      // Foto: gunakan yang sudah ada
+      _existingFotoUrl = obs.fotoUrl;
+      if (obs.localFotoPath != null && obs.localFotoPath!.isNotEmpty) {
+        _fotoPath = obs.localFotoPath;
+      }
+    } else {
+      // ── MODE TAMBAH BARU ──
+      _latController = TextEditingController(
+        text: widget.lat.toStringAsFixed(6),
+      );
+      _lngController = TextEditingController(
+        text: widget.lng.toStringAsFixed(6),
+      );
+      final now = DateTime.now();
+      _dateController = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(now),
+      );
+      _timeController = TextEditingController(
+        text: DateFormat('HH:mm').format(now),
+      );
+    }
+  }
+
+  /// Parse string catatanHabitat kembali ke field individual.
+  /// Format: "Status: X | Habitat: Y | Posisi: Z | Veg: W | Note: N"
+  void _parseCatatanHabitat(String? catatan) {
+    if (catatan == null || catatan.isEmpty) return;
+    final parts = catatan.split(' | ');
+    for (final part in parts) {
+      if (part.startsWith('Status: ')) {
+        final val = part.substring('Status: '.length).trim();
+        if (_listKesehatan.contains(val)) {
+          _statusKesehatan = val;
+        } else if (val.isNotEmpty) {
+          _statusKesehatan = 'Lainnya';
+          _kesehatanCustomController.text = val;
+        }
+      } else if (part.startsWith('Habitat: ')) {
+        final val = part.substring('Habitat: '.length).trim();
+        if (_listHabitat.contains(val)) {
+          _tipeHabitat = val;
+        } else if (val.isNotEmpty) {
+          _tipeHabitat = 'Lainnya';
+          _habitatCustomController.text = val;
+        }
+      } else if (part.startsWith('Posisi: ')) {
+        final val = part.substring('Posisi: '.length).trim();
+        if (_listPosisi.contains(val)) {
+          _posisiSatwa = val;
+        } else if (val.isNotEmpty) {
+          _posisiSatwa = 'Lainnya';
+          _posisiCustomController.text = val;
+        }
+      } else if (part.startsWith('Veg: ')) {
+        _vegetasiController.text = part.substring('Veg: '.length).trim();
+      } else if (part.startsWith('Note: ')) {
+        _catatanController.text = part.substring('Note: '.length).trim();
+      }
+    }
   }
 
   String? _fotoPath;
+  String _existingFotoUrl = ''; // URL foto lama (Supabase) saat mode edit
   bool _isLoading = false;
 
   // --- AI STATE ---
@@ -182,12 +271,23 @@ class _FormScreenState extends ConsumerState<FormScreen> {
               title: const Text('Ambil dari Kamera'),
               onTap: () async {
                 Navigator.pop(ctx);
-                final path = await ref
-                    .read(localObservationProvider.notifier)
-                    .pickAndSaveFoto(fromCamera: true);
-                if (path != null) {
-                  setState(() => _fotoPath = path);
-                  _runAiIdentification(path);
+                try {
+                  final path = await ref
+                      .read(localObservationProvider.notifier)
+                      .pickAndSaveFoto(fromCamera: true);
+                  if (path != null && mounted) {
+                    setState(() => _fotoPath = path);
+                    _runAiIdentification(path);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().replaceAll('Exception: ', '')),
+                        backgroundColor: Colors.red.shade700,
+                      ),
+                    );
+                  }
                 }
               },
             ),
@@ -199,12 +299,23 @@ class _FormScreenState extends ConsumerState<FormScreen> {
               title: const Text('Pilih dari Galeri'),
               onTap: () async {
                 Navigator.pop(ctx);
-                final path = await ref
-                    .read(localObservationProvider.notifier)
-                    .pickAndSaveFoto(fromCamera: false);
-                if (path != null) {
-                  setState(() => _fotoPath = path);
-                  _runAiIdentification(path);
+                try {
+                  final path = await ref
+                      .read(localObservationProvider.notifier)
+                      .pickAndSaveFoto(fromCamera: false);
+                  if (path != null && mounted) {
+                    setState(() => _fotoPath = path);
+                    _runAiIdentification(path);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().replaceAll('Exception: ', '')),
+                        backgroundColor: Colors.red.shade700,
+                      ),
+                    );
+                  }
                 }
               },
             ),
@@ -359,29 +470,65 @@ class _FormScreenState extends ConsumerState<FormScreen> {
         ? _posisiCustomController.text
         : _posisiSatwa;
 
-    try {
-      await ref
-          .read(localObservationProvider.notifier)
-          .addObservation(
-            namaSpesies: _spesiesController.text,
-            namaLokal: _lokalController.text,
-            kategoriTakson: _kategoriTakson,
-            latitude: latParsed,
-            longitude: lngParsed,
-            idPetugas: Supabase.instance.client.auth.currentUser?.id ?? '',
-            localFotoPath: _fotoPath ?? '',
-            jumlahIndividu: int.tryParse(_jumlahController.text),
-            aktivitasTermati: aktivitasFinal,
-            catatanHabitat:
-                "Status: $kesehatanFinal | Habitat: $habitatFinal | Posisi: $posisiFinal | Veg: ${_vegetasiController.text} | Note: ${_catatanController.text}",
-            waktuPengamatan: finalWaktu,
-          );
+    final catatanFinal =
+        "Status: $kesehatanFinal | Habitat: $habitatFinal | Posisi: $posisiFinal | Veg: ${_vegetasiController.text} | Note: ${_catatanController.text}";
 
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tally Sheet Tersimpan! 📝')),
-        );
+    try {
+      final editObs = widget.editingObservation;
+      if (editObs != null) {
+        // ── MODE EDIT ──
+        await ref
+            .read(localObservationProvider.notifier)
+            .updateObservation(
+              id: editObs.id,
+              namaSpesies: _spesiesController.text,
+              namaLokal: _lokalController.text.isNotEmpty
+                  ? _lokalController.text
+                  : null,
+              kategoriTakson: _kategoriTakson,
+              latitude: latParsed,
+              longitude: lngParsed,
+              localFotoPath: _fotoPath ?? '',
+              existingFotoUrl: _existingFotoUrl,
+              jumlahIndividu: int.tryParse(_jumlahController.text),
+              aktivitasTermati: aktivitasFinal,
+              catatanHabitat: catatanFinal,
+              waktuPengamatan: finalWaktu,
+            );
+
+        if (mounted) {
+          Navigator.pop(context, true); // true = ada perubahan
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Observasi diperbarui! Menunggu verifikasi ulang ✏️'),
+            ),
+          );
+        }
+      } else {
+        // ── MODE TAMBAH BARU ──
+        await ref
+            .read(localObservationProvider.notifier)
+            .addObservation(
+              namaSpesies: _spesiesController.text,
+              namaLokal: _lokalController.text,
+              kategoriTakson: _kategoriTakson,
+              latitude: latParsed,
+              longitude: lngParsed,
+              idPetugas:
+                  Supabase.instance.client.auth.currentUser?.id ?? '',
+              localFotoPath: _fotoPath ?? '',
+              jumlahIndividu: int.tryParse(_jumlahController.text),
+              aktivitasTermati: aktivitasFinal,
+              catatanHabitat: catatanFinal,
+              waktuPengamatan: finalWaktu,
+            );
+
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tally Sheet Tersimpan! 📝')),
+          );
+        }
       }
     } catch (e) {
       if (mounted)
@@ -395,12 +542,13 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditMode = widget.editingObservation != null;
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F0),
       appBar: AppBar(
-        title: const Text(
-          'TALLY SHEET',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+        title: Text(
+          isEditMode ? 'EDIT OBSERVASI' : 'TALLY SHEET',
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
         ),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.primary,
@@ -795,9 +943,11 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                 onPressed: _isLoading ? null : _submitData,
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'SIMPAN TALLY SHEET',
-                        style: TextStyle(
+                    : Text(
+                        widget.editingObservation != null
+                            ? 'SIMPAN PERUBAHAN'
+                            : 'SIMPAN TALLY SHEET',
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -910,10 +1060,12 @@ class _FormScreenState extends ConsumerState<FormScreen> {
     if (s == null) return const SizedBox.shrink();
 
     final confidenceColor = s.confidence >= 0.85
-        ? AppColors.statusTerverifikasi
+        ? AppColors.statusTerverifikasi   // hijau: Sangat Yakin
         : s.confidence >= 0.5
-        ? AppColors.statusMenunggu
-        : AppColors.statusRevisi;
+        ? AppColors.statusMenunggu        // kuning: Cukup Yakin / Yakin
+        : s.confidence > 0.0
+        ? AppColors.statusMenunggu        // kuning: Tidak Yakin (ada hasil tapi rendah)
+        : AppColors.statusRevisi;         // merah: Tidak Terdeteksi sama sekali
 
     return _buildCard(
       children: [
