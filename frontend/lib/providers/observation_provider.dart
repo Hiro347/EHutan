@@ -2,6 +2,7 @@
 // Update: tambah namaLokal, jumlahIndividu, aktivitasTermati ke addObservation()
 
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -15,9 +16,24 @@ final sqliteServiceProvider = Provider<SqliteService>((ref) {
   return SqliteService();
 });
 
+class RefreshTriggerNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void trigger() {
+    state++;
+  }
+}
+
+final refreshTriggerProvider = NotifierProvider<RefreshTriggerNotifier, int>(() {
+  return RefreshTriggerNotifier();
+});
+
 final syncServiceProvider = Provider<SyncService>((ref) {
   final sqliteService = ref.read(sqliteServiceProvider);
-  return SyncService(sqliteService);
+  return SyncService(sqliteService, onSyncCompleted: () {
+    ref.read(refreshTriggerProvider.notifier).trigger();
+  });
 });
 
 // Provider untuk jumlah data belum sync (ditampilkan di UI)
@@ -43,7 +59,10 @@ class LocalObservationNotifier
     return await sqliteService.getUnsyncedObservasi(userId);
   }
 
-  /// Ambil foto dari kamera/galeri, simpan ke local storage permanen
+  static const int _maxPhotoBytes = 10 * 1024 * 1024; // 10 MB
+
+  /// Ambil foto dari kamera/galeri, simpan ke local storage permanen.
+  /// Throws Exception jika file > 10MB (TC_OBS_003 fix).
   Future<String?> pickAndSaveFoto({bool fromCamera = true}) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
@@ -52,6 +71,14 @@ class LocalObservationNotifier
     );
     if (picked == null) return null;
 
+    // Validasi ukuran file sebelum disimpan (max 10MB)
+    final fileSize = await File(picked.path).length();
+    if (fileSize > _maxPhotoBytes) {
+      throw Exception(
+        'Ukuran foto terlalu besar (${(fileSize / 1024 / 1024).toStringAsFixed(1)} MB). '
+        'Maksimum 10 MB. Silakan ambil foto ulang.',
+      );
+    }
     final dir = await getApplicationDocumentsDirectory();
     final id = const Uuid().v4();
     final ext = picked.path.split('.').last;
@@ -105,10 +132,17 @@ class LocalObservationNotifier
         'updated_at': now,
       });
 
-      // Coba sync langsung kalau online
-      final conn = await Connectivity().checkConnectivity();
-      if (!conn.contains(ConnectivityResult.none)) {
-        await ref.read(syncServiceProvider).syncData();
+      // Pemicu global refresh setelah sukses insert lokal
+      ref.read(refreshTriggerProvider.notifier).trigger();
+
+      // Coba sync langsung kalau online - jika gagal, data tetap aman di SQLite
+      try {
+        final conn = await Connectivity().checkConnectivity();
+        if (!conn.contains(ConnectivityResult.none)) {
+          await ref.read(syncServiceProvider).syncData();
+        }
+      } catch (e) {
+        debugPrint('Sync gagal setelah addObservation: $e');
       }
 
       return _fetchUnsyncedData();
@@ -121,41 +155,65 @@ class LocalObservationNotifier
     required String namaSpesies,
     String? namaLokal,
     required String kategoriTakson,
+    double? latitude,
+    double? longitude,
+    String localFotoPath = '',
+    String existingFotoUrl = '',
+    String? catatanHabitat,
     int? jumlahIndividu,
     String? aktivitasTermati,
-    String? catatanHabitat,
+    DateTime? waktuPengamatan,
     String? statusApproval,
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
+      final sqliteService = ref.read(sqliteServiceProvider);
       final now = DateTime.now().toIso8601String();
-      
-      final updateData = {
+
+      final updateData = <String, dynamic>{
         'nama_spesies': namaSpesies,
         'nama_lokal': namaLokal,
         'kategori_takson': kategoriTakson,
         'jumlah_individu': jumlahIndividu,
         'aktivitas_termati': aktivitasTermati,
         'catatan_habitat': catatanHabitat,
+        'is_synced': 0,
         'updated_at': now,
       };
 
-      if (statusApproval != null) {
-        updateData['status_approval'] = statusApproval;
+      if (latitude != null) updateData['latitude'] = latitude;
+      if (longitude != null) updateData['longitude'] = longitude;
+      if (waktuPengamatan != null) updateData['waktu_pengamatan'] = waktuPengamatan.toIso8601String();
+      if (localFotoPath.isNotEmpty) {
+        updateData['local_foto_path'] = localFotoPath;
+        updateData['foto_url'] = '';
+      } else if (existingFotoUrl.isNotEmpty) {
+        updateData['foto_url'] = existingFotoUrl;
       }
 
+      if (statusApproval != null) {
+        updateData['status_approval'] = statusApproval;
+      } else {
+        // Reset ke MENUNGGU_VERIFIKASI jika tidak ada status (misal revisi diedit oleh user)
+        updateData['status_approval'] = 'MENUNGGU_VERIFIKASI';
+        updateData['id_kordinator'] = null;
+        updateData['catatan_revisi'] = null;
+        updateData['waktu_verifikasi'] = null;
+      }
+
+      await sqliteService.updateObservasi(id, updateData);
+
+      // Pemicu global refresh setelah sukses update lokal
+      ref.read(refreshTriggerProvider.notifier).trigger();
+
+      // Coba sync langsung kalau online - jika gagal, data tetap aman di SQLite
       try {
-        await Supabase.instance.client
-            .from('data_observasi')
-            .update(updateData)
-            .eq('id', id);
-            
-        // Juga update lokal jika ada
-        final sqliteService = ref.read(sqliteServiceProvider);
-        await sqliteService.updateObservasi(id, updateData);
+        final conn = await Connectivity().checkConnectivity();
+        if (!conn.contains(ConnectivityResult.none)) {
+          await ref.read(syncServiceProvider).syncData();
+        }
       } catch (e) {
-        print('Error updating observation: $e');
-        rethrow;
+        debugPrint('Sync gagal setelah updateObservation: $e');
       }
 
       return _fetchUnsyncedData();
@@ -177,6 +235,8 @@ class LocalObservationNotifier
         print('Error deleting from Supabase: $e');
       }
 
+      // Pemicu global refresh setelah hapus
+      ref.read(refreshTriggerProvider.notifier).trigger();
       return _fetchUnsyncedData();
     });
   }

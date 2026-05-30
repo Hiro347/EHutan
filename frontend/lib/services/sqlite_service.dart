@@ -140,14 +140,9 @@ class SqliteService {
     await db.delete('data_observasi', where: 'id = ?', whereArgs: [id]);
   }
 
-  // Update data observasi
+  /// Update data observasi yang sudah ada (mode edit)
   Future<void> updateObservasi(String id, Map<String, dynamic> data) async {
     final db = await database;
-    await db.update(
-      'data_observasi',
-      data,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.update('data_observasi', data, where: 'id = ?', whereArgs: [id]);
   }
 }

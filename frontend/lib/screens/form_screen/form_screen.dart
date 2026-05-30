@@ -1,19 +1,31 @@
 import 'dart:io';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../../models/ai_suggestion.dart';
+import '../../models/observation.dart';
 import '../../providers/observation_provider.dart';
 import '../../services/ai_service.dart';
 import '../../utils/constants.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'map_picker_screen.dart';
 
 class FormScreen extends ConsumerStatefulWidget {
   final double lat;
   final double lng;
+  /// Jika diisi, FormScreen berjalan dalam mode Edit
+  final Observation? editingObservation;
 
-  const FormScreen({super.key, required this.lat, required this.lng});
+  const FormScreen({
+    super.key,
+    required this.lat,
+    required this.lng,
+    this.editingObservation,
+  });
 
   @override
   ConsumerState<FormScreen> createState() => _FormScreenState();
@@ -22,6 +34,12 @@ class FormScreen extends ConsumerStatefulWidget {
 class _FormScreenState extends ConsumerState<FormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _aiService = AiService();
+
+  MapboxMap? _miniMap;
+  PointAnnotationManager? _miniMapAnnotationManager;
+  bool _isListeningToCoordinates = true;
+
+  // Pencarian lokasi dipindah ke full screen picker
 
   // Controllers Utama
   final _spesiesController = TextEditingController();
@@ -44,18 +62,101 @@ class _FormScreenState extends ConsumerState<FormScreen> {
   @override
   void initState() {
     super.initState();
-    _latController = TextEditingController(text: widget.lat.toStringAsFixed(6));
-    _lngController = TextEditingController(text: widget.lng.toStringAsFixed(6));
-    final now = DateTime.now();
-    _dateController = TextEditingController(
-      text: DateFormat('yyyy-MM-dd').format(now),
-    );
-    _timeController = TextEditingController(
-      text: DateFormat('HH:mm').format(now),
-    );
+    final obs = widget.editingObservation;
+    if (obs != null) {
+      // ── MODE EDIT: pre-fill semua field dari data observasi ──
+      _latController = TextEditingController(
+        text: obs.latitude.toStringAsFixed(6),
+      );
+      _lngController = TextEditingController(
+        text: obs.longitude.toStringAsFixed(6),
+      );
+      _dateController = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(obs.waktuPengamatan),
+      );
+      _timeController = TextEditingController(
+        text: DateFormat('HH:mm').format(obs.waktuPengamatan),
+      );
+      _spesiesController.text = obs.namaSpesies;
+      _lokalController.text = obs.namaLokal ?? '';
+      _jumlahController.text = obs.jumlahIndividu?.toString() ?? '1';
+      _kategoriTakson = obs.kategoriTakson;
+      // Parse catatanHabitat: "Status: X | Habitat: Y | Posisi: Z | Veg: W | Note: N"
+      _parseCatatanHabitat(obs.catatanHabitat);
+      // Parse aktivitasTermati ke dropdown
+      if (obs.aktivitasTermati != null) {
+        if (_listAktivitas.contains(obs.aktivitasTermati)) {
+          _aktivitas = obs.aktivitasTermati!;
+        } else if (obs.aktivitasTermati!.isNotEmpty) {
+          _aktivitas = 'Lainnya';
+          _aktivitasCustomController.text = obs.aktivitasTermati!;
+        }
+      }
+      // Foto: gunakan yang sudah ada
+      _existingFotoUrl = obs.fotoUrl;
+      if (obs.localFotoPath != null && obs.localFotoPath!.isNotEmpty) {
+        _fotoPath = obs.localFotoPath;
+      }
+    } else {
+      // ── MODE TAMBAH BARU ──
+      _latController = TextEditingController(
+        text: widget.lat.toStringAsFixed(6),
+      );
+      _lngController = TextEditingController(
+        text: widget.lng.toStringAsFixed(6),
+      );
+      final now = DateTime.now();
+      _dateController = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(now),
+      );
+      _timeController = TextEditingController(
+        text: DateFormat('HH:mm').format(now),
+      );
+    }
+    _latController.addListener(_onCoordinateTextChanged);
+    _lngController.addListener(_onCoordinateTextChanged);
+  }
+
+  /// Parse string catatanHabitat kembali ke field individual.
+  /// Format: "Status: X | Habitat: Y | Posisi: Z | Veg: W | Note: N"
+  void _parseCatatanHabitat(String? catatan) {
+    if (catatan == null || catatan.isEmpty) return;
+    final parts = catatan.split(' | ');
+    for (final part in parts) {
+      if (part.startsWith('Status: ')) {
+        final val = part.substring('Status: '.length).trim();
+        if (_listKesehatan.contains(val)) {
+          _statusKesehatan = val;
+        } else if (val.isNotEmpty) {
+          _statusKesehatan = 'Lainnya';
+          _kesehatanCustomController.text = val;
+        }
+      } else if (part.startsWith('Habitat: ')) {
+        final val = part.substring('Habitat: '.length).trim();
+        if (_listHabitat.contains(val)) {
+          _tipeHabitat = val;
+        } else if (val.isNotEmpty) {
+          _tipeHabitat = 'Lainnya';
+          _habitatCustomController.text = val;
+        }
+      } else if (part.startsWith('Posisi: ')) {
+        final val = part.substring('Posisi: '.length).trim();
+        if (_listPosisi.contains(val)) {
+          _posisiSatwa = val;
+        } else if (val.isNotEmpty) {
+          _posisiSatwa = 'Lainnya';
+          _posisiCustomController.text = val;
+        }
+      } else if (part.startsWith('Veg: ')) {
+        _vegetasiController.text = part.substring('Veg: '.length).trim();
+      } else if (part.startsWith('Note: ')) {
+        _catatanController.text = part.substring('Note: '.length).trim();
+      }
+    }
   }
 
   String? _fotoPath;
+  String _existingFotoUrl = ''; // URL foto lama (Supabase) saat mode edit
   bool _isLoading = false;
 
   // --- AI STATE ---
@@ -114,8 +215,52 @@ class _FormScreenState extends ConsumerState<FormScreen> {
     'Lainnya',
   ];
 
+  void _onCoordinateTextChanged() {
+    if (!_isListeningToCoordinates) return;
+    final lat = double.tryParse(_latController.text);
+    final lng = double.tryParse(_lngController.text);
+    if (lat != null && lng != null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      _miniMap?.setCamera(CameraOptions(
+        center: Point(coordinates: Position(lng, lat)),
+      ));
+      _updateMiniMapMarker(lng, lat);
+    }
+  }
+
+  Future<void> _updateMiniMapMarker(double lng, double lat) async {
+    if (_miniMapAnnotationManager == null) return;
+    await _miniMapAnnotationManager!.deleteAll();
+    final pinBytes = await _createPinImage();
+    await _miniMapAnnotationManager!.create(PointAnnotationOptions(
+      geometry: Point(coordinates: Position(lng, lat)),
+      image: pinBytes,
+      iconAnchor: IconAnchor.CENTER,
+    ));
+  }
+
+  Future<Uint8List> _createPinImage() async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()
+      ..color = Colors.red
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(25, 25), 12, paint);
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    canvas.drawCircle(const Offset(25, 25), 12, borderPaint);
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(50, 50);
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
   @override
   void dispose() {
+    _latController.removeListener(_onCoordinateTextChanged);
+    _lngController.removeListener(_onCoordinateTextChanged);
     _latController.dispose();
     _lngController.dispose();
     _dateController.dispose();
@@ -182,12 +327,23 @@ class _FormScreenState extends ConsumerState<FormScreen> {
               title: const Text('Ambil dari Kamera'),
               onTap: () async {
                 Navigator.pop(ctx);
-                final path = await ref
-                    .read(localObservationProvider.notifier)
-                    .pickAndSaveFoto(fromCamera: true);
-                if (path != null) {
-                  setState(() => _fotoPath = path);
-                  _runAiIdentification(path);
+                try {
+                  final path = await ref
+                      .read(localObservationProvider.notifier)
+                      .pickAndSaveFoto(fromCamera: true);
+                  if (path != null && mounted) {
+                    setState(() => _fotoPath = path);
+                    _runAiIdentification(path);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().replaceAll('Exception: ', '')),
+                        backgroundColor: Colors.red.shade700,
+                      ),
+                    );
+                  }
                 }
               },
             ),
@@ -199,12 +355,23 @@ class _FormScreenState extends ConsumerState<FormScreen> {
               title: const Text('Pilih dari Galeri'),
               onTap: () async {
                 Navigator.pop(ctx);
-                final path = await ref
-                    .read(localObservationProvider.notifier)
-                    .pickAndSaveFoto(fromCamera: false);
-                if (path != null) {
-                  setState(() => _fotoPath = path);
-                  _runAiIdentification(path);
+                try {
+                  final path = await ref
+                      .read(localObservationProvider.notifier)
+                      .pickAndSaveFoto(fromCamera: false);
+                  if (path != null && mounted) {
+                    setState(() => _fotoPath = path);
+                    _runAiIdentification(path);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().replaceAll('Exception: ', '')),
+                        backgroundColor: Colors.red.shade700,
+                      ),
+                    );
+                  }
                 }
               },
             ),
@@ -224,6 +391,18 @@ class _FormScreenState extends ConsumerState<FormScreen> {
     try {
       final result = await _aiService.identify(File(path));
       if (!mounted) return;
+
+      if (result.isHumanDetected) {
+        setState(() {
+          _aiError = const AiServiceException(
+            'Foto ini terdeteksi sebagai manusia. Silakan ambil foto fauna atau flora untuk identifikasi.',
+            code: 'human_detected',
+          );
+          _aiSuggestion = null;
+          _isAiLoading = false;
+        });
+        return;
+      }
       setState(() {
         _aiSuggestion = result;
         _isAiLoading = false;
@@ -300,6 +479,8 @@ class _FormScreenState extends ConsumerState<FormScreen> {
     return null;
   }
 
+
+
   Future<void> _submitData() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
@@ -347,35 +528,71 @@ class _FormScreenState extends ConsumerState<FormScreen> {
         ? _posisiCustomController.text
         : _posisiSatwa;
 
-    try {
-      await ref
-          .read(localObservationProvider.notifier)
-          .addObservation(
-            namaSpesies: _spesiesController.text,
-            namaLokal: _lokalController.text,
-            kategoriTakson: _kategoriTakson,
-            latitude: latParsed,
-            longitude: lngParsed,
-            idPetugas: Supabase.instance.client.auth.currentUser?.id ?? '',
-            localFotoPath: _fotoPath ?? '',
-            jumlahIndividu: int.tryParse(_jumlahController.text),
-            aktivitasTermati: aktivitasFinal,
-            catatanHabitat:
-                "Status: $kesehatanFinal | Habitat: $habitatFinal | Posisi: $posisiFinal | Veg: ${_vegetasiController.text} | Note: ${_catatanController.text}",
-            waktuPengamatan: finalWaktu,
-          );
+    final catatanFinal =
+        "Status: $kesehatanFinal | Habitat: $habitatFinal | Posisi: $posisiFinal | Veg: ${_vegetasiController.text} | Note: ${_catatanController.text}";
 
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tally Sheet Tersimpan! 📝')),
-        );
+    try {
+      final editObs = widget.editingObservation;
+      if (editObs != null) {
+        // ── MODE EDIT ──
+        await ref
+            .read(localObservationProvider.notifier)
+            .updateObservation(
+              id: editObs.id,
+              namaSpesies: _spesiesController.text,
+              namaLokal: _lokalController.text.isNotEmpty
+                  ? _lokalController.text
+                  : null,
+              kategoriTakson: _kategoriTakson,
+              latitude: latParsed,
+              longitude: lngParsed,
+              localFotoPath: _fotoPath ?? '',
+              existingFotoUrl: _existingFotoUrl,
+              jumlahIndividu: int.tryParse(_jumlahController.text),
+              aktivitasTermati: aktivitasFinal,
+              catatanHabitat: catatanFinal,
+              waktuPengamatan: finalWaktu,
+            );
+
+        if (mounted) {
+          Navigator.pop(context, true); // true = ada perubahan
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Observasi diperbarui! Menunggu verifikasi ulang ✏️'),
+            ),
+          );
+        }
+      } else {
+        // ── MODE TAMBAH BARU ──
+        await ref
+            .read(localObservationProvider.notifier)
+            .addObservation(
+              namaSpesies: _spesiesController.text,
+              namaLokal: _lokalController.text.isNotEmpty ? _lokalController.text : null,
+              kategoriTakson: _kategoriTakson,
+              latitude: latParsed,
+              longitude: lngParsed,
+              idPetugas: Supabase.instance.client.auth.currentUser?.id ?? '',
+              localFotoPath: _fotoPath ?? '',
+              jumlahIndividu: int.tryParse(_jumlahController.text),
+              aktivitasTermati: aktivitasFinal,
+              catatanHabitat: catatanFinal,
+              waktuPengamatan: finalWaktu,
+            );
+
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tally Sheet Tersimpan! 📝')),
+          );
+        }
       }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -383,12 +600,13 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditMode = widget.editingObservation != null;
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F0),
       appBar: AppBar(
-        title: const Text(
-          'TALLY SHEET',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+        title: Text(
+          isEditMode ? 'EDIT OBSERVASI' : 'TALLY SHEET',
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
         ),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.primary,
@@ -451,7 +669,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                   icon: const Icon(Icons.update),
                   label: const Text('Gunakan Waktu Saat Ini (Auto)'),
                   style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(40),
+                    minimumSize: const ui.Size.fromHeight(40),
                   ),
                 ),
               ],
@@ -480,7 +698,14 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                             color: Colors.redAccent,
                           ),
                         ),
-                        validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Wajib diisi';
+                          final val = double.tryParse(v);
+                          if (val == null) return 'Format angka salah';
+                          if (val == 0.0) return 'Latitude tidak boleh 0';
+                          if (val < -90 || val > 90) return 'Rentang -90 s/d 90';
+                          return null;
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -500,7 +725,14 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                             color: Colors.redAccent,
                           ),
                         ),
-                        validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Wajib diisi';
+                          final val = double.tryParse(v);
+                          if (val == null) return 'Format angka salah';
+                          if (val == 0.0) return 'Longitude tidak boleh 0';
+                          if (val < -180 || val > 180) return 'Rentang -180 s/d 180';
+                          return null;
+                        },
                       ),
                     ),
                   ],
@@ -533,7 +765,97 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                   icon: const Icon(Icons.gps_fixed),
                   label: const Text('Gunakan Lokasi GPS Terkini (Auto)'),
                   style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(40),
+                    minimumSize: const ui.Size.fromHeight(40),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () async {
+                    final currentLat = double.tryParse(_latController.text) ?? widget.lat;
+                    final currentLng = double.tryParse(_lngController.text) ?? widget.lng;
+                    final result = await Navigator.push<Map<String, double>>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MapPickerScreen(
+                          initialLat: currentLat,
+                          initialLng: currentLng,
+                        ),
+                      ),
+                    );
+                    if (result != null && mounted) {
+                      final lat = result['lat']!;
+                      final lng = result['lng']!;
+                      setState(() {
+                        _isListeningToCoordinates = false;
+                        _latController.text = lat.toStringAsFixed(6);
+                        _lngController.text = lng.toStringAsFixed(6);
+                        _isListeningToCoordinates = true;
+                      });
+                      _miniMap?.setCamera(CameraOptions(
+                        center: Point(coordinates: Position(lng, lat)),
+                        zoom: 15.0,
+                        pitch: 0.0,
+                        bearing: 0.0,
+                      ));
+                      _updateMiniMapMarker(lng, lat);
+                    }
+                  },
+                  child: AbsorbPointer(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        height: 200,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                        ),
+                        child: Stack(
+                          children: [
+                            MapWidget(
+                              styleUri: AppMapbox.styleUrl,
+                              onMapCreated: (mapboxMap) async {
+                                _miniMap = mapboxMap;
+                                _miniMapAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
+                                
+                                final lat = double.tryParse(_latController.text) ?? widget.lat;
+                                final lng = double.tryParse(_lngController.text) ?? widget.lng;
+                                if (lat != 0.0 && lng != 0.0) {
+                                  mapboxMap.setCamera(CameraOptions(
+                                    center: Point(coordinates: Position(lng, lat)),
+                                    zoom: 15.0,
+                                    pitch: 0.0,
+                                    bearing: 0.0,
+                                  ));
+                                  _updateMiniMapMarker(lng, lat);
+                                }
+                              },
+                            ),
+                            Positioned(
+                              bottom: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.fullscreen, color: Colors.white, size: 16),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Ketuk untuk Cari / Geser Peta',
+                                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -783,9 +1105,11 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                 onPressed: _isLoading ? null : _submitData,
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'SIMPAN TALLY SHEET',
-                        style: TextStyle(
+                    : Text(
+                        widget.editingObservation != null
+                            ? 'SIMPAN PERUBAHAN'
+                            : 'SIMPAN TALLY SHEET',
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -838,11 +1162,17 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
     if (_aiError != null) {
       final err = _aiError!;
-      final icon = err.isOffline
+      final isHuman = err.code == 'human_detected';
+      final icon = isHuman
+          ? Icons.person_off_rounded
+          : err.isOffline
           ? Icons.cloud_off_rounded
           : err.isTimeout
           ? Icons.timer_off_rounded
           : Icons.error_outline_rounded;
+      final title = isHuman
+          ? 'Bukan Fauna/Flora'
+          : 'Identifikasi AI Gagal';
       return _buildCard(
         children: [
           Row(
@@ -854,8 +1184,8 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Identifikasi AI Gagal',
+                    Text(
+                      title,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: AppColors.statusRevisi,
@@ -892,10 +1222,12 @@ class _FormScreenState extends ConsumerState<FormScreen> {
     if (s == null) return const SizedBox.shrink();
 
     final confidenceColor = s.confidence >= 0.85
-        ? AppColors.statusTerverifikasi
+        ? AppColors.statusTerverifikasi   // hijau: Sangat Yakin
         : s.confidence >= 0.5
-        ? AppColors.statusMenunggu
-        : AppColors.statusRevisi;
+        ? AppColors.statusMenunggu        // kuning: Cukup Yakin / Yakin
+        : s.confidence > 0.0
+        ? AppColors.statusMenunggu        // kuning: Tidak Yakin (ada hasil tapi rendah)
+        : AppColors.statusRevisi;         // merah: Tidak Terdeteksi sama sekali
 
     return _buildCard(
       children: [

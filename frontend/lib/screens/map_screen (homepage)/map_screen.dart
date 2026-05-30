@@ -15,6 +15,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/connectivity_provider.dart';
+import '../../providers/observation_provider.dart';
 import '../../utils/constants.dart';
 import '../../models/observation.dart';
 import '../../widgets/navbar.dart';
@@ -26,7 +27,6 @@ import '../../widgets/animated_selected_card.dart';
 import '../koleksi_screen/koleksi_screen.dart';
 import '../persetujuan_screen/persetujuan_screen.dart';
 import '../form_screen/form_screen.dart';
-import '../login_screen/login_screen.dart';
 import '../profil_screen/profil_screen.dart';
 import '_marker_click_listener.dart';
 import 'dart:math' as math;
@@ -121,7 +121,7 @@ class MapProfileWidget extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox(),
-      error: (_, __) => const SizedBox(),
+      error: (err, stack) => const SizedBox(),
     );
   }
 }
@@ -146,8 +146,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   StreamSubscription<geo.Position>? _locationSubscription;
   StreamSubscription<CompassEvent>? _compassSubscription;
   double _heading = 0.0;
+  DateTime? _lastHeadingUpdate;
   bool _firstLocationFixed = false;
-  bool _is3DPov = true;
+  bool _is3DPov = false;
   bool _isModelMode = true;
   static const double _zoomThreshold = 15.0; // batas zoom
   final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(
@@ -157,7 +158,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       DraggableScrollableController();
   final Map<String, Uint8List> _markerCache = {};
 
-  Position? _targetPosition;
   Timer? _moveTimer;
   Timer? _zoomCheckTimer;
   static const int _moveSteps = 20; // Jumlah langkah animasi
@@ -226,15 +226,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
       // Filter berdasarkan role dan status
       if (userProfile != null) {
+        final profile = userProfile;
         fetchedData = fetchedData.where((obs) {
           final isVerified = obs.statusApproval == 'TERVERIFIKASI';
           if (isVerified) return true;
 
           // Jika belum terverifikasi:
-          if (userProfile!.isAdmin) {
+          if (profile.isAdmin) {
             return true;
-          } else if (userProfile.isKordinator) {
-            return obs.kategoriTakson == userProfile!.divisiTakson;
+          } else if (profile.isKordinator) {
+            return obs.kategoriTakson == profile.divisiTakson;
           } else {
             return obs.idPetugas == user.id;
           }
@@ -721,7 +722,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _togglePov() {
-    setState(() => _is3DPov = !_is3DPov);
+    setState(() {
+      _is3DPov = !_is3DPov;
+      if (_is3DPov) {
+        _startCompassTracking();
+      } else {
+        _stopCompassTracking();
+      }
+    });
     _mapboxMap?.flyTo(
       CameraOptions(
         zoom: _is3DPov ? 18.5 : 16.0,
@@ -782,14 +790,36 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           _updateUserPosition(position.latitude, position.longitude);
         });
 
+    if (_is3DPov) {
+      _startCompassTracking();
+    }
+  }
+
+  void _startCompassTracking() {
+    _compassSubscription?.cancel();
     _compassSubscription = FlutterCompass.events?.listen((CompassEvent event) {
       final heading = event.heading ?? 0.0;
       _updateHeading(heading);
     });
   }
 
+  void _stopCompassTracking() {
+    _compassSubscription?.cancel();
+    _compassSubscription = null;
+    _heading = 0.0;
+    _updateHeading(0.0);
+  }
+
   Future<void> _updateHeading(double heading) async {
     if (!mounted) return;
+
+    // Throttle: Update maks 1 kali per 300ms untuk mencegah performa lag di Android (gralloc buffer overflow)
+    final now = DateTime.now();
+    if (_lastHeadingUpdate != null &&
+        now.difference(_lastHeadingUpdate!).inMilliseconds < 300) {
+      return;
+    }
+    _lastHeadingUpdate = now;
 
     // Optimisasi: Batasi pembaruan visual agar tidak dipanggil terlalu sering (misal 60fps)
     double diff = (_heading - heading).abs();
@@ -1235,6 +1265,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final connectivityState = ref.watch(connectivityProvider);
     final isOnline = connectivityState.value ?? true;
 
+    // Listen to global refresh trigger
+    ref.listen<int>(refreshTriggerProvider, (previous, current) {
+      _markerCache.clear();
+      _fetchObservations();
+    });
+
     ref.listen<AsyncValue<bool>>(connectivityProvider, (previous, current) {
       if (previous == null || previous.isLoading) return;
       final wasOnline = previous.value ?? true;
@@ -1252,6 +1288,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           'Kembali Online. Menyinkronkan data',
           true,
         );
+        ref.read(syncServiceProvider).syncData();
       }
     });
 

@@ -1,18 +1,24 @@
 import 'dart:io';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../../models/observation.dart';
 import '../../utils/constants.dart';
 import '../../utils/tcg_style_utils.dart';
 import '../../providers/observation_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../form_screen/form_screen.dart';
 
 Future<void> showObservationDetailSheet(
   BuildContext context,
   Observation observation,
   VoidCallback onDeleted, [
   Function(Observation)? onFlyTo,
+  bool isOwner = false,
+  VoidCallback? onEdited,
 ]) {
   return showModalBottomSheet(
     context: context,
@@ -22,6 +28,8 @@ Future<void> showObservationDetailSheet(
       observation: observation,
       onDeleted: onDeleted,
       onFlyTo: onFlyTo,
+      isOwner: isOwner,
+      onEdited: onEdited,
     ),
   );
 }
@@ -30,13 +38,36 @@ class ObservationDetailSheet extends ConsumerWidget {
   final Observation observation;
   final VoidCallback onDeleted;
   final Function(Observation)? onFlyTo;
+  final bool isOwner;
+  final VoidCallback? onEdited;
 
   const ObservationDetailSheet({
     super.key,
     required this.observation,
     required this.onDeleted,
     this.onFlyTo,
+    this.isOwner = false,
+    this.onEdited,
   });
+
+  Future<Uint8List> _createPinImage() async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()
+      ..color = Colors.red
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(25, 25), 12, paint);
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    canvas.drawCircle(const Offset(25, 25), 12, borderPaint);
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(50, 50);
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -70,14 +101,12 @@ class ObservationDetailSheet extends ConsumerWidget {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           clipBehavior: Clip.antiAlias,
-          child: Stack(
+          child: ListView(
+            controller: scrollController,
+            padding: EdgeInsets.zero,
             children: [
-              ListView(
-                controller: scrollController,
-                padding: EdgeInsets.zero,
-                children: [
-                  // 1. HEADER FOTO DENGAN ZOOM
-                  _buildHeaderPhoto(context),
+              // 1. HEADER FOTO DENGAN ZOOM
+              _buildHeaderPhoto(context),
 
                   Padding(
                     padding: const EdgeInsets.all(20),
@@ -180,6 +209,33 @@ class ObservationDetailSheet extends ConsumerWidget {
                               ),
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            height: 180,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.white24),
+                            ),
+                            child: MapWidget(
+                              styleUri: AppMapbox.styleUrl,
+                              onMapCreated: (mapboxMap) async {
+                                mapboxMap.setCamera(CameraOptions(
+                                  center: Point(coordinates: Position(observation.longitude, observation.latitude)),
+                                  zoom: 14.0,
+                                ));
+                                final annotationManager = await mapboxMap.annotations.createPointAnnotationManager();
+                                final pinBytes = await _createPinImage();
+                                annotationManager.create(PointAnnotationOptions(
+                                  geometry: Point(coordinates: Position(observation.longitude, observation.latitude)),
+                                  image: pinBytes,
+                                  iconAnchor: IconAnchor.CENTER,
+                                ));
+                              },
+                            ),
+                          ),
+                        ),
 
                         const SizedBox(height: 20),
                         const Divider(height: 1, color: Colors.white24),
@@ -271,52 +327,146 @@ class ObservationDetailSheet extends ConsumerWidget {
                           _DraftBanner(),
                         ],
 
-                        const SizedBox(height: 100), // Ruang untuk tombol hapus
+                        // 7. TOMBOL AKSI (di bawah konten, tidak menghalangi)
+                        if (isOwner || canDelete) ...[
+                          const SizedBox(height: 24),
+                          const Divider(height: 1, color: Colors.white24),
+                          const SizedBox(height: 16),
+                          // isOwner → Edit + Hapus side by side
+                          // canDelete saja (Admin/Kordinator) → Hapus full width
+                          if (isOwner)
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: const Color(0xFF2E7D32), // Solid Green
+                                      side: BorderSide.none,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: () => _openEditForm(context),
+                                    icon: const Icon(
+                                      Icons.edit_rounded,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
+                                    label: const Text(
+                                      'Edit Observasi',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: Colors.red.shade700, // Solid Red
+                                      side: BorderSide.none,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: () =>
+                                        _confirmDelete(context, ref),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
+                                    label: const Text(
+                                      'Hapus',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else if (canDelete)
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: Colors.red.shade700, // Solid Red
+                                  side: BorderSide.none,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () => _confirmDelete(context, ref),
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.white,
+                                ),
+                                label: const Text(
+                                  'Hapus Observasi',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 32),
+                        ] else
+                          const SizedBox(height: 32),
                       ],
                     ),
                   ),
                 ],
               ),
 
-              // TOMBOL HAPUS (Kanan Bawah)
-              if (canDelete)
-                Positioned(
-                right: 20,
-                bottom: 20,
-                child: FloatingActionButton.extended(
-                  heroTag: 'delete_obs',
-                  backgroundColor: Colors.red.shade50,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.red.shade200),
-                  ),
-                  onPressed: () => _confirmDelete(context, ref),
-                  icon: Icon(
-                    Icons.delete_outline_rounded,
-                    color: Colors.red.shade700,
-                  ),
-                  label: Text(
-                    'Hapus',
-                    style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         );
       },
     );
   }
 
+  // --- Navigasi ke FormScreen mode Edit ---
+  void _openEditForm(BuildContext context) {
+    Navigator.pop(context); // Tutup bottom sheet dulu
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FormScreen(
+          lat: observation.latitude,
+          lng: observation.longitude,
+          editingObservation: observation,
+        ),
+      ),
+    ).then((edited) {
+      // edited == true berarti user menyimpan perubahan
+      if (edited == true) {
+        onEdited?.call();
+        onDeleted(); // Refresh list (reuse callback yang sudah ada)
+      }
+    });
+  }
+
   // --- WIDGET HELPER ---
   String? _resolveImagePath() {
     final local = observation.localFotoPath;
-    if (local != null && local.isNotEmpty && File(local).existsSync())
+    if (local != null && local.isNotEmpty && File(local).existsSync()) {
       return local;
+    }
     return resolveSupabaseFotoUrl(observation.fotoUrl);
   }
 

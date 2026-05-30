@@ -403,6 +403,19 @@ class _EditScreenState extends ConsumerState<EditScreen> {
           ? 'MENUNGGU_VERIFIKASI' 
           : null;
 
+      final latParsed = double.tryParse(_latController.text) ?? widget.observation.latitude;
+      final lngParsed = double.tryParse(_lngController.text) ?? widget.observation.longitude;
+
+      String localFoto = '';
+      String existingFoto = '';
+      if (_fotoPath != null) {
+        if (_fotoPath!.startsWith('http')) {
+          existingFoto = _fotoPath!;
+        } else {
+          localFoto = _fotoPath!;
+        }
+      }
+
       await ref
           .read(localObservationProvider.notifier)
           .updateObservation(
@@ -410,6 +423,11 @@ class _EditScreenState extends ConsumerState<EditScreen> {
             namaSpesies: _spesiesController.text,
             namaLokal: _lokalController.text,
             kategoriTakson: _kategoriTakson,
+            latitude: latParsed,
+            longitude: lngParsed,
+            waktuPengamatan: finalWaktu,
+            localFotoPath: localFoto,
+            existingFotoUrl: existingFoto,
             jumlahIndividu: int.tryParse(_jumlahController.text),
             aktivitasTermati: aktivitasFinal,
             catatanHabitat:

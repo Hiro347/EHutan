@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/observation.dart';
@@ -40,10 +41,12 @@ class PersetujuanDetailSheet extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<PersetujuanDetailSheet> createState() => _PersetujuanDetailSheetState();
+  ConsumerState<PersetujuanDetailSheet> createState() =>
+      _PersetujuanDetailSheetState();
 }
 
-class _PersetujuanDetailSheetState extends ConsumerState<PersetujuanDetailSheet> {
+class _PersetujuanDetailSheetState
+    extends ConsumerState<PersetujuanDetailSheet> {
   final PersetujuanService _service = PersetujuanService();
   final TextEditingController _notesController = TextEditingController();
   bool _isSubmitting = false;
@@ -88,7 +91,9 @@ class _PersetujuanDetailSheetState extends ConsumerState<PersetujuanDetailSheet>
               child: Row(
                 children: [
                   Icon(
-                    isSuccess ? Icons.check_circle_outline : Icons.error_outline,
+                    isSuccess
+                        ? Icons.check_circle_outline
+                        : Icons.error_outline,
                     color: Colors.white,
                     size: 20,
                   ),
@@ -127,7 +132,15 @@ class _PersetujuanDetailSheetState extends ConsumerState<PersetujuanDetailSheet>
         catatanRevisi: _notesController.text.trim(),
       );
       if (!mounted) return;
-      _showTopBanner(context, 'Status berhasil diperbarui menjadi $status', true);
+
+      // Memicu global refresh agar Map Screen dan Koleksi Screen ikut terupdate
+      ref.read(refreshTriggerProvider.notifier).trigger();
+
+      _showTopBanner(
+        context,
+        'Status berhasil diperbarui menjadi $status',
+        true,
+      );
       Navigator.pop(context);
       widget.onRefresh();
     } catch (e) {
@@ -142,7 +155,9 @@ class _PersetujuanDetailSheetState extends ConsumerState<PersetujuanDetailSheet>
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Batalkan Observasi?'),
-        content: const Text('Apakah Anda yakin ingin membatalkan observasi ini? Data akan dihapus permanen.'),
+        content: const Text(
+          'Apakah Anda yakin ingin membatalkan observasi ini? Data akan dihapus permanen.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -160,7 +175,9 @@ class _PersetujuanDetailSheetState extends ConsumerState<PersetujuanDetailSheet>
     if (result == true && mounted) {
       setState(() => _isSubmitting = true);
       try {
-        await ref.read(localObservationProvider.notifier).deleteObservation(widget.observation.id);
+        await ref
+            .read(localObservationProvider.notifier)
+            .deleteObservation(widget.observation.id);
         if (!mounted) return;
         _showTopBanner(context, 'Observasi berhasil dibatalkan', true);
         Navigator.pop(context);
@@ -196,15 +213,18 @@ class _PersetujuanDetailSheetState extends ConsumerState<PersetujuanDetailSheet>
     if (widget.userProfile.isAdmin) {
       canEdit = true;
     } else if (widget.userProfile.isKordinator) {
-      canEdit = widget.userProfile.divisiTakson == widget.observation.kategoriTakson;
+      canEdit =
+          widget.userProfile.divisiTakson == widget.observation.kategoriTakson;
     } else if (widget.userProfile.id == widget.observation.idPetugas) {
-      if (widget.observation.statusApproval == 'PERLU_DIREVISI' || widget.observation.statusApproval == 'MENUNGGU_VERIFIKASI') {
+      if (widget.observation.statusApproval == 'PERLU_DIREVISI' ||
+          widget.observation.statusApproval == 'MENUNGGU_VERIFIKASI') {
         canEdit = true;
       }
     }
 
     bool canCancel = false;
-    if (widget.userProfile.id == widget.observation.idPetugas && widget.observation.statusApproval == 'MENUNGGU_VERIFIKASI') {
+    if (widget.userProfile.id == widget.observation.idPetugas &&
+        widget.observation.statusApproval == 'MENUNGGU_VERIFIKASI') {
       canCancel = true;
     }
 
@@ -399,7 +419,11 @@ class _PersetujuanDetailSheetState extends ConsumerState<PersetujuanDetailSheet>
               ),
 
               // Action Buttons
-              if ((widget.userProfile.canVerify && widget.observation.statusApproval == 'MENUNGGU_VERIFIKASI') || canEdit || canCancel)
+              if ((widget.userProfile.canVerify &&
+                      widget.observation.statusApproval ==
+                          'MENUNGGU_VERIFIKASI') ||
+                  canEdit ||
+                  canCancel)
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -422,12 +446,20 @@ class _PersetujuanDetailSheetState extends ConsumerState<PersetujuanDetailSheet>
                               foregroundColor: Colors.redAccent,
                               side: const BorderSide(color: Colors.redAccent),
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                            child: const Text('Batal', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Batal',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
-                        if (canEdit || (widget.userProfile.canVerify && widget.observation.statusApproval == 'MENUNGGU_VERIFIKASI'))
+                        if (canEdit ||
+                            (widget.userProfile.canVerify &&
+                                widget.observation.statusApproval ==
+                                    'MENUNGGU_VERIFIKASI'))
                           const SizedBox(width: 8),
                       ],
                       if (canEdit) ...[
@@ -435,45 +467,78 @@ class _PersetujuanDetailSheetState extends ConsumerState<PersetujuanDetailSheet>
                           child: OutlinedButton.icon(
                             onPressed: _isSubmitting ? null : _navigateToEdit,
                             icon: const Icon(Icons.edit, size: 18),
-                            label: const Text('Edit', style: TextStyle(fontWeight: FontWeight.bold)),
+                            label: const Text(
+                              'Edit',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
                               side: const BorderSide(color: Colors.white54),
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),
-                        if (widget.userProfile.canVerify && widget.observation.statusApproval == 'MENUNGGU_VERIFIKASI')
+                        if (widget.userProfile.canVerify &&
+                            widget.observation.statusApproval ==
+                                'MENUNGGU_VERIFIKASI')
                           const SizedBox(width: 8),
                       ],
-                      if (widget.userProfile.canVerify && widget.observation.statusApproval == 'MENUNGGU_VERIFIKASI') ...[
+                      if (widget.userProfile.canVerify &&
+                          widget.observation.statusApproval ==
+                              'MENUNGGU_VERIFIKASI') ...[
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: _isSubmitting ? null : () => _updateStatus('PERLU_DIREVISI'),
+                            onPressed: _isSubmitting
+                                ? null
+                                : () => _updateStatus('PERLU_DIREVISI'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
                               side: const BorderSide(color: Colors.white54),
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                            child: const Text('Revisi', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Revisi',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           flex: 2,
                           child: ElevatedButton(
-                            onPressed: _isSubmitting ? null : () => _updateStatus('TERVERIFIKASI'),
+                            onPressed: _isSubmitting
+                                ? null
+                                : () => _updateStatus('TERVERIFIKASI'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.statusTerverifikasi,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               elevation: 0,
                             ),
                             child: _isSubmitting
-                                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text('Setujui', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Setujui',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],

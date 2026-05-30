@@ -6,8 +6,9 @@ import 'sqlite_service.dart';
 class SyncService {
   final SqliteService _sqliteService;
   final _supabase = Supabase.instance.client;
+  final VoidCallback? onSyncCompleted;
 
-  SyncService(this._sqliteService);
+  SyncService(this._sqliteService, {this.onSyncCompleted});
 
   Future<void> syncData() async {
     final user = _supabase.auth.currentUser;
@@ -74,5 +75,8 @@ class SyncService {
     }
 
     debugPrint('Sinkronisasi: $successCount/${unsyncedData.length} berhasil');
+    if (successCount > 0) {
+      onSyncCompleted?.call();
+    }
   }
 }
