@@ -115,6 +115,53 @@ class LocalObservationNotifier
     });
   }
 
+  /// Update observasi yang sudah ada (edit data & reset status jika perlu)
+  Future<void> updateObservation({
+    required String id,
+    required String namaSpesies,
+    String? namaLokal,
+    required String kategoriTakson,
+    int? jumlahIndividu,
+    String? aktivitasTermati,
+    String? catatanHabitat,
+    String? statusApproval,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final now = DateTime.now().toIso8601String();
+      
+      final updateData = {
+        'nama_spesies': namaSpesies,
+        'nama_lokal': namaLokal,
+        'kategori_takson': kategoriTakson,
+        'jumlah_individu': jumlahIndividu,
+        'aktivitas_termati': aktivitasTermati,
+        'catatan_habitat': catatanHabitat,
+        'updated_at': now,
+      };
+
+      if (statusApproval != null) {
+        updateData['status_approval'] = statusApproval;
+      }
+
+      try {
+        await Supabase.instance.client
+            .from('data_observasi')
+            .update(updateData)
+            .eq('id', id);
+            
+        // Juga update lokal jika ada
+        final sqliteService = ref.read(sqliteServiceProvider);
+        await sqliteService.updateObservasi(id, updateData);
+      } catch (e) {
+        print('Error updating observation: $e');
+        rethrow;
+      }
+
+      return _fetchUnsyncedData();
+    });
+  }
+
   //delete observation
   Future<void> deleteObservation(String id) async {
     state = await AsyncValue.guard(() async {
