@@ -265,7 +265,8 @@ class _SpeciesCardState extends State<SpeciesCard>
 
                   // Silver bar bawah gambar (Info Spasial)
                   Container(
-                    height: 14,
+                    height: 15,
+                    width: double.infinity,
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
@@ -283,7 +284,7 @@ class _SpeciesCardState extends State<SpeciesCard>
                           children: [
                             const Icon(
                               Icons.location_on,
-                              size: 8,
+                              size: 9,
                               color: Colors.black87,
                             ),
                             const SizedBox(width: 4),
@@ -291,7 +292,7 @@ class _SpeciesCardState extends State<SpeciesCard>
                               'LAT $lat • LNG $lng',
                               style: const TextStyle(
                                 color: Colors.black87,
-                                fontSize: 8,
+                                fontSize: 9,
                                 fontFamily: 'monospace',
                                 fontWeight: FontWeight.bold,
                               ),
