@@ -52,14 +52,12 @@ class KoleksiService {
   }
 
   /// Fetch semua observasi dari seluruh anggota (tab "Observasi UKF")
+  /// Hanya tampilkan TERVERIFIKASI (termasuk milik user sendiri)
   Future<List<Observation>> fetchObservasiUKF({String? searchQuery}) async {
     var query = _client
         .from(_table)
         .select(_selectColumns)
-        .eq(
-          'status_approval',
-          'TERVERIFIKASI',
-        ); // Hanya tampilkan yang sudah terverifikasi
+        .eq('status_approval', 'TERVERIFIKASI');
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
       query = query.or(

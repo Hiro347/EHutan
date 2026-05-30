@@ -10,11 +10,13 @@ class SpeciesCard extends StatefulWidget {
   final Observation observation;
   final VoidCallback onTap;
   final bool disableFlip;
+  final bool isOwnData;
   const SpeciesCard({
     super.key,
     required this.observation,
     required this.onTap,
     this.disableFlip = false,
+    this.isOwnData = false,
   });
 
   @override
@@ -57,38 +59,81 @@ class _SpeciesCardState extends State<SpeciesCard>
 
   @override
   Widget build(BuildContext context) {
-    return MediaQuery(
+    final Widget cardWidget = MediaQuery(
       data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
       child: Listener(
-      onPointerDown: (e) => _dragStart = e.position,
-      onPointerUp: (e) {
-        if (_dragStart != null) {
-          final delta = e.position - _dragStart!;
-          if (delta.dx.abs() > 30 && delta.dx.abs() > delta.dy.abs() * 1.5) {
-            _flip();
+        onPointerDown: (e) => _dragStart = e.position,
+        onPointerUp: (e) {
+          if (_dragStart != null) {
+            final delta = e.position - _dragStart!;
+            if (delta.dx.abs() > 30 && delta.dx.abs() > delta.dy.abs() * 1.5) {
+              _flip();
+            }
+            _dragStart = null;
           }
-          _dragStart = null;
-        }
-      },
-      child: GestureDetector(
-        onTap: _isBack ? _flip : widget.onTap,
-        onLongPress: widget.onTap,
-        child: AnimatedBuilder(
-          animation: _flipCtrl,
-          builder: (context, _) {
-            final v = _flipCtrl.value;
-            final scaleX = v <= 0.5 ? 1.0 - 2.0 * v : 2.0 * v - 1.0;
-            return Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.001)
-                ..scale(scaleX, 1.0, 1.0),
-              child: _isBack ? _buildBack() : _buildFront(),
-            );
-          },
+        },
+        child: GestureDetector(
+          onTap: _isBack ? _flip : widget.onTap,
+          onLongPress: widget.onTap,
+          child: AnimatedBuilder(
+            animation: _flipCtrl,
+            builder: (context, _) {
+              final v = _flipCtrl.value;
+              final scaleX = v <= 0.5 ? 1.0 - 2.0 * v : 2.0 * v - 1.0;
+              return Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001)
+                  ..scale(scaleX, 1.0, 1.0),
+                child: _isBack ? _buildBack() : _buildFront(),
+              );
+            },
+          ),
         ),
       ),
-    ));
+    );
+
+    if (widget.isOwnData) {
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          cardWidget,
+          Positioned(
+            top: -6,
+            right: -6,
+            child: Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E7D32), // Forest Green
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text(
+                  'YOU',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 5.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return cardWidget;
   }
 
   // ═══════════════════════════════════════════════════════════════════════

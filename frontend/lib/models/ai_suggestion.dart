@@ -99,6 +99,7 @@ class AiSuggestion {
     if (confidence >= 0.85) return 'Sangat Yakin';
     if (confidence >= 0.65) return 'Cukup Yakin';
     if (confidence >= 0.5) return 'Yakin';
-    return 'Tidak Yakin';
+    if (confidence > 0.0) return 'Tidak Yakin'; // < 50% tapi ada hasil
+    return 'Tidak Terdeteksi';
   }
 }

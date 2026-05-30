@@ -17,6 +17,7 @@ import 'map_picker_screen.dart';
 class FormScreen extends ConsumerStatefulWidget {
   final double lat;
   final double lng;
+  /// Jika diisi, FormScreen berjalan dalam mode Edit
   final Observation? editingObservation;
 
   const FormScreen({
@@ -112,7 +113,6 @@ class _FormScreenState extends ConsumerState<FormScreen> {
         text: DateFormat('HH:mm').format(now),
       );
     }
-
     _latController.addListener(_onCoordinateTextChanged);
     _lngController.addListener(_onCoordinateTextChanged);
   }
@@ -156,7 +156,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
   }
 
   String? _fotoPath;
-  String _existingFotoUrl = '';
+  String _existingFotoUrl = ''; // URL foto lama (Supabase) saat mode edit
   bool _isLoading = false;
 
   // --- AI STATE ---
@@ -327,12 +327,23 @@ class _FormScreenState extends ConsumerState<FormScreen> {
               title: const Text('Ambil dari Kamera'),
               onTap: () async {
                 Navigator.pop(ctx);
-                final path = await ref
-                    .read(localObservationProvider.notifier)
-                    .pickAndSaveFoto(fromCamera: true);
-                if (path != null) {
-                  setState(() => _fotoPath = path);
-                  _runAiIdentification(path);
+                try {
+                  final path = await ref
+                      .read(localObservationProvider.notifier)
+                      .pickAndSaveFoto(fromCamera: true);
+                  if (path != null && mounted) {
+                    setState(() => _fotoPath = path);
+                    _runAiIdentification(path);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().replaceAll('Exception: ', '')),
+                        backgroundColor: Colors.red.shade700,
+                      ),
+                    );
+                  }
                 }
               },
             ),
@@ -344,12 +355,23 @@ class _FormScreenState extends ConsumerState<FormScreen> {
               title: const Text('Pilih dari Galeri'),
               onTap: () async {
                 Navigator.pop(ctx);
-                final path = await ref
-                    .read(localObservationProvider.notifier)
-                    .pickAndSaveFoto(fromCamera: false);
-                if (path != null) {
-                  setState(() => _fotoPath = path);
-                  _runAiIdentification(path);
+                try {
+                  final path = await ref
+                      .read(localObservationProvider.notifier)
+                      .pickAndSaveFoto(fromCamera: false);
+                  if (path != null && mounted) {
+                    setState(() => _fotoPath = path);
+                    _runAiIdentification(path);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().replaceAll('Exception: ', '')),
+                        backgroundColor: Colors.red.shade700,
+                      ),
+                    );
+                  }
                 }
               },
             ),
@@ -1200,10 +1222,12 @@ class _FormScreenState extends ConsumerState<FormScreen> {
     if (s == null) return const SizedBox.shrink();
 
     final confidenceColor = s.confidence >= 0.85
-        ? AppColors.statusTerverifikasi
+        ? AppColors.statusTerverifikasi   // hijau: Sangat Yakin
         : s.confidence >= 0.5
-        ? AppColors.statusMenunggu
-        : AppColors.statusRevisi;
+        ? AppColors.statusMenunggu        // kuning: Cukup Yakin / Yakin
+        : s.confidence > 0.0
+        ? AppColors.statusMenunggu        // kuning: Tidak Yakin (ada hasil tapi rendah)
+        : AppColors.statusRevisi;         // merah: Tidak Terdeteksi sama sekali
 
     return _buildCard(
       children: [
