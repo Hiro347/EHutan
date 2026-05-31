@@ -157,6 +157,58 @@ class ObservationDetailSheet extends ConsumerWidget {
                         ),
                         const SizedBox(height: 20),
                         const Divider(height: 1, color: Colors.white24),
+                        const SizedBox(height: 16),
+                        
+                        // INFO OBSERVATOR (Pencatat)
+                        Row(
+                          children: [
+                            if (observation.reporterAvatarUrl != null &&
+                                observation.reporterAvatarUrl!.isNotEmpty)
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundImage: NetworkImage(observation.reporterAvatarUrl!),
+                                backgroundColor: Colors.white24,
+                              )
+                            else
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.person_rounded, size: 20, color: Colors.white),
+                              ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'PENCATAT / OBSERVATOR',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white60,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    observation.reporterNama ?? 'Anggota UKF',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        const Divider(height: 1, color: Colors.white24),
                         const SizedBox(height: 20),
 
                         // 3. WAKTU & LOKASI
