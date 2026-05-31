@@ -65,7 +65,6 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
           ? await SqliteService().getObservasiByUser(user.id)
           : await SqliteService().getAllObservasi();
       final localObs = localData.map((e) => Observation.fromSQLite(e)).toList();
-      final localIds = localObs.map((o) => o.id).toSet();
 
       // 2. Ambil data dari Supabase (observasi saya yang sudah sync)
       List<Observation> remoteObs = [];
@@ -504,7 +503,7 @@ class _KoleksiGuideDialogState extends State<_KoleksiGuideDialog> {
           decoration: BoxDecoration(
             color: _currentPage == index
                 ? AppColors.primary
-                : AppColors.primary.withOpacity(0.2),
+                : AppColors.primary.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(4),
           ),
         );
@@ -552,8 +551,9 @@ class _KoleksiGuideDialogState extends State<_KoleksiGuideDialog> {
             const Divider(color: Color(0xFFE8EDE0), height: 24, thickness: 1),
             
             // Content
-            SizedBox(
-              height: 250,
+            AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 child: _buildPageContent(_currentPage),
@@ -642,6 +642,7 @@ class _KoleksiGuideDialogState extends State<_KoleksiGuideDialog> {
   Widget _buildTabGuidePage() {
     return Column(
       key: const ValueKey(0),
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Row(
@@ -670,7 +671,7 @@ class _KoleksiGuideDialogState extends State<_KoleksiGuideDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: active ? AppColors.primary.withOpacity(0.08) : Colors.white,
+        color: active ? AppColors.primary.withValues(alpha: 0.08) : Colors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: active ? AppColors.primary : const Color(0xFFE8EDE0),
@@ -692,6 +693,7 @@ class _KoleksiGuideDialogState extends State<_KoleksiGuideDialog> {
   Widget _buildFlipGuidePage() {
     return Column(
       key: const ValueKey(1),
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Row(
@@ -761,6 +763,7 @@ class _KoleksiGuideDialogState extends State<_KoleksiGuideDialog> {
   Widget _buildDetailGuidePage() {
     return Column(
       key: const ValueKey(2),
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
@@ -772,7 +775,7 @@ class _KoleksiGuideDialogState extends State<_KoleksiGuideDialog> {
             border: Border.all(color: AppColors.primary, width: 2),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(0.15),
+                color: AppColors.primary.withValues(alpha: 0.15),
                 blurRadius: 10,
                 spreadRadius: 2,
               )
