@@ -212,7 +212,19 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
       );
     if (_myError != null) return Center(child: Text(_myError!));
     if (_myObservations.isEmpty) {
-      return _buildEmptyState();
+      return RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: _loadMyObservations,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildEmptyState(),
+            ),
+          ],
+        ),
+      );
     }
 
     return RefreshIndicator(

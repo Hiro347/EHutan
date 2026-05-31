@@ -150,13 +150,15 @@ class ProfileNotifier extends AsyncNotifier<EditableProfile> {
           .from('avatars')
           .getPublicUrl(storagePath);
 
+      final cacheBusterUrl = '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+
       // 5. Update kolom avatar_url di tabel `profiles`
       await _supabase
           .from('profiles')
-          .update({'avatar_url': publicUrl})
+          .update({'avatar_url': cacheBusterUrl})
           .eq('id', current.id);
 
-      return current.copyWith(avatarUrl: publicUrl);
+      return current.copyWith(avatarUrl: cacheBusterUrl);
     });
   }
 

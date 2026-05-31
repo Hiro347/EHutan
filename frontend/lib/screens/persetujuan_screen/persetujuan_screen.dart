@@ -120,21 +120,33 @@ class _PersetujuanScreenState extends ConsumerState<PersetujuanScreen> {
     }
 
     if (_observations.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.assignment_turned_in_outlined,
-              size: 64,
-              color: Colors.grey.shade400,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _userProfile!.isPetugasLapangan
-                  ? 'Belum ada data observasi yang diajukan.'
-                  : 'Tidak ada observasi yang menunggu verifikasi.',
-              style: TextStyle(color: Colors.grey.shade600),
+      return RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: _loadData,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.assignment_turned_in_outlined,
+                      size: 64,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _userProfile!.isPetugasLapangan
+                          ? 'Belum ada data observasi yang diajukan.'
+                          : 'Tidak ada observasi yang menunggu verifikasi.',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
