@@ -468,22 +468,44 @@ class _PersetujuanDetailSheetState
                       ],
                       if (canEdit) ...[
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _isSubmitting ? null : _navigateToEdit,
-                            icon: const Icon(Icons.edit, size: 18),
-                            label: const Text(
-                              'Edit',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white54),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
+                          child: widget.observation.statusApproval == 'PERLU_DIREVISI' &&
+                                  widget.userProfile.id == widget.observation.idPetugas
+                              ? ElevatedButton.icon(
+                                  onPressed: _isSubmitting ? null : _navigateToEdit,
+                                  icon: const Icon(Icons.edit_note_rounded, size: 20),
+                                  label: const Text(
+                                    'Edit & Ajukan Kembali',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange.shade700,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                )
+                              : OutlinedButton.icon(
+                                  onPressed: _isSubmitting ? null : _navigateToEdit,
+                                  icon: const Icon(Icons.edit, size: 18),
+                                  label: const Text(
+                                    'Edit',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    side: const BorderSide(color: Colors.white54),
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
                         ),
                         if (widget.userProfile.canVerify &&
                             widget.observation.statusApproval ==

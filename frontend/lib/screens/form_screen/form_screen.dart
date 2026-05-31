@@ -817,6 +817,12 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                                 _miniMap = mapboxMap;
                                 _miniMapAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
                                 
+                                // Sembunyikan elemen UI bawaan Mapbox
+                                mapboxMap.logo.updateSettings(LogoSettings(enabled: false));
+                                mapboxMap.scaleBar.updateSettings(ScaleBarSettings(enabled: false));
+                                mapboxMap.attribution.updateSettings(AttributionSettings(enabled: false));
+                                mapboxMap.compass.updateSettings(CompassSettings(enabled: false));
+
                                 final lat = double.tryParse(_latController.text) ?? widget.lat;
                                 final lng = double.tryParse(_lngController.text) ?? widget.lng;
                                 if (lat != 0.0 && lng != 0.0) {

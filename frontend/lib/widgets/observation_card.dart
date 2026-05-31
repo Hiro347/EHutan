@@ -306,23 +306,38 @@ class ObservationCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(
-                        obs.statusApproval == 'MENUNGGU_VERIFIKASI'
-                            ? 'MENUNGGU'
-                            : obs.statusApproval,
-                        style: TextStyle(
-                          color: _statusColor(obs.statusApproval),
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                          shadows: const [
-                            Shadow(
-                              color: Colors.black87,
-                              blurRadius: 2,
-                              offset: Offset(1, 1),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (obs.statusApproval == 'PERLU_DIREVISI') ...[
+                            Icon(
+                              Icons.edit_note_rounded,
+                              size: 14,
+                              color: _statusColor(obs.statusApproval),
                             ),
+                            const SizedBox(width: 3),
                           ],
-                        ),
+                          Text(
+                            obs.statusApproval == 'MENUNGGU_VERIFIKASI'
+                                ? 'MENUNGGU'
+                                : obs.statusApproval == 'PERLU_DIREVISI'
+                                    ? 'PERLU REVISI'
+                                    : obs.statusApproval,
+                            style: TextStyle(
+                              color: _statusColor(obs.statusApproval),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.black87,
+                                  blurRadius: 2,
+                                  offset: Offset(1, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
