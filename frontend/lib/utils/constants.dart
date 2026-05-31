@@ -69,7 +69,7 @@ class AppMapbox {
 }
 
 class AppLayout {
-  static const double sheetInitialSize = 0.35;
+  static const double sheetInitialSize = 0.75;
   static const double sheetMinSize = 0.18;
   static const double sheetMaxSize = 0.95;
 }
@@ -132,8 +132,9 @@ Color markerColorForTakson(String takson) {
   final t = takson.toLowerCase();
   if (t.contains('burung')) return AppColors.markerBurung;
   if (t.contains('eksitu')) return AppColors.markerFlora;
-  if (t.contains('reptil') || t.contains('amfibi'))
+  if (t.contains('reptil') || t.contains('amfibi')) {
     return AppColors.markerReptil;
+  }
   if (t.contains('karnivora') ||
       t.contains('herbivora') ||
       t.contains('primata')) {

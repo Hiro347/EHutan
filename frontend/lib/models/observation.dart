@@ -195,8 +195,8 @@ class Observation {
       aktivitasTermati: aktivitasTermati ?? this.aktivitasTermati,
       localFotoPath: localFotoPath ?? this.localFotoPath,
       isSynced: isSynced ?? this.isSynced,
-      reporterNama: reporterNama ?? this.reporterNama,
-      reporterAvatarUrl: reporterAvatarUrl ?? this.reporterAvatarUrl,
+      reporterNama: reporterNama ?? reporterNama,
+      reporterAvatarUrl: reporterAvatarUrl ?? reporterAvatarUrl,
     );
   }
 }

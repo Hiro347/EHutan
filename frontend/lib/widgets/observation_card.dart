@@ -22,18 +22,24 @@ class ObservationCard extends StatelessWidget {
         lower.contains('plantae')) {
       return const [Color(0xFF81C784), Color(0xFF388E3C)]; // Hijau muda
     }
-    if (lower.contains('herbivora'))
+    if (lower.contains('herbivora')) {
       return const [Color(0xFF2E7D32), Color(0xFF1B5E20)];
-    if (lower.contains('karnivora'))
+    }
+    if (lower.contains('karnivora')) {
       return const [Color(0xFFC62828), Color(0xFF8E0000)];
-    if (lower.contains('primata'))
+    }
+    if (lower.contains('primata')) {
       return const [Color(0xFF8D6E63), Color(0xFF4E342E)]; // Coklat
-    if (lower.contains('aves'))
+    }
+    if (lower.contains('aves')) {
       return const [Color(0xFF0277BD), Color(0xFF01579B)];
-    if (lower.contains('amfibi'))
+    }
+    if (lower.contains('amfibi')) {
       return const [Color(0xFF00695C), Color(0xFF004D40)];
-    if (lower.contains('reptil'))
+    }
+    if (lower.contains('reptil')) {
       return const [Color(0xFF4E342E), Color(0xFF3E2723)];
+    }
     if (lower.contains('serangga') || lower.contains('insekta')) {
       return const [Color(0xFFEF6C00), Color(0xFFE65100)];
     }
@@ -330,8 +336,9 @@ class ObservationCard extends StatelessWidget {
   }
 
   Color _statusColor(String status) {
-    if (status == 'TERVERIFIKASI')
+    if (status == 'TERVERIFIKASI') {
       return const Color(0xFF69F0AE); // Hijau terang
+    }
     if (status == 'PERLU_DIREVISI') return const Color(0xFFFFAB40); // Orange
     return const Color(0xFF80D8FF); // Biru muda
   }
