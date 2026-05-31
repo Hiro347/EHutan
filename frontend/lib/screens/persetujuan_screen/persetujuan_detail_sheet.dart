@@ -276,32 +276,16 @@ class _PersetujuanDetailSheetState
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Text(
-                                    TcgStyleUtils.getEmojiFor(
-                                      widget.observation.kategoriTakson,
-                                    ),
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      widget.observation.namaLokal != null &&
-                                              widget
-                                                  .observation
-                                                  .namaLokal!
-                                                  .isNotEmpty
-                                          ? widget.observation.namaLokal!
-                                          : 'Nama lokal tidak diketahui',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white70,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                widget.observation.namaLokal != null &&
+                                        widget.observation.namaLokal!.isNotEmpty
+                                    ? widget.observation.namaLokal!
+                                    : 'Nama lokal tidak diketahui',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white70,
+                                ),
                               ),
                             ],
                           ),
@@ -319,9 +303,29 @@ class _PersetujuanDetailSheetState
                       '${DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(widget.observation.waktuPengamatan)} WIB',
                     ),
                     const SizedBox(height: 12),
-                    _buildInfoRow(
-                      Icons.person_outline_rounded,
-                      'Dilaporkan oleh ID: ${widget.observation.idPetugas.substring(0, 8)}...',
+                    Row(
+                      children: [
+                        if (widget.observation.reporterAvatarUrl != null &&
+                            widget.observation.reporterAvatarUrl!.isNotEmpty)
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundImage: NetworkImage(widget.observation.reporterAvatarUrl!),
+                            backgroundColor: Colors.white24,
+                          )
+                        else
+                          const Icon(Icons.person_outline_rounded, size: 22, color: Colors.white70),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Dilaporkan oleh: ${widget.observation.reporterNama ?? widget.observation.idPetugas.substring(0, 8)}',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 20),

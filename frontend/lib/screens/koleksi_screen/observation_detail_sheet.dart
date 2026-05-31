@@ -124,7 +124,7 @@ class ObservationDetailSheet extends ConsumerWidget {
                                   Text(
                                     observation.namaSpesies,
                                     style: const TextStyle(
-                                      fontSize: 24,
+                                      fontSize: 26,
                                       fontWeight: FontWeight.w900,
                                       fontStyle: FontStyle.italic,
                                       color: Colors.white,
@@ -138,31 +138,16 @@ class ObservationDetailSheet extends ConsumerWidget {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        TcgStyleUtils.getEmojiFor(
-                                          observation.kategoriTakson,
-                                        ),
-                                        style: const TextStyle(fontSize: 16),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          observation.namaLokal != null &&
-                                                  observation
-                                                      .namaLokal!
-                                                      .isNotEmpty
-                                              ? observation.namaLokal!
-                                              : 'Nama lokal tidak diketahui',
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white70,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  Text(
+                                    observation.namaLokal != null &&
+                                            observation.namaLokal!.isNotEmpty
+                                        ? observation.namaLokal!
+                                        : 'Nama lokal tidak diketahui',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white70,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -257,13 +242,8 @@ class ObservationDetailSheet extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white24),
-                          ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Column(
                             children: [
                               _buildDetailGridItem(
@@ -307,14 +287,8 @@ class ObservationDetailSheet extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.white24),
-                            ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
                               observation.catatanHabitat!,
                               style: const TextStyle(

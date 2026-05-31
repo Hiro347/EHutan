@@ -69,7 +69,7 @@ class AppMapbox {
 }
 
 class AppLayout {
-  static const double sheetInitialSize = 0.75;
+  static const double sheetInitialSize = 0.55;
   static const double sheetMinSize = 0.18;
   static const double sheetMaxSize = 0.95;
 }
