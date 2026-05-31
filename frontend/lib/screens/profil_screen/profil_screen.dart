@@ -19,32 +19,35 @@ class ProfilScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileProvider);
+    final profile = profileAsync.value;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: profileAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.error_outline,
-                size: 48,
-                color: AppColors.statusRevisi,
+      body: profile == null
+          ? profileAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: AppColors.statusRevisi,
+                    ),
+                    const SizedBox(height: 12),
+                    Text('Gagal memuat profil\n$e', textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => ref.invalidate(profileProvider),
+                      child: const Text('Coba Lagi'),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              Text('Gagal memuat profil\n$e', textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(profileProvider),
-                child: const Text('Coba Lagi'),
-              ),
-            ],
-          ),
-        ),
-        data: (profile) => _ProfilContent(profile: profile),
-      ),
+              data: (_) => const SizedBox.shrink(),
+            )
+          : _ProfilContent(profile: profile),
     );
   }
 }
@@ -64,6 +67,7 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
   late final TextEditingController _nameCtrl;
   bool _isEditingName = false;
   bool _isSavingName = false;
+  String _avatarCacheBuster = '';
 
   @override
   void initState() {
@@ -190,6 +194,9 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
           .read(profileProvider.notifier)
           .updateAvatar(fromCamera: fromCamera);
       if (mounted) {
+        setState(() {
+          _avatarCacheBuster = DateTime.now().millisecondsSinceEpoch.toString();
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Foto profil berhasil diperbarui 🎉'),
@@ -255,8 +262,17 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
     final profileAsync = ref.watch(profileProvider);
     final isUpdating = profileAsync.isLoading;
 
-    return CustomScrollView(
-      slivers: [
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(profileProvider);
+        setState(() {
+          _avatarCacheBuster = DateTime.now().millisecondsSinceEpoch.toString();
+        });
+        await ref.read(profileProvider.future);
+      },
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
         // ── AppBar dengan hero foto ─────────────────────────────────────
         SliverAppBar(
           expandedHeight: 220,
@@ -315,6 +331,7 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
                           children: [
                             _AvatarWidget(
                               avatarUrl: profile.avatarUrl,
+                              cacheBuster: _avatarCacheBuster,
                               radius: 52,
                             ),
                             if (!isUpdating)
@@ -596,8 +613,9 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   String _formatRole(String? role) {
     switch (role) {
@@ -619,18 +637,36 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
 
 class _AvatarWidget extends StatelessWidget {
   final String? avatarUrl;
+  final String? cacheBuster;
   final double radius;
-  const _AvatarWidget({this.avatarUrl, required this.radius});
+  
+  const _AvatarWidget({
+    this.avatarUrl,
+    this.cacheBuster,
+    required this.radius,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (avatarUrl != null && avatarUrl!.startsWith('http')) {
+      // Reconstruct a clean base URL without query parameters to prevent double parameters (e.g. ?t=xxx?t=yyy)
+      final Uri uri = Uri.parse(avatarUrl!);
+      final String baseUrl = Uri(
+        scheme: uri.scheme,
+        host: uri.host,
+        port: uri.port,
+        path: uri.path,
+      ).toString();
+
+      final imageUrl = (cacheBuster != null && cacheBuster!.isNotEmpty)
+          ? '$baseUrl?t=$cacheBuster'
+          : avatarUrl!;
       return CircleAvatar(
         radius: radius,
         backgroundColor: Colors.grey.shade200,
         child: ClipOval(
           child: CachedNetworkImage(
-            imageUrl: avatarUrl!,
+            imageUrl: imageUrl,
             width: radius * 2,
             height: radius * 2,
             fit: BoxFit.cover,
