@@ -289,13 +289,8 @@ class ObservationDetailSheet extends ConsumerWidget {
                           const SizedBox(height: 16),
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Text(
-                              observation.catatanHabitat!,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                height: 1.6,
-                                color: Colors.white,
-                              ),
+                            child: Column(
+                              children: _buildHabitatAndConditionItems(observation.catatanHabitat),
                             ),
                           ),
                         ],
@@ -624,6 +619,79 @@ class ObservationDetailSheet extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Map<String, String> _parseHabitatAndCondition(String? catatan) {
+    final result = <String, String>{};
+    if (catatan == null || catatan.isEmpty) return result;
+
+    if (catatan.contains('|')) {
+      final parts = catatan.split('|');
+      for (final part in parts) {
+        final kv = part.split(':');
+        if (kv.length >= 2) {
+          final key = kv[0].trim();
+          final val = kv.sublist(1).join(':').trim();
+          result[key] = val;
+        }
+      }
+    } else {
+      result['Note'] = catatan;
+    }
+    return result;
+  }
+
+  List<Widget> _buildHabitatAndConditionItems(String? catatan) {
+    final parsed = _parseHabitatAndCondition(catatan);
+    final widgets = <Widget>[];
+
+    final entries = [
+      if (parsed.containsKey('Status')) MapEntry('Kondisi Kesehatan', parsed['Status']!),
+      if (parsed.containsKey('Habitat')) MapEntry('Tipe Habitat', parsed['Habitat']!),
+      if (parsed.containsKey('Posisi')) MapEntry('Posisi Temuan', parsed['Posisi']!),
+      if (parsed.containsKey('Veg')) MapEntry('Asosiasi Vegetasi', parsed['Veg']!),
+      if (parsed.containsKey('Note')) MapEntry('Catatan Tambahan', parsed['Note']!),
+    ];
+
+    if (entries.isEmpty && catatan != null && catatan.isNotEmpty) {
+      entries.add(MapEntry('Catatan Tambahan', catatan));
+    }
+
+    for (int i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      IconData icon;
+      switch (entry.key) {
+        case 'Kondisi Kesehatan':
+          icon = Icons.favorite_rounded;
+          break;
+        case 'Tipe Habitat':
+          icon = Icons.forest_rounded;
+          break;
+        case 'Posisi Temuan':
+          icon = Icons.layers_rounded;
+          break;
+        case 'Asosiasi Vegetasi':
+          icon = Icons.park_rounded;
+          break;
+        default:
+          icon = Icons.sticky_note_2_rounded;
+      }
+
+      widgets.add(
+        _buildDetailGridItem(
+          icon,
+          Colors.white,
+          entry.key,
+          entry.value,
+        ),
+      );
+
+      if (i < entries.length - 1) {
+        widgets.add(const Divider(height: 24, color: Colors.white24));
+      }
+    }
+
+    return widgets;
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) {
