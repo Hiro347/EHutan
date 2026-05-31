@@ -200,6 +200,7 @@ class _SpeciesCardState extends State<SpeciesCard>
                 child: Text(
                   obs.kategoriTakson.replaceAll('DK ', '').toUpperCase(),
                   style: const TextStyle(
+                    fontFamily: 'NationalPark',
                     color: Colors.black87,
                     fontSize: 8,
                     fontWeight: FontWeight.w900,
@@ -219,6 +220,7 @@ class _SpeciesCardState extends State<SpeciesCard>
                     obs.namaSpesies,
                     textAlign: TextAlign.right,
                     style: const TextStyle(
+                      fontFamily: 'Vollkorn',
                       color: Colors.white,
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
@@ -336,6 +338,7 @@ class _SpeciesCardState extends State<SpeciesCard>
                               ? obs.namaLokal!
                               : 'Spesies Liar',
                           style: const TextStyle(
+                            fontFamily: 'BreeSerif',
                             color: Colors.white,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -588,6 +591,7 @@ class _SpeciesCardState extends State<SpeciesCard>
               child: Text(
                 divisiLabel,
                 style: const TextStyle(
+                  fontFamily: 'NationalPark',
                   color: Colors.black87,
                   fontSize: 7,
                   fontWeight: FontWeight.w900,

@@ -226,6 +226,7 @@ class ObservationDetailCard extends StatelessWidget {
                                     .replaceAll('DK ', '')
                                     .toUpperCase(),
                                 style: const TextStyle(
+                                  fontFamily: 'NationalPark',
                                   color: Colors.black87,
                                   fontSize: 8,
                                   fontWeight: FontWeight.w900,
@@ -245,6 +246,7 @@ class ObservationDetailCard extends StatelessWidget {
                           child: Text(
                             obs.namaSpesies,
                             style: const TextStyle(
+                              fontFamily: 'Vollkorn',
                               color: Colors.white,
                               fontSize: 18,
                               fontWeight: FontWeight.w900,

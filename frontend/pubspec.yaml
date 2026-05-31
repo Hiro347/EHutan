@@ -82,6 +82,27 @@ flutter:
     # - lib/assets/images/empty_nature.png # Saya comment sementara karena file ini tidak ditemukan dan menyebabkan error saat build
     - lib/assets/cards/
 
+  fonts:
+    - family: BreeSerif
+      fonts:
+        - asset: lib/assets/font/BreeSerif-Regular.ttf
+
+    - family: Chivo
+      fonts:
+        - asset: lib/assets/font/Chivo-VariableFont_wght.ttf
+        - asset: lib/assets/font/Chivo-Italic-VariableFont_wght.ttf
+          style: italic
+
+    - family: NationalPark
+      fonts:
+        - asset: lib/assets/font/NationalPark-VariableFont_wght.ttf
+
+    - family: Vollkorn
+      fonts:
+        - asset: lib/assets/font/Vollkorn-VariableFont_wght.ttf
+        - asset: lib/assets/font/Vollkorn-Italic-VariableFont_wght.ttf
+          style: italic
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

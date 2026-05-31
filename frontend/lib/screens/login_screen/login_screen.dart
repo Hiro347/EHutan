@@ -99,6 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   'Masuk ke E-Hutan',
                   textAlign: TextAlign.center,
                   style: TextStyle(
+                    fontFamily: 'NationalPark',
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF062A0E),
