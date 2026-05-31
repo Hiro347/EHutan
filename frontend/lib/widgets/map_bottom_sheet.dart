@@ -55,10 +55,10 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
       child: DraggableScrollableSheet(
         controller: _effectiveController,
         initialChildSize: AppLayout.sheetInitialSize,
-        minChildSize: 0.25,
+        minChildSize: AppLayout.sheetMinSize,
         maxChildSize: AppLayout.sheetMaxSize,
         snap: true,
-        snapSizes: const [0.25, 0.45, AppLayout.sheetMaxSize],
+        snapSizes: const [AppLayout.sheetMinSize, 0.45, AppLayout.sheetMaxSize],
         builder: (context, scrollController) {
           return ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -90,13 +90,13 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                       final parentHeight = MediaQuery.of(context).size.height;
                       final delta = details.primaryDelta! / parentHeight;
                       final newSize = (_effectiveController.size - delta)
-                          .clamp(0.25, AppLayout.sheetMaxSize);
+                          .clamp(AppLayout.sheetMinSize, AppLayout.sheetMaxSize);
                       _effectiveController.jumpTo(newSize);
                     },
                     onVerticalDragEnd: (details) {
                       final velocity = details.primaryVelocity ?? 0.0;
                       final currentSize = _effectiveController.size;
-                      const sizes = [0.25, 0.45, AppLayout.sheetMaxSize];
+                      const sizes = [AppLayout.sheetMinSize, 0.45, AppLayout.sheetMaxSize];
 
                       double targetSize = currentSize;
                       if (velocity < -500) {
@@ -104,7 +104,7 @@ class _MapBottomSheetState extends State<MapBottomSheet> {
                             orElse: () => AppLayout.sheetMaxSize);
                       } else if (velocity > 500) {
                         targetSize = sizes.lastWhere((s) => s < currentSize,
-                            orElse: () => 0.25);
+                            orElse: () => AppLayout.sheetMinSize);
                       } else {
                         targetSize = sizes.reduce((a, b) =>
                             (a - currentSize).abs() < (b - currentSize).abs()

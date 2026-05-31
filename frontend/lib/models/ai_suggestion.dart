@@ -87,11 +87,23 @@ class AiSuggestion {
 
   bool get isConfident => confidence >= 0.5;
 
+  /// Mendeteksi apakah gambar yang diunggah tidak valid (bukan flora/fauna)
+  bool get isInvalidImage =>
+      category.toLowerCase() == 'none' ||
+      speciesName.toLowerCase() == 'bukan fauna/flora';
+
+  /// Mendeteksi secara spesifik apakah objek yang terdeteksi adalah manusia
   bool get isHumanDetected =>
-      speciesName.toLowerCase().contains('bukan fauna') ||
-      commonName.toLowerCase().contains('manusia') ||
-      speciesName.toLowerCase().contains('homo sapiens') ||
-      category.toLowerCase() == 'none';
+      isInvalidImage &&
+      (commonName.toLowerCase().contains('manusia') ||
+       speciesName.toLowerCase().contains('homo sapiens') ||
+       commonName.toLowerCase().contains('human'));
+
+  /// Mengambil pesan/alasan mengapa gambar tidak valid
+  String? get invalidReason {
+    if (!isInvalidImage) return null;
+    return commonName.isNotEmpty ? commonName : 'Gambar tidak relevan dengan fauna/flora';
+  }
 
   String get confidencePercent => '${(confidence * 100).round()}%';
 

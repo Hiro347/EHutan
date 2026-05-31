@@ -143,6 +143,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Position? _userPosition;
   Observation? _selectedObservation;
   Observation? _animatingObservation;
+  int _selectionCount = 0;
   StreamSubscription<geo.Position>? _locationSubscription;
   StreamSubscription<CompassEvent>? _compassSubscription;
   double _heading = 0.0;
@@ -428,7 +429,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       MarkerClickListener(
         observations: _observations,
         onTap: (obs) {
-          setState(() => _selectedObservation = obs);
+          setState(() {
+            _selectedObservation = obs;
+            _animatingObservation = obs;
+            _selectionCount++;
+          });
           _flyToObservation(obs);
         },
       ),
@@ -1110,6 +1115,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               setState(() {
                 _selectedObservation = obs;
                 _animatingObservation = obs;
+                _selectionCount++;
               });
               _flyToObservation(obs);
               if (_sheetController.isAttached) {
@@ -1166,9 +1172,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ),
           
         AnimatedSelectedCard(
-          key: ValueKey(_animatingObservation?.id),
+          key: ValueKey('${_animatingObservation?.id}_$_selectionCount'),
           observation: _animatingObservation,
-          bottomSheetMinHeight: MediaQuery.of(context).size.height * 0.25,
+          bottomSheetMinHeight: MediaQuery.of(context).size.height * AppLayout.sheetMinSize,
           onClear: () {
             setState(() {
               _animatingObservation = null;

@@ -391,18 +391,6 @@ class _FormScreenState extends ConsumerState<FormScreen> {
     try {
       final result = await _aiService.identify(File(path));
       if (!mounted) return;
-
-      if (result.isHumanDetected) {
-        setState(() {
-          _aiError = const AiServiceException(
-            'Foto ini terdeteksi sebagai manusia. Silakan ambil foto fauna atau flora untuk identifikasi.',
-            code: 'human_detected',
-          );
-          _aiSuggestion = null;
-          _isAiLoading = false;
-        });
-        return;
-      }
       setState(() {
         _aiSuggestion = result;
         _isAiLoading = false;
@@ -1226,6 +1214,54 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
     final s = _aiSuggestion;
     if (s == null) return const SizedBox.shrink();
+
+    if (s.isInvalidImage) {
+      final isHuman = s.isHumanDetected;
+      final icon = isHuman ? Icons.person_off_rounded : Icons.no_photography_rounded;
+      final title = isHuman ? 'Bukan Fauna/Flora (Manusia)' : 'Bukan Fauna/Flora (Objek Tidak Relevan)';
+      final color = AppColors.statusRevisi;
+
+      return _buildCard(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      s.invalidReason ?? 'Gambar tidak sesuai dengan konteks E-Hutan.',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'AI membatalkan pengisian otomatis karena gambar tidak mendeteksi fauna/flora Indonesia yang relevan. Silakan isi data secara manual atau gunakan foto lain.',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
 
     final confidenceColor = s.confidence >= 0.85
         ? AppColors.statusTerverifikasi   // hijau: Sangat Yakin
