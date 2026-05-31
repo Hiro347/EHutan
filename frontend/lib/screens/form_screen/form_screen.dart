@@ -38,6 +38,8 @@ class _FormScreenState extends ConsumerState<FormScreen> {
   MapboxMap? _miniMap;
   PointAnnotationManager? _miniMapAnnotationManager;
   bool _isListeningToCoordinates = true;
+  Position? _latestTargetPosition;
+  bool _isUpdatingMarker = false;
 
   // Pencarian lokasi dipindah ke full screen picker
 
@@ -229,13 +231,24 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
   Future<void> _updateMiniMapMarker(double lng, double lat) async {
     if (_miniMapAnnotationManager == null) return;
-    await _miniMapAnnotationManager!.deleteAll();
-    final pinBytes = await _createPinImage();
-    await _miniMapAnnotationManager!.create(PointAnnotationOptions(
-      geometry: Point(coordinates: Position(lng, lat)),
-      image: pinBytes,
-      iconAnchor: IconAnchor.CENTER,
-    ));
+    _latestTargetPosition = Position(lng, lat);
+    if (_isUpdatingMarker) return;
+    _isUpdatingMarker = true;
+    try {
+      while (_latestTargetPosition != null) {
+        final target = _latestTargetPosition!;
+        _latestTargetPosition = null;
+        await _miniMapAnnotationManager!.deleteAll();
+        final pinBytes = await _createPinImage();
+        await _miniMapAnnotationManager!.create(PointAnnotationOptions(
+          geometry: Point(coordinates: target),
+          image: pinBytes,
+          iconAnchor: IconAnchor.CENTER,
+        ));
+      }
+    } finally {
+      _isUpdatingMarker = false;
+    }
   }
 
   Future<Uint8List> _createPinImage() async {
@@ -736,8 +749,17 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                         ),
                       );
                       if (mounted) {
-                        _latController.text = pos.latitude.toStringAsFixed(6);
-                        _lngController.text = pos.longitude.toStringAsFixed(6);
+                        setState(() {
+                          _isListeningToCoordinates = false;
+                          _latController.text = pos.latitude.toStringAsFixed(6);
+                          _lngController.text = pos.longitude.toStringAsFixed(6);
+                          _isListeningToCoordinates = true;
+                        });
+                        _miniMap?.setCamera(CameraOptions(
+                          center: Point(coordinates: Position(pos.longitude, pos.latitude)),
+                          zoom: 15.0,
+                        ));
+                        _updateMiniMapMarker(pos.longitude, pos.latitude);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Lokasi diperbarui ke GPS Terkini! 📍')),
                         );
