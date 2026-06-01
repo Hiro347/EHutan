@@ -67,7 +67,6 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
           ? await SqliteService().getObservasiByUser(user.id)
           : await SqliteService().getAllObservasi();
       final localObs = localData.map((e) => Observation.fromSQLite(e)).toList();
-      final localIds = localObs.map((o) => o.id).toSet();
 
       // 2. Ambil data dari Supabase (observasi saya yang sudah sync)
       List<Observation> remoteObs = [];
@@ -174,6 +173,25 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
         body: TabBarView(
           controller: _tabController,
           children: [_buildMyObservationsTab(), _buildUKFTab()],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => const _KoleksiGuideDialog(),
+          );
+        },
+        backgroundColor: AppColors.primary,
+        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Text(
+          '?',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ),
     );
@@ -583,6 +601,358 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
         builder: (context) => PdfPreviewScreen(
           divisi: divisi,
           exporterNama: exporterNama,
+        ),
+      ),
+    );
+  }
+}
+
+class _KoleksiGuideDialog extends StatefulWidget {
+  const _KoleksiGuideDialog();
+
+  @override
+  State<_KoleksiGuideDialog> createState() => _KoleksiGuideDialogState();
+}
+
+class _KoleksiGuideDialogState extends State<_KoleksiGuideDialog> {
+  int _currentPage = 0;
+  final int _totalPages = 3;
+
+  Widget _buildDotIndicator() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(_totalPages, (index) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          height: 8,
+          width: _currentPage == index ? 24 : 8,
+          decoration: BoxDecoration(
+            color: _currentPage == index
+                ? AppColors.primary
+                : AppColors.primary.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        );
+      }),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 8,
+      backgroundColor: Colors.white,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header: Title & Close Button
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.help_outline_rounded, color: AppColors.primary, size: 28),
+                    SizedBox(width: 8),
+                    Text(
+                      'Panduan Koleksi',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF1A2400),
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.grey),
+                  onPressed: () => Navigator.pop(context),
+                  splashRadius: 20,
+                ),
+              ],
+            ),
+            const Divider(color: Color(0xFFE8EDE0), height: 24, thickness: 1),
+            
+            // Content
+            AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _buildPageContent(_currentPage),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            _buildDotIndicator(),
+            const SizedBox(height: 20),
+            
+            // Footer: Navigation Buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Prev Button
+                TextButton(
+                  onPressed: _currentPage > 0
+                      ? () => setState(() => _currentPage--)
+                      : null,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    disabledForegroundColor: Colors.grey.shade300,
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.arrow_back_ios_new_rounded, size: 14),
+                      SizedBox(width: 4),
+                      Text('Sebelumnya', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                
+                // Next / Finish Button
+                ElevatedButton(
+                  onPressed: () {
+                    if (_currentPage < _totalPages - 1) {
+                      setState(() => _currentPage++);
+                    } else {
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        _currentPage == _totalPages - 1 ? 'Selesai' : 'Berikutnya',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      if (_currentPage < _totalPages - 1) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageContent(int page) {
+    switch (page) {
+      case 0:
+        return _buildTabGuidePage();
+      case 1:
+        return _buildFlipGuidePage();
+      case 2:
+        return _buildDetailGuidePage();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  // Page 1: Tab Guide (My Observations vs UKF Observations)
+  Widget _buildTabGuidePage() {
+    return Column(
+      key: const ValueKey(0),
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildTabDemoBox('Observasi Saya', true),
+            const SizedBox(width: 12),
+            _buildTabDemoBox('Observasi UKF', false),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _buildInfoText(
+          'Observasi Saya',
+          'Daftar pengamatan fauna yang diinput oleh akun Anda. Mencakup data draf lokal (disimpan luring di SQLite saat tidak bersinyal) maupun laporan yang sedang terkirim atau menunggu persetujuan.',
+        ),
+        const SizedBox(height: 12),
+        _buildInfoText(
+          'Observasi UKF',
+          'Pangkalan data keanekaragaman fauna IPB Dramaga yang berisi seluruh laporan satwa dari anggota UKF yang telah disetujui (Approved) oleh koordinator divisi.',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTabDemoBox(String title, bool active) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: active ? AppColors.primary.withValues(alpha: 0.08) : Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: active ? AppColors.primary : const Color(0xFFE8EDE0),
+          width: 1.5,
+        ),
+      ),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: active ? AppColors.primary : Colors.grey.shade500,
+        ),
+      ),
+    );
+  }
+
+  // Page 2: Flip Card Guide
+  Widget _buildFlipGuidePage() {
+    return Column(
+      key: const ValueKey(1),
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildMiniCardPreview('Bagian Depan', 'Ringkasan data satwa (Nama, Takson, Akurasi AI).', true),
+            const SizedBox(width: 10),
+            const Icon(Icons.swap_horiz_rounded, color: AppColors.primary, size: 28),
+            const SizedBox(width: 10),
+            _buildMiniCardPreview('Bagian Belakang', 'Detail pengamat (Nama pencatat & status sync).', false),
+          ],
+        ),
+        const SizedBox(height: 16),
+        const Icon(Icons.gesture_rounded, color: AppColors.primary, size: 32),
+        const SizedBox(height: 8),
+        const Text(
+          'Geser Kartu untuk Membalik',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1A2400)),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: Text(
+            'Lakukan swipe/geser kartu satwa ke arah kiri atau kanan menggunakan jari untuk membalik dan melihat isi informasi di balik kartu.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.4),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMiniCardPreview(String label, String desc, bool isFront) {
+    return Container(
+      width: 90,
+      height: 110,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isFront ? const Color(0xFFF9FBF6) : const Color(0xFFF5F7F2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8EDE0)),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(isFront ? Icons.badge_outlined : Icons.person_search_rounded, size: 20, color: AppColors.primary),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1A2400)),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            desc,
+            style: const TextStyle(fontSize: 8, color: Colors.black54, height: 1.2),
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Page 3: Detail Card Guide
+  Widget _buildDetailGuidePage() {
+    return Column(
+      key: const ValueKey(2),
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 120,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.primary, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                blurRadius: 10,
+                spreadRadius: 2,
+              )
+            ],
+          ),
+          child: const Column(
+            children: [
+              Icon(Icons.touch_app_rounded, color: AppColors.primary, size: 36),
+              SizedBox(height: 6),
+              Text(
+                'Kartu Satwa',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1A2400)),
+              ),
+              Text(
+                'Ketuk Detail',
+                style: TextStyle(fontSize: 8, color: AppColors.primary, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Ketuk Kartu untuk Detail Lengkap',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1A2400)),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Text(
+            'Ketuk/tekan kartu spesies untuk memunculkan lembar detail. Menampilkan peta koordinat temuan, foto resolusi tinggi, detail takson, dan opsi edit/hapus laporan Anda.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.4),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoText(String label, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 12, color: Colors.black54, height: 1.4),
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A2400)),
+            ),
+            TextSpan(text: text),
+          ],
         ),
       ),
     );
