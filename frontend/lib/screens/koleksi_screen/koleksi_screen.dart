@@ -4,11 +4,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/observation.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/observation_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../../services/koleksi_service.dart';
 import '../../services/sqlite_service.dart';
 import '../../widgets/species_card.dart';
 import '../../utils/constants.dart';
 import 'observation_detail_sheet.dart';
+import 'pdf_preview_screen.dart';
 
 class KoleksiScreen extends ConsumerStatefulWidget {
   final Function(Observation)? onFlyTo;
@@ -158,11 +160,16 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
       }
     });
 
+    final profileAsync = ref.watch(profileProvider);
+    final profile = profileAsync.value;
+    final canExport = profile != null &&
+        (profile.role == 'Admin' || profile.role == 'Kordinator_Divisi');
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F2),
       body: NestedScrollView(
         headerSliverBuilder: (_, innerBoxIsScrolled) => [
-          _buildAppBar(innerBoxIsScrolled),
+          _buildAppBar(innerBoxIsScrolled, canExport, profile),
         ],
         body: TabBarView(
           controller: _tabController,
@@ -172,7 +179,7 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
     );
   }
 
-  Widget _buildAppBar(bool innerBoxIsScrolled) {
+  Widget _buildAppBar(bool innerBoxIsScrolled, bool canExport, EditableProfile? profile) {
     return SliverAppBar(
       pinned: true,
       floating: true,
@@ -189,6 +196,13 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
         ),
       ),
       centerTitle: true,
+      actions: [
+        if (canExport && profile != null)
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf, color: AppColors.primary),
+            onPressed: () => _handlePdfExport(profile),
+          ),
+      ],
       bottom: TabBar(
         controller: _tabController,
         labelColor: AppColors.primary,
@@ -457,6 +471,119 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
           ],
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
+      ),
+    );
+  }
+
+  Future<void> _handlePdfExport(EditableProfile profile) async {
+    // 1. Cek Konektivitas
+    final isOnline = ref.read(connectivityProvider).value ?? false;
+    if (!isOnline) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Koneksi Terputus'),
+          content: const Text(
+            'Export PDF membutuhkan koneksi internet untuk mengunduh data dan foto terbaru dari server. '
+            'Silakan hubungkan perangkat Anda ke internet terlebih dahulu.'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK', style: TextStyle(color: AppColors.primary)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // 2. Cek data lokal yang belum tersinkron
+    final unsyncedCount = ref.read(unsyncedCountProvider).value ?? 0;
+    if (unsyncedCount > 0) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Data Belum Sinkron'),
+          content: Text(
+            'Terdapat $unsyncedCount data observasi yang belum disinkronkan ke server. '
+            'Data tersebut TIDAK AKAN masuk ke dalam laporan PDF ini.\n\n'
+            'Apakah Anda ingin melanjutkan export data yang sudah sinkron di server?'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Tetap Export', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+
+      if (proceed != true) return;
+    }
+    if (!mounted) return;
+
+    // 3. Filter berdasarkan role
+    if (profile.role == 'Admin') {
+      final selectedDivisi = await showDialog<String>(
+        context: context,
+        builder: (context) {
+          return SimpleDialog(
+            title: const Text('Pilih Divisi untuk Export'),
+            children: [
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, 'Semua Divisi'),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+                  child: Text(
+                    'Semua Divisi',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                  ),
+                ),
+              ),
+              const Divider(),
+              ...AppStrings.kategoriTakson.map((divisi) {
+                return SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, divisi),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+                    child: Text(divisi),
+                  ),
+                );
+              }),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) return;
+      if (selectedDivisi != null) {
+        _navigateToPdfPreview(selectedDivisi, profile.fullName ?? 'Admin');
+      }
+    } else if (profile.role == 'Kordinator_Divisi') {
+      final divisi = profile.divisiTakson;
+      if (divisi == null || divisi.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error: Anda tidak memiliki divisi yang ditugaskan.')),
+        );
+        return;
+      }
+      _navigateToPdfPreview(divisi, profile.fullName ?? 'Kordinator Divisi');
+    }
+  }
+
+  void _navigateToPdfPreview(String divisi, String exporterNama) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfPreviewScreen(
+          divisi: divisi,
+          exporterNama: exporterNama,
+        ),
       ),
     );
   }

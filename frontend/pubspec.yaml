@@ -51,6 +51,9 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   image_cropper: ^12.2.1
   image: ^4.5.3                
+  pdf: ^3.10.8
+  printing: ^5.14.0
+  http: ^1.2.0
 
 
 dev_dependencies:
