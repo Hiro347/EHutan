@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../models/observation.dart';
 import '../../utils/constants.dart';
+import 'package:image/image.dart' as img_tools;
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class PdfPreviewScreen extends StatefulWidget {
   final String divisi;
@@ -60,7 +62,8 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
             jumlah_individu,
             aktivitas_termati,
             profiles!id_petugas ( nama_lengkap )
-          ''');
+          ''')
+          .eq('status_approval', 'TERVERIFIKASI');
 
       if (widget.divisi != 'Semua Divisi') {
         query = query.eq('kategori_takson', widget.divisi);
@@ -110,18 +113,64 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
       debugPrint('Error loading logo asset: $e');
     }
 
-    // 3. Preload all observation images from network
+    // 3. Preload all observation images from network (dan cache lokal)
     final imageBytesMap = <String, Uint8List?>{};
     await Future.wait(_observations.map((obs) async {
       final url = resolveSupabaseFotoUrl(obs.fotoUrl);
       if (url != null && url.isNotEmpty) {
         try {
-          final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 6));
-          if (res.statusCode == 200) {
-            imageBytesMap[obs.id] = res.bodyBytes;
+          Uint8List? bytes;
+          
+          // A. Coba muat dari cache lokal terlebih dahulu (sangat cepat & mendukung offline)
+          try {
+            final fileInfo = await DefaultCacheManager().getFileFromCache(url);
+            if (fileInfo != null) {
+              bytes = await fileInfo.file.readAsBytes();
+            }
+          } catch (e) {
+            debugPrint('Gagal membaca cache lokal untuk ${obs.id}: $e');
+          }
+          
+          // B. Jika tidak ada di cache, unduh melalui internet dengan timeout lebih panjang (12 detik)
+          if (bytes == null) {
+            final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 12));
+            if (res.statusCode == 200) {
+              bytes = res.bodyBytes;
+              
+              // Simpan hasil download ke cache lokal agar ekspor berikutnya instan
+              try {
+                await DefaultCacheManager().putFile(url, bytes);
+              } catch (_) {}
+            } else {
+              debugPrint('Gagal download gambar (HTTP ${res.statusCode}) untuk ${obs.id}');
+            }
+          }
+          
+          // C. Lakukan pengecekan format dan konversi WebP ke JPEG jika diperlukan
+          if (bytes != null && bytes.isNotEmpty) {
+            final isPng = bytes.length > 4 &&
+                bytes[0] == 0x89 &&
+                bytes[1] == 0x50 &&
+                bytes[2] == 0x4E &&
+                bytes[3] == 0x47;
+            final isJpeg = bytes.length > 2 &&
+                bytes[0] == 0xFF &&
+                bytes[1] == 0xD8;
+                
+            if (!isPng && !isJpeg) {
+              try {
+                final decoded = img_tools.decodeImage(bytes);
+                if (decoded != null) {
+                  bytes = Uint8List.fromList(img_tools.encodeJpg(decoded, quality: 80));
+                }
+              } catch (ex) {
+                debugPrint('Gagal mengonversi format gambar: $ex');
+              }
+            }
+            imageBytesMap[obs.id] = bytes;
           }
         } catch (e) {
-          debugPrint('Error downloading image for ${obs.id}: $e');
+          debugPrint('Error memproses gambar untuk ${obs.id}: $e');
         }
       }
     }));
@@ -152,7 +201,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Text(
-                            'UNIT KONSERVASI KEHUTANAN (UKF)',
+                            'UNI KONSERVASI FAUNA (UKF)',
                             style: pw.TextStyle(
                               font: chivoFont,
                               fontSize: 12,
@@ -211,7 +260,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'Unit Konservasi Kehutanan (UKF) • E-Hutan Laporan',
+                    'Uni Konservasi Fauna (UKF) • E-Hutan Laporan',
                     style: pw.TextStyle(
                       font: chivoFont,
                       fontSize: 8,
@@ -262,8 +311,13 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'Pengekspor: ${widget.exporterNama}',
-                    style: pw.TextStyle(font: chivoFont, fontSize: 9, color: PdfColors.grey800),
+                    'Laporan Observasi Terverifikasi',
+                    style: pw.TextStyle(
+                      font: chivoFont,
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.green900,
+                    ),
                   ),
                   pw.Text(
                     'Jumlah Data: ${_observations.length} Observasi',
@@ -281,6 +335,14 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
             // Iterasi observations
             ..._observations.map((obs) {
               final imgBytes = imageBytesMap[obs.id];
+              pw.MemoryImage? pdfImage;
+              if (imgBytes != null && imgBytes.isNotEmpty) {
+                try {
+                  pdfImage = pw.MemoryImage(imgBytes);
+                } catch (e) {
+                  debugPrint('Exception while parsing image bytes for ${obs.id}: $e');
+                }
+              }
               final dateStr = DateFormat('dd MMM yyyy HH:mm').format(obs.waktuPengamatan);
 
               // Tentukan warna status
@@ -305,139 +367,181 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
                       bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
                     ),
                   ),
-                  child: pw.Row(
+                  child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      // Kolom Kiri: Foto
-                      pw.Container(
-                        width: 120,
-                        height: 120,
-                        decoration: pw.BoxDecoration(
-                          color: PdfColors.grey200,
-                          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
-                          border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
-                        ),
-                        alignment: pw.Alignment.center,
-                        child: imgBytes != null
-                            ? pw.ClipRRect(
-                                horizontalRadius: 6,
-                                verticalRadius: 6,
-                                child: pw.Image(
-                                  pw.MemoryImage(imgBytes),
-                                  width: 120,
-                                  height: 120,
-                                  fit: pw.BoxFit.cover,
+                      pw.Row(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          // Kolom Kiri: Foto
+                          pw.Container(
+                            width: 120,
+                            height: 120,
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.grey200,
+                              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                              border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
+                            ),
+                            alignment: pw.Alignment.center,
+                            child: pdfImage != null
+                                ? pw.ClipRRect(
+                                    horizontalRadius: 6,
+                                    verticalRadius: 6,
+                                    child: pw.Image(
+                                      pdfImage,
+                                      width: 120,
+                                      height: 120,
+                                      fit: pw.BoxFit.cover,
+                                    ),
+                                  )
+                                : pw.Padding(
+                                    padding: const pw.EdgeInsets.all(8),
+                                    child: pw.Text(
+                                      'Gambar\nOffline / Error',
+                                      textAlign: pw.TextAlign.center,
+                                      style: pw.TextStyle(font: chivoFont, fontSize: 8, color: PdfColors.grey500),
+                                    ),
+                                  ),
+                          ),
+                          pw.SizedBox(width: 16),
+                          // Kolom Kanan: Detail Informasi
+                          pw.Expanded(
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                // Nama Spesies & Lokal
+                                pw.Row(
+                                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                  children: [
+                                    pw.Expanded(
+                                      child: pw.Column(
+                                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                        children: [
+                                          pw.Text(
+                                            obs.namaSpesies,
+                                            style: pw.TextStyle(
+                                              font: vollkornItalicFont,
+                                              fontSize: 13,
+                                              fontWeight: pw.FontWeight.bold,
+                                              color: PdfColors.green900,
+                                            ),
+                                          ),
+                                          pw.SizedBox(height: 2),
+                                          pw.Text(
+                                            'Nama Lokal: ${obs.namaLokal ?? '-'}',
+                                            style: pw.TextStyle(
+                                              font: chivoFont,
+                                              fontSize: 10,
+                                              fontWeight: pw.FontWeight.bold,
+                                              color: PdfColors.grey800,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Badge Status Approval
+                                    pw.Container(
+                                      padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: pw.BoxDecoration(
+                                        color: statusBgColor,
+                                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                                        border: pw.Border.all(color: statusColor, width: 0.5),
+                                      ),
+                                      child: pw.Text(
+                                        statusLabel,
+                                        style: pw.TextStyle(
+                                          font: chivoFont,
+                                          fontSize: 6.5,
+                                          fontWeight: pw.FontWeight.bold,
+                                          color: statusColor,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              )
-                            : pw.Padding(
-                                padding: const pw.EdgeInsets.all(8),
-                                child: pw.Text(
-                                  'Gambar\nOffline / Error',
-                                  textAlign: pw.TextAlign.center,
-                                  style: pw.TextStyle(font: chivoFont, fontSize: 8, color: PdfColors.grey500),
+                                pw.SizedBox(height: 6),
+                                pw.Divider(thickness: 0.5, color: PdfColors.grey200),
+                                pw.SizedBox(height: 4),
+
+                                // Telemetri data dalam grid-like layout
+                                pw.Row(
+                                  children: [
+                                    pw.Expanded(
+                                      flex: 5,
+                                      child: _buildInfoRow(chivoFont, 'Divisi/Takson:', obs.kategoriTakson),
+                                    ),
+                                    pw.Expanded(
+                                      flex: 4,
+                                      child: _buildInfoRow(chivoFont, 'Jumlah:', '${obs.jumlahIndividu ?? 1} individu'),
+                                    ),
+                                  ],
                                 ),
-                              ),
+                                pw.SizedBox(height: 3),
+                                pw.Row(
+                                  children: [
+                                    pw.Expanded(
+                                      flex: 5,
+                                      child: _buildInfoRow(chivoFont, 'Waktu Pengamatan:', dateStr),
+                                    ),
+                                    pw.Expanded(
+                                      flex: 4,
+                                      child: _buildInfoRow(chivoFont, 'Koordinat:', '[${obs.latitude.toStringAsFixed(5)}, ${obs.longitude.toStringAsFixed(5)}]'),
+                                    ),
+                                  ],
+                                ),
+                                pw.SizedBox(height: 3),
+                                _buildInfoRow(chivoFont, 'Aktivitas Teramati:', obs.aktivitasTermati ?? '-'),
+
+                                // Tambahan pelapor jika ada
+                                if (obs.reporterNama != null) ...[
+                                  pw.SizedBox(height: 3),
+                                  _buildInfoRow(chivoFont, 'Petugas Lapangan:', obs.reporterNama!),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      pw.SizedBox(width: 16),
-                      // Kolom Kanan: Detail Informasi
-                      pw.Expanded(
+                      // Catatan Habitat diletakkan di bawah (di luar Row utama)
+                      pw.SizedBox(height: 8),
+                      pw.Container(
+                        width: double.infinity,
+                        padding: const pw.EdgeInsets.all(6),
+                        decoration: const pw.BoxDecoration(
+                          color: PdfColors.grey100,
+                          borderRadius: pw.BorderRadius.all(pw.Radius.circular(4)),
+                        ),
                         child: pw.Column(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
-                            // Nama Spesies & Lokal
-                            pw.Row(
-                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: pw.CrossAxisAlignment.start,
-                              children: [
-                                pw.Expanded(
-                                  child: pw.Column(
-                                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                                    children: [
-                                      pw.Text(
-                                        obs.namaSpesies,
-                                        style: pw.TextStyle(
-                                          font: vollkornItalicFont,
-                                          fontSize: 13,
-                                          fontWeight: pw.FontWeight.bold,
-                                          color: PdfColors.green900,
-                                        ),
-                                      ),
-                                      pw.SizedBox(height: 2),
-                                      pw.Text(
-                                        'Nama Lokal: ${obs.namaLokal ?? '-'}',
-                                        style: pw.TextStyle(
-                                          font: chivoFont,
-                                          fontSize: 10,
-                                          fontWeight: pw.FontWeight.bold,
-                                          color: PdfColors.grey800,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // Badge Status Approval
-                                pw.Container(
-                                  padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: pw.BoxDecoration(
-                                    color: statusBgColor,
-                                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
-                                    border: pw.Border.all(color: statusColor, width: 0.5),
-                                  ),
-                                  child: pw.Text(
-                                    statusLabel,
-                                    style: pw.TextStyle(
-                                      font: chivoFont,
-                                      fontSize: 6.5,
-                                      fontWeight: pw.FontWeight.bold,
-                                      color: statusColor,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            pw.SizedBox(height: 6),
-                            pw.Divider(thickness: 0.5, color: PdfColors.grey200),
-                            pw.SizedBox(height: 4),
-
-                            // Telemetri data dalam grid-like layout
-                            pw.Row(
-                              children: [
-                                pw.Expanded(
-                                  flex: 5,
-                                  child: _buildInfoRow(chivoFont, 'Divisi/Takson:', obs.kategoriTakson),
-                                ),
-                                pw.Expanded(
-                                  flex: 4,
-                                  child: _buildInfoRow(chivoFont, 'Jumlah:', '${obs.jumlahIndividu ?? 1} individu'),
-                                ),
-                              ],
+                            pw.Text(
+                              'Catatan Habitat:',
+                              style: pw.TextStyle(
+                                font: chivoFont,
+                                fontSize: 8.5,
+                                fontWeight: pw.FontWeight.bold,
+                                color: PdfColors.grey800,
+                              ),
                             ),
                             pw.SizedBox(height: 3),
-                            pw.Row(
-                              children: [
-                                pw.Expanded(
-                                  flex: 5,
-                                  child: _buildInfoRow(chivoFont, 'Waktu Pengamatan:', dateStr),
+                            ...parseCatatanHabitat(obs.catatanHabitat).map((line) {
+                              return pw.Padding(
+                                padding: const pw.EdgeInsets.only(top: 2),
+                                child: pw.Text(
+                                  line,
+                                  style: pw.TextStyle(
+                                    font: chivoFont,
+                                    fontSize: 8,
+                                    color: PdfColors.grey900,
+                                  ),
                                 ),
-                                pw.Expanded(
-                                  flex: 4,
-                                  child: _buildInfoRow(chivoFont, 'Koordinat:', '[${obs.latitude.toStringAsFixed(5)}, ${obs.longitude.toStringAsFixed(5)}]'),
-                                ),
-                              ],
-                            ),
-                            pw.SizedBox(height: 3),
-                            _buildInfoRow(chivoFont, 'Aktivitas Teramati:', obs.aktivitasTermati ?? '-'),
-                            pw.SizedBox(height: 3),
-                            _buildInfoRow(chivoFont, 'Catatan Habitat:', obs.catatanHabitat ?? '-'),
-
-                            // Tambahan pelapor jika ada
-                            if (obs.reporterNama != null) ...[
-                              pw.SizedBox(height: 3),
-                              _buildInfoRow(chivoFont, 'Petugas Lapangan:', obs.reporterNama!),
-                            ],
+                              );
+                            }),
                           ],
                         ),
                       ),
+                      pw.SizedBox(height: 12),
                     ],
                   ),
                 ),
@@ -545,6 +649,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
                   maxPageWidth: 700,
                   canChangePageFormat: false,
                   canChangeOrientation: false,
+                  canDebug: false,
                   pdfFileName: 'Laporan_Observasi_${widget.divisi.replaceAll(' ', '_')}.pdf',
                   loadingWidget: const Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
@@ -552,4 +657,24 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
                 ),
     );
   }
+}
+
+List<String> parseCatatanHabitat(String? catatan) {
+  if (catatan == null || catatan.isEmpty) return [];
+  
+  // 1. Ganti semua "|" dengan newline agar lebih mudah displit
+  String clean = catatan.replaceAll('|', '\n');
+  
+  // 2. Deteksi kata kunci umum dan tambahkan newline sebelumnya
+  final keywords = ['Status:', 'Habitat:', 'Posisi:', 'Veg:', 'Note:', 'Vegetasi:', 'Catatan:'];
+  for (final kw in keywords) {
+    clean = clean.replaceAll(' $kw', '\n$kw');
+  }
+  
+  // 3. Split berdasarkan newline, lalu trim masing-masing baris
+  return clean
+      .split('\n')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
 }
