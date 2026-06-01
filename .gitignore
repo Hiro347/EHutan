@@ -56,6 +56,8 @@ ehthumbs_vista.db
 Desktop.ini
 $RECYCLE.BIN/
 
+*.pdf
+
 
 *.log
 *.sqlite
