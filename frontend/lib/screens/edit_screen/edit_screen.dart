@@ -59,10 +59,8 @@ class _EditScreenState extends ConsumerState<EditScreen> {
     _lokalController.text = obs.namaLokal ?? '';
     _jumlahController.text = obs.jumlahIndividu?.toString() ?? '1';
     _kategoriTakson = obs.kategoriTakson;
-    
-    if (obs.fotoUrl.isNotEmpty) {
-      _fotoPath = obs.fotoUrl;
-    } else if (obs.localFotoPath != null) {
+    _existingFotoUrl = obs.fotoUrl;
+    if (obs.localFotoPath != null && obs.localFotoPath!.isNotEmpty) {
       _fotoPath = obs.localFotoPath;
     }
 
@@ -110,6 +108,7 @@ class _EditScreenState extends ConsumerState<EditScreen> {
   }
 
   String? _fotoPath;
+  String _existingFotoUrl = '';
   bool _isLoading = false;
 
   // --- AI STATE ---
@@ -406,16 +405,6 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       final latParsed = double.tryParse(_latController.text) ?? widget.observation.latitude;
       final lngParsed = double.tryParse(_lngController.text) ?? widget.observation.longitude;
 
-      String localFoto = '';
-      String existingFoto = '';
-      if (_fotoPath != null) {
-        if (_fotoPath!.startsWith('http')) {
-          existingFoto = _fotoPath!;
-        } else {
-          localFoto = _fotoPath!;
-        }
-      }
-
       await ref
           .read(localObservationProvider.notifier)
           .updateObservation(
@@ -426,8 +415,8 @@ class _EditScreenState extends ConsumerState<EditScreen> {
             latitude: latParsed,
             longitude: lngParsed,
             waktuPengamatan: finalWaktu,
-            localFotoPath: localFoto,
-            existingFotoUrl: existingFoto,
+            localFotoPath: _fotoPath ?? '',
+            existingFotoUrl: _existingFotoUrl,
             jumlahIndividu: int.tryParse(_jumlahController.text),
             aktivitasTermati: aktivitasFinal,
             catatanHabitat:
@@ -741,17 +730,20 @@ class _EditScreenState extends ConsumerState<EditScreen> {
                       child: _fotoPath != null
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: _fotoPath!.startsWith('http')
-                                  ? Image.network(
-                                      _fotoPath!,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Image.file(
-                                      File(_fotoPath!),
-                                      fit: BoxFit.cover,
-                                    ),
+                              child: Image.file(
+                                File(_fotoPath!),
+                                fit: BoxFit.cover,
+                              ),
                             )
-                          : const Column(
+                          : _existingFotoUrl.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    resolveSupabaseFotoUrl(_existingFotoUrl) ?? '',
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
@@ -774,7 +766,7 @@ class _EditScreenState extends ConsumerState<EditScreen> {
                     ),
                   ),
                 ),
-                if (_fotoPath != null) ...[
+                if (_fotoPath != null || _existingFotoUrl.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Row(
                     children: [
@@ -784,7 +776,7 @@ class _EditScreenState extends ConsumerState<EditScreen> {
                         label: const Text('Ganti Foto'),
                       ),
                       const Spacer(),
-                      if (_aiSuggestion != null && !_isAiLoading)
+                      if (_aiSuggestion != null && !_isAiLoading && _fotoPath != null)
                         TextButton.icon(
                           onPressed: () => _runAiIdentification(_fotoPath!),
                           icon: const Icon(Icons.auto_awesome, size: 18),

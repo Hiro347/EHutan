@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 
 class ImagePreprocessor {
-  static const int _maxDimension = 1280;
+  static const int _maxDimension = 800;
 
   static Uint8List enhance(Uint8List rawBytes) {
     try {
@@ -20,7 +20,7 @@ class ImagePreprocessor {
       image = img.normalize(image, min: 0, max: 255);
       image = _applySharpen(image);
 
-      return Uint8List.fromList(img.encodeJpg(image, quality: 90));
+      return Uint8List.fromList(img.encodeJpg(image, quality: 75));
     } catch (_) {
       return rawBytes;
     }
