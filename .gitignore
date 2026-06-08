@@ -40,6 +40,8 @@ frontend/android/gradle.properties
 *.iml
 *.ipr
 *.iws
+.antigravitycli
+
 
 
 .DS_Store

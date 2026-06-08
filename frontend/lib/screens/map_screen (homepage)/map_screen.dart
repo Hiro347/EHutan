@@ -1536,4 +1536,5 @@ Future<Uint8List> _renderMarkerImage(_MarkerRenderData data) async {
   final img = await picture.toImage(width.toInt(), height.toInt());
   final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
   return byteData!.buffer.asUint8List();
+
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../login_screen/login_screen.dart';
+
 import 'package:intl/intl.dart';
 
 class OrganizationScreen extends StatefulWidget {

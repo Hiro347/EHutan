@@ -96,6 +96,7 @@ class _SpeciesCardState extends State<SpeciesCard>
     if (widget.isOwnData) {
       return Stack(
         clipBehavior: Clip.none,
+        fit: StackFit.expand,
         children: [
           cardWidget,
           Positioned(
