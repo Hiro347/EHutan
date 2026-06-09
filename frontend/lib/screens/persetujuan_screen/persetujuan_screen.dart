@@ -6,6 +6,7 @@ import '../../services/persetujuan_service.dart';
 import '../../widgets/observation_card.dart';
 import '../../utils/constants.dart';
 import '../../providers/observation_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import 'persetujuan_detail_sheet.dart';
 
 class PersetujuanScreen extends ConsumerStatefulWidget {
@@ -75,6 +76,17 @@ class _PersetujuanScreenState extends ConsumerState<PersetujuanScreen> {
       _loadData();
     });
 
+    ref.listen<AsyncValue<bool>>(connectivityProvider, (previous, current) {
+      if (previous == null || previous.isLoading) return;
+      final wasOnline = previous.value ?? true;
+      final nowOnline = current.value ?? true;
+
+      // Jika dari offline menjadi online, otomatis ambil ulang data
+      if (!wasOnline && nowOnline) {
+        _loadData();
+      }
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F2),
       appBar: AppBar(
@@ -104,17 +116,58 @@ class _PersetujuanScreenState extends ConsumerState<PersetujuanScreen> {
     }
 
     if (_error != null) {
+      final isOffline = _error!.contains('SocketException') ||
+          _error!.contains('NetworkImage') ||
+          _error!.contains('ClientException') ||
+          _error!.contains('host');
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Terjadi kesalahan:\n$_error', textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadData,
-              child: const Text('Coba Lagi'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isOffline ? Icons.wifi_off_rounded : Icons.error_outline_rounded,
+                size: 64,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isOffline ? 'Koneksi Terputus' : 'Terjadi Kesalahan',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A2400),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isOffline
+                    ? 'Halaman persetujuan memerlukan koneksi internet untuk memuat data dari server. Silakan hubungkan perangkat Anda ke internet lalu coba lagi.'
+                    : 'Gagal memuat data: $_error',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _loadData,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Coba Lagi'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
