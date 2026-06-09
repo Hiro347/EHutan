@@ -12,6 +12,7 @@ import '../../utils/constants.dart';
 import '../login_screen/login_screen.dart';
 import '../organization_screen/organization_screen.dart';
 import '../../providers/observation_provider.dart';
+import '../../utils/custom_toast.dart';
 
 class ProfilScreen extends ConsumerWidget {
   const ProfilScreen({super.key});
@@ -95,9 +96,7 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
   Future<void> _saveName() async {
     final trimmed = _nameCtrl.text.trim();
     if (trimmed.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Nama tidak boleh kosong')));
+      CustomToast.show(context, 'Nama tidak boleh kosong', isError: true);
       return;
     }
     setState(() => _isSavingName = true);
@@ -105,21 +104,11 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
       await ref.read(profileProvider.notifier).updateFullName(trimmed);
       if (mounted) {
         setState(() => _isEditingName = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nama berhasil diperbarui ✅'),
-            backgroundColor: AppColors.statusTerverifikasi,
-          ),
-        );
+        CustomToast.show(context, 'Nama berhasil diperbarui ✅');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal: $e'),
-            backgroundColor: AppColors.statusRevisi,
-          ),
-        );
+        CustomToast.show(context, 'Gagal: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isSavingName = false);
@@ -197,21 +186,11 @@ class _ProfilContentState extends ConsumerState<_ProfilContent> {
         setState(() {
           _avatarCacheBuster = DateTime.now().millisecondsSinceEpoch.toString();
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Foto profil berhasil diperbarui 🎉'),
-            backgroundColor: AppColors.statusTerverifikasi,
-          ),
-        );
+        CustomToast.show(context, 'Foto profil berhasil diperbarui 🎉');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal upload foto: $e'),
-            backgroundColor: AppColors.statusRevisi,
-          ),
-        );
+        CustomToast.show(context, 'Gagal upload foto: $e', isError: true);
       }
     }
   }

@@ -39,13 +39,22 @@ class SyncService {
             try {
               await _supabase.storage
                   .from('Foto_Observasi')
-                  .upload(storagePath, fotoFile);
+                  .upload(
+                    storagePath,
+                    fotoFile,
+                    fileOptions: const FileOptions(upsert: true),
+                  );
               storageUrl = storagePath;
               fotoUploaded = true;
             } catch (e) {
               debugPrint('Upload foto gagal [${item['id']}]: $e');
-              // Foto gagal upload — tetap sync data tapi jangan hapus file lokal
+              // Batalkan sync item ini agar dicoba kembali nanti
+              continue;
             }
+          } else {
+            debugPrint('File foto lokal tidak ditemukan untuk [${item['id']}]: $localFotoPath');
+            // Jika file fisik hilang, batalkan sync agar tidak merusak data di server
+            continue;
           }
         }
 

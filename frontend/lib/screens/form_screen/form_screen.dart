@@ -11,6 +11,7 @@ import '../../models/observation.dart';
 import '../../providers/observation_provider.dart';
 import '../../services/ai_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/custom_toast.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'map_picker_screen.dart';
 
@@ -177,6 +178,8 @@ class _FormScreenState extends ConsumerState<FormScreen> {
     'DK Reptil Amfibi',
     'DK Insekta',
     'DK Fauna Perairan',
+    'DK Eksitu',
+    'DK Flora',
   ];
 
   String _statusKesehatan = 'Sehat';
@@ -350,12 +353,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(e.toString().replaceAll('Exception: ', '')),
-                        backgroundColor: Colors.red.shade700,
-                      ),
-                    );
+                    CustomToast.show(context, e.toString().replaceAll('Exception: ', ''), isError: true);
                   }
                 }
               },
@@ -378,12 +376,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(e.toString().replaceAll('Exception: ', '')),
-                        backgroundColor: Colors.red.shade700,
-                      ),
-                    );
+                    CustomToast.show(context, e.toString().replaceAll('Exception: ', ''), isError: true);
                   }
                 }
               },
@@ -442,9 +435,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
     setState(() => _aiApplied = true);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Form terisi dari saran AI ✨')),
-    );
+    CustomToast.show(context, 'Form terisi dari saran AI ✨');
   }
 
   String? _mapTaxonomyToDivisi(AiSuggestion s) {
@@ -500,12 +491,10 @@ class _FormScreenState extends ConsumerState<FormScreen> {
       );
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Format tanggal/waktu salah! (Gunakan YYYY-MM-DD dan HH:MM)',
-            ),
-          ),
+        CustomToast.show(
+          context,
+          'Format tanggal/waktu salah! (Gunakan YYYY-MM-DD dan HH:MM)',
+          isError: true,
         );
         setState(() => _isLoading = false);
       }
@@ -557,11 +546,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
         if (mounted) {
           Navigator.pop(context, true); // true = ada perubahan
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Observasi diperbarui! Menunggu verifikasi ulang ✏️'),
-            ),
-          );
+          CustomToast.show(context, 'Observasi diperbarui! Menunggu verifikasi ulang ✏️');
         }
       } else {
         // ── MODE TAMBAH BARU ──
@@ -583,16 +568,12 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
         if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tally Sheet Tersimpan! 📝')),
-          );
+          CustomToast.show(context, 'Tally Sheet Tersimpan! 📝');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal: $e')),
-        );
+        CustomToast.show(context, 'Gagal: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -760,15 +741,11 @@ class _FormScreenState extends ConsumerState<FormScreen> {
                           zoom: 15.0,
                         ));
                         _updateMiniMapMarker(pos.longitude, pos.latitude);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Lokasi diperbarui ke GPS Terkini! 📍')),
-                        );
+                        CustomToast.show(context, 'Lokasi diperbarui ke GPS Terkini! 📍');
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Gagal mendapatkan GPS: $e')),
-                        );
+                        CustomToast.show(context, 'Gagal mendapatkan GPS: $e', isError: true);
                       }
                     }
                   },

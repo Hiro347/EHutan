@@ -9,6 +9,7 @@ import '../../services/koleksi_service.dart';
 import '../../services/sqlite_service.dart';
 import '../../widgets/species_card.dart';
 import '../../utils/constants.dart';
+import '../../utils/custom_toast.dart';
 import 'observation_detail_sheet.dart';
 import 'pdf_preview_screen.dart';
 
@@ -61,17 +62,25 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
       _myError = null;
     });
     try {
-      // 1. Ambil draft lokal dari SQLite (termasuk yang belum sync) khusus untuk user yang sedang login
+      // 1. Ambil draf lokal dari SQLite (termasuk yang belum sync) khusus untuk user yang sedang login
       final user = Supabase.instance.client.auth.currentUser;
-      final localData = user != null
-          ? await SqliteService().getObservasiByUser(user.id)
-          : await SqliteService().getAllObservasi();
+      if (user == null) {
+        setState(() {
+          _myObservations = [];
+          _myLoading = false;
+        });
+        return;
+      }
+
+      final localData = await SqliteService().getObservasiByUser(user.id);
       final localObs = localData.map((e) => Observation.fromSQLite(e)).toList();
 
       // 2. Ambil data dari Supabase (observasi saya yang sudah sync)
       List<Observation> remoteObs = [];
+      bool fetchSuccess = false;
       try {
         remoteObs = await _service.fetchObservasiSaya();
+        fetchSuccess = true;
       } catch (_) {
         // Offline — lanjut pakai data lokal saja
       }
@@ -81,14 +90,22 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
       final remoteMap = {for (var o in remoteObs) o.id: o};
 
       for (final local in localObs) {
-        if (local.isSynced && remoteMap.containsKey(local.id)) {
-          // Jika sudah sync, data dari server (remote) lebih up to date (misal verifikasi admin)
-          merged.add(remoteMap[local.id]!);
-          remoteMap.remove(local.id);
+        if (local.isSynced) {
+          if (remoteMap.containsKey(local.id)) {
+            // Jika sudah sync, data dari server (remote) lebih up to date
+            merged.add(remoteMap[local.id]!);
+            remoteMap.remove(local.id);
+          } else if (fetchSuccess) {
+            // Jika berhasil fetch dari remote tapi tidak ada di remote, berarti sudah dihapus dari server!
+            // Hapus dari SQLite lokal
+            await SqliteService().deleteObservasi(local.id);
+          } else {
+            // Jika fetch gagal (offline), pertahankan data lokal
+            merged.add(local);
+          }
         } else {
-          // Jika belum sync (baru/edit lokal) ATAU tidak ada di server
+          // Jika belum sync (baru/edit lokal)
           merged.add(local);
-          remoteMap.remove(local.id);
         }
       }
       
@@ -410,7 +427,64 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
-    if (_ukfError != null) return Center(child: Text(_ukfError!));
+    if (_ukfError != null) {
+      final isOffline = _ukfError!.contains('SocketException') ||
+          _ukfError!.contains('NetworkImage') ||
+          _ukfError!.contains('ClientException') ||
+          _ukfError!.contains('host');
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isOffline ? Icons.wifi_off_rounded : Icons.error_outline_rounded,
+                size: 64,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isOffline ? 'Koneksi Terputus' : 'Terjadi Kesalahan',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A2400),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isOffline
+                    ? 'Tidak ada koneksi internet untuk memuat data UKF. Silakan hubungkan perangkat ke internet lalu coba lagi.'
+                    : 'Gagal memuat data: $_ukfError',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => _loadUKFObservations(
+                  query: _searchQuery.isEmpty ? null : _searchQuery,
+                ),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Coba Lagi'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -585,9 +659,7 @@ class _KoleksiScreenState extends ConsumerState<KoleksiScreen>
     } else if (profile.role == 'Kordinator_Divisi') {
       final divisi = profile.divisiTakson;
       if (divisi == null || divisi.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: Anda tidak memiliki divisi yang ditugaskan.')),
-        );
+        CustomToast.show(context, 'Error: Anda tidak memiliki divisi yang ditugaskan.', isError: true);
         return;
       }
       _navigateToPdfPreview(divisi, profile.fullName ?? 'Kordinator Divisi');

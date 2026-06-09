@@ -150,23 +150,27 @@ class _PersetujuanDetailSheetState
     }
   }
 
-  Future<void> _confirmDelete() async {
+  Future<void> _deleteObservationWithConfirmation({required bool isVerificationAction}) async {
+    final title = isVerificationAction ? 'Hapus Observasi?' : 'Batalkan Observasi?';
+    final content = isVerificationAction
+        ? 'Apakah Anda yakin ingin menghapus observasi ini? Data akan dihapus secara permanen dari server dan lokal.'
+        : 'Apakah Anda yakin ingin membatalkan observasi ini? Data akan dihapus permanen.';
+    final buttonText = isVerificationAction ? 'Ya, Hapus' : 'Ya, Batalkan';
+
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Batalkan Observasi?'),
-        content: const Text(
-          'Apakah Anda yakin ingin membatalkan observasi ini? Data akan dihapus permanen.',
-        ),
+        title: Text(title),
+        content: Text(content),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Tidak'),
+            child: const Text('Batal'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Ya, Batalkan'),
+            child: Text(buttonText),
           ),
         ],
       ),
@@ -179,12 +183,16 @@ class _PersetujuanDetailSheetState
             .read(localObservationProvider.notifier)
             .deleteObservation(widget.observation.id);
         if (!mounted) return;
-        _showTopBanner(context, 'Observasi berhasil dibatalkan', true);
+        _showTopBanner(
+          context,
+          isVerificationAction ? 'Observasi berhasil dihapus' : 'Observasi berhasil dibatalkan',
+          true,
+        );
         Navigator.pop(context);
         widget.onRefresh();
       } catch (e) {
         if (!mounted) return;
-        _showTopBanner(context, 'Gagal membatalkan: $e', false);
+        _showTopBanner(context, 'Gagal menghapus: $e', false);
         setState(() => _isSubmitting = false);
       }
     }
@@ -227,6 +235,11 @@ class _PersetujuanDetailSheetState
         widget.observation.statusApproval == 'MENUNGGU_VERIFIKASI') {
       canCancel = true;
     }
+
+    final bool isVerifyingCoordinatorOrAdmin = widget.userProfile.canVerify &&
+        widget.observation.statusApproval == 'MENUNGGU_VERIFIKASI' &&
+        (widget.userProfile.isAdmin ||
+            widget.userProfile.divisiTakson == widget.observation.kategoriTakson);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
@@ -423,11 +436,7 @@ class _PersetujuanDetailSheetState
               ),
 
               // Action Buttons
-              if ((widget.userProfile.canVerify &&
-                      widget.observation.statusApproval ==
-                          'MENUNGGU_VERIFIKASI') ||
-                  canEdit ||
-                  canCancel)
+              if (isVerifyingCoordinatorOrAdmin || canEdit || canCancel)
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -440,136 +449,182 @@ class _PersetujuanDetailSheetState
                       ),
                     ],
                   ),
-                  child: Row(
-                    children: [
-                      if (canCancel) ...[
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _isSubmitting ? null : _confirmDelete,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.redAccent,
-                              side: const BorderSide(color: Colors.redAccent),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'Batal',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                        if (canEdit ||
-                            (widget.userProfile.canVerify &&
-                                widget.observation.statusApproval ==
-                                    'MENUNGGU_VERIFIKASI'))
-                          const SizedBox(width: 8),
-                      ],
-                      if (canEdit) ...[
-                        Expanded(
-                          child: widget.observation.statusApproval == 'PERLU_DIREVISI' &&
-                                  widget.userProfile.id == widget.observation.idPetugas
-                              ? ElevatedButton.icon(
-                                  onPressed: _isSubmitting ? null : _navigateToEdit,
-                                  icon: const Icon(Icons.edit_note_rounded, size: 20),
-                                  label: const Text(
-                                    'Edit & Ajukan Kembali',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
+                  child: isVerifyingCoordinatorOrAdmin
+                      ? Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _isSubmitting
+                                        ? null
+                                        : () => _deleteObservationWithConfirmation(
+                                            isVerificationAction: true),
+                                    icon: const Icon(Icons.delete_outline, size: 18),
+                                    label: const Text(
+                                      'Hapus',
+                                      style: TextStyle(fontWeight: FontWeight.bold),
                                     ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.orange.shade700,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                )
-                              : OutlinedButton.icon(
-                                  onPressed: _isSubmitting ? null : _navigateToEdit,
-                                  icon: const Icon(Icons.edit, size: 18),
-                                  label: const Text(
-                                    'Edit',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    side: const BorderSide(color: Colors.white54),
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.redAccent,
+                                      side: const BorderSide(color: Colors.redAccent),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   ),
                                 ),
-                        ),
-                        if (widget.userProfile.canVerify &&
-                            widget.observation.statusApproval ==
-                                'MENUNGGU_VERIFIKASI')
-                          const SizedBox(width: 8),
-                      ],
-                      if (widget.userProfile.canVerify &&
-                          widget.observation.statusApproval ==
-                              'MENUNGGU_VERIFIKASI') ...[
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _isSubmitting
-                                ? null
-                                : () => _updateStatus('PERLU_DIREVISI'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white54),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'Revisi',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton(
-                            onPressed: _isSubmitting
-                                ? null
-                                : () => _updateStatus('TERVERIFIKASI'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.statusTerverifikasi,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: _isSubmitting
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _isSubmitting ? null : _navigateToEdit,
+                                    icon: const Icon(Icons.edit, size: 18),
+                                    label: const Text(
+                                      'Edit',
+                                      style: TextStyle(fontWeight: FontWeight.bold),
                                     ),
-                                  )
-                                : const Text(
-                                    'Setujui',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      side: const BorderSide(color: Colors.white54),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   ),
-                          ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: _isSubmitting
+                                        ? null
+                                        : () => _updateStatus('PERLU_DIREVISI'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      side: const BorderSide(color: Colors.white70),
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Revisi',
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  flex: 2,
+                                  child: ElevatedButton(
+                                    onPressed: _isSubmitting
+                                        ? null
+                                        : () => _updateStatus('TERVERIFIKASI'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.statusTerverifikasi,
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: _isSubmitting
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Setujui',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            if (canCancel) ...[
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : () => _deleteObservationWithConfirmation(
+                                          isVerificationAction: false),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.redAccent,
+                                    side: const BorderSide(color: Colors.redAccent),
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Batal',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                              if (canEdit) const SizedBox(width: 8),
+                            ],
+                            if (canEdit) ...[
+                              Expanded(
+                                child: widget.observation.statusApproval == 'PERLU_DIREVISI' &&
+                                        widget.userProfile.id == widget.observation.idPetugas
+                                    ? ElevatedButton.icon(
+                                        onPressed: _isSubmitting ? null : _navigateToEdit,
+                                        icon: const Icon(Icons.edit_note_rounded, size: 20),
+                                        label: const Text(
+                                          'Edit & Ajukan Kembali',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.orange.shade700,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          elevation: 2,
+                                        ),
+                                      )
+                                    : OutlinedButton.icon(
+                                        onPressed: _isSubmitting ? null : _navigateToEdit,
+                                        icon: const Icon(Icons.edit, size: 18),
+                                        label: const Text(
+                                          'Edit',
+                                          style: TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: Colors.white,
+                                          side: const BorderSide(color: Colors.white54),
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                            ],
+                          ],
                         ),
-                      ],
-                    ],
-                  ),
                 ),
             ],
           ),

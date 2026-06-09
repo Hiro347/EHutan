@@ -51,6 +51,7 @@ class AppStrings {
     'DK Insekta',
     'DK Fauna Perairan',
     'DK Eksitu',
+    'DK Flora',
   ];
 }
 
@@ -132,6 +133,7 @@ Color markerColorForTakson(String takson) {
   final t = takson.toLowerCase();
   if (t.contains('burung')) return AppColors.markerBurung;
   if (t.contains('eksitu')) return AppColors.markerFlora;
+  if (t.contains('flora')) return AppColors.markerFlora;
   if (t.contains('reptil') || t.contains('amfibi')) {
     return AppColors.markerReptil;
   }
@@ -157,5 +159,6 @@ String markerEmojiForTakson(String takson) {
   if (t.contains('fauna perairan')) return '🐟';
   if (t.contains('insekta')) return '🦋';
   if (t.contains('eksitu')) return '🌿';
+  if (t.contains('flora')) return '🌱';
   return '📍';
 }

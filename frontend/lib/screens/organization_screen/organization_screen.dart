@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:intl/intl.dart';
+import '../../utils/custom_toast.dart';
 
 class OrganizationScreen extends StatefulWidget {
   const OrganizationScreen({super.key});
@@ -65,13 +66,20 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
     ).then((_) => _fetchUsers());
   }
 
-  Future<void> _deleteUser(String id) async {
+  Future<void> _toggleUserStatus(String id, String name, bool currentStatus) async {
+    if (id == _supabase.auth.currentUser?.id) {
+      CustomToast.show(context, 'Anda tidak dapat menonaktifkan akun sendiri', isError: true);
+      return;
+    }
+    final newStatus = !currentStatus;
+    final actionText = newStatus ? 'mengaktifkan' : 'menonaktifkan';
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Pengguna'),
-        content: const Text(
-          'Yakin ingin menghapus pengguna ini? (Data profil akan dihapus)',
+        title: Text('${newStatus ? 'Aktifkan' : 'Nonaktifkan'} Pengguna'),
+        content: Text(
+          'Yakin ingin $actionText pengguna "$name"?\n\n'
+          '${newStatus ? "Pengguna akan dapat login dan menggunakan aplikasi kembali." : "Pengguna tidak akan bisa login atau mengakses aplikasi."}',
         ),
         actions: [
           TextButton(
@@ -80,7 +88,66 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            child: Text(
+              newStatus ? 'Aktifkan' : 'Nonaktifkan',
+              style: TextStyle(color: newStatus ? Colors.green : Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await _supabase.from('profiles').update({'status_aktivitas': newStatus}).eq('id', id);
+      if (mounted) {
+        CustomToast.show(
+          context, 
+          'Pengguna berhasil ${newStatus ? 'diaktifkan' : 'dinonaktifkan'}'
+        );
+        _fetchUsers();
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomToast.show(context, 'Gagal memproses: $e', isError: true);
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _deleteUserPermanently(String id, String name) async {
+    if (id == _supabase.auth.currentUser?.id) {
+      CustomToast.show(context, 'Anda tidak dapat menghapus akun sendiri', isError: true);
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Hapus Permanen Pengguna',
+          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Yakin ingin menghapus pengguna "$name" secara permanen?\n\n'
+          'Peringatan: Tindakan ini tidak dapat dibatalkan. Seluruh data berikut akan terhapus selamanya:\n'
+          '- Akun login pengguna\n'
+          '- Profil pengguna\n'
+          '- SEMUA data observasi yang dikirim oleh pengguna ini.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Hapus Permanen',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -92,16 +159,12 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
     try {
       await _supabase.from('profiles').delete().eq('id', id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pengguna berhasil dihapus')),
-        );
+        CustomToast.show(context, 'Pengguna dan seluruh data terkait berhasil dihapus permanen');
         _fetchUsers();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal menghapus: $e')));
+        CustomToast.show(context, 'Gagal menghapus: $e', isError: true);
         setState(() => _isLoading = false);
       }
     }
@@ -153,10 +216,35 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
                 final divisi = user['divisi_takson'] ?? '';
                 final roleText = divisi.isNotEmpty ? '$role ($divisi)' : role;
 
+                final isActive = user['status_aktivitas'] ?? true;
                 return ListTile(
-                  title: Text(user['nama_lengkap'] ?? 'Tanpa Nama'),
+                  title: Text.rich(
+                    TextSpan(
+                      text: user['nama_lengkap'] ?? 'Tanpa Nama',
+                      style: TextStyle(
+                        color: isActive ? Colors.black : Colors.grey.shade500,
+                        fontWeight: FontWeight.bold,
+                        decoration: isActive ? null : TextDecoration.lineThrough,
+                      ),
+                      children: [
+                        if (!isActive)
+                          const TextSpan(
+                            text: ' (Nonaktif)',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                   subtitle: Text(
                     '$roleText\nEmail: $email\nLogin: ${_timeAgo(user['last_login'])}',
+                    style: TextStyle(
+                      color: isActive ? Colors.black87 : Colors.grey.shade400,
+                    ),
                   ),
                   isThreeLine: true,
                   trailing: Row(
@@ -168,9 +256,26 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
                         tooltip: 'Edit',
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteUser(user['id']),
-                        tooltip: 'Hapus',
+                        icon: Icon(
+                          isActive
+                              ? Icons.block_flipped
+                              : Icons.check_circle_outline_rounded,
+                          color: isActive ? Colors.orange : Colors.green,
+                        ),
+                        onPressed: () => _toggleUserStatus(
+                          user['id'],
+                          user['nama_lengkap'] ?? '',
+                          isActive,
+                        ),
+                        tooltip: isActive ? 'Nonaktifkan' : 'Aktifkan',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+                        onPressed: () => _deleteUserPermanently(
+                          user['id'],
+                          user['nama_lengkap'] ?? '',
+                        ),
+                        tooltip: 'Hapus Permanen',
                       ),
                     ],
                   ),
@@ -201,6 +306,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
   String? _selectedDivisi;
   bool _isLoading = false;
   bool _obscurePassword = true;
+  late bool _statusAktivitas;
 
   final List<String> _roles = [
     'Petugas_Lapangan',
@@ -216,6 +322,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
     'DK Insekta',
     'DK Fauna Perairan',
     'DK Eksitu',
+    'DK Flora',
   ];
 
   @override
@@ -227,6 +334,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
     if (_selectedRole != 'Kordinator_Divisi') {
       _selectedDivisi = null;
     }
+    _statusAktivitas = widget.user['status_aktivitas'] ?? true;
   }
 
   @override
@@ -258,6 +366,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
       final updateData = <String, dynamic>{
         'nama_lengkap': _nameCtrl.text.trim(),
         'role': _selectedRole,
+        'status_aktivitas': _statusAktivitas,
       };
 
       if (_selectedRole == 'Kordinator_Divisi' && _selectedDivisi != null) {
@@ -273,15 +382,12 @@ class _EditUserDialogState extends State<_EditUserDialog> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Berhasil diperbarui')));
+        CustomToast.show(context, 'Berhasil diperbarui');
       }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal: $e')));
+      if (mounted) {
+        CustomToast.show(context, 'Gagal: $e', isError: true);
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -351,6 +457,23 @@ class _EditUserDialogState extends State<_EditUserDialog> {
                 validator: (v) =>
                     v!.isNotEmpty && v.length < 6 ? 'Minimal 6 karakter' : null,
               ),
+              const Divider(height: 24),
+              SwitchListTile(
+                title: const Text('Status Aktivitas'),
+                subtitle: Text(
+                  _statusAktivitas ? 'Aktif' : 'Nonaktif (Tidak bisa login)',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                value: _statusAktivitas,
+                activeThumbColor: const Color(0xFF0D5C1E),
+                activeTrackColor: const Color(0xFF0D5C1E).withValues(alpha: 0.5),
+                contentPadding: EdgeInsets.zero,
+                onChanged: (val) {
+                  setState(() {
+                    _statusAktivitas = val;
+                  });
+                },
+              ),
             ],
           ),
         ),
@@ -401,6 +524,7 @@ class _AddUserDialogState extends State<_AddUserDialog> {
     'DK Insekta',
     'DK Fauna Perairan',
     'DK Eksitu',
+    'DK Flora',
   ];
 
   Future<void> _createUser() async {
@@ -445,15 +569,12 @@ class _AddUserDialogState extends State<_AddUserDialog> {
 
       if (mounted) {
         Navigator.pop(context); // Menutup dialog tambah user
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Akun berhasil dibuat!')),
-        );
+        CustomToast.show(context, 'Akun berhasil dibuat!');
       }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        CustomToast.show(context, 'Error: $e', isError: true);
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

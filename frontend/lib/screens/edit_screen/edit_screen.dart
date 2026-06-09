@@ -7,6 +7,7 @@ import '../../models/ai_suggestion.dart';
 import '../../providers/observation_provider.dart';
 import '../../services/ai_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/custom_toast.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import '../../models/observation.dart';
 
@@ -127,6 +128,8 @@ class _EditScreenState extends ConsumerState<EditScreen> {
     'DK Reptil Amfibi',
     'DK Insekta',
     'DK Fauna Perairan',
+    'DK Eksitu',
+    'DK Flora',
   ];
 
   String _statusKesehatan = 'Sehat';
@@ -315,9 +318,7 @@ class _EditScreenState extends ConsumerState<EditScreen> {
 
     setState(() => _aiApplied = true);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Form terisi dari saran AI ✨')),
-    );
+    CustomToast.show(context, 'Form terisi dari saran AI ✨');
   }
 
   String? _mapTaxonomyToDivisi(AiSuggestion s) {
@@ -371,12 +372,10 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       );
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Format tanggal/waktu salah! (Gunakan YYYY-MM-DD dan HH:MM)',
-            ),
-          ),
+        CustomToast.show(
+          context,
+          'Format tanggal/waktu salah! (Gunakan YYYY-MM-DD dan HH:MM)',
+          isError: true,
         );
         setState(() => _isLoading = false);
       }
@@ -426,15 +425,12 @@ class _EditScreenState extends ConsumerState<EditScreen> {
 
       if (mounted) {
         Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Perubahan Tersimpan! 📝')),
-        );
+        CustomToast.show(context, 'Perubahan Tersimpan! 📝');
       }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal: $e')));
+      if (mounted) {
+        CustomToast.show(context, 'Gagal: $e', isError: true);
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -688,15 +684,11 @@ class _EditScreenState extends ConsumerState<EditScreen> {
                       if (mounted) {
                         _latController.text = pos.latitude.toStringAsFixed(6);
                         _lngController.text = pos.longitude.toStringAsFixed(6);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Lokasi diperbarui ke GPS Terkini! 📍')),
-                        );
+                        CustomToast.show(context, 'Lokasi diperbarui ke GPS Terkini! 📍');
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Gagal mendapatkan GPS: $e')),
-                        );
+                        CustomToast.show(context, 'Gagal mendapatkan GPS: $e', isError: true);
                       }
                     }
                   },

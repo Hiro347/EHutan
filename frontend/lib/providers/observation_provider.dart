@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../services/sqlite_service.dart';
 import '../services/sync_service.dart';
+import '../services/image_preprocessor.dart';
 
 final sqliteServiceProvider = Provider<SqliteService>((ref) {
   return SqliteService();
@@ -68,23 +69,31 @@ class LocalObservationNotifier
     final picked = await picker.pickImage(
       source: fromCamera ? ImageSource.camera : ImageSource.gallery,
       imageQuality: 75,
+      maxWidth: 1200,
+      maxHeight: 1200,
     );
     if (picked == null) return null;
 
     // Validasi ukuran file sebelum disimpan (max 10MB)
-    final fileSize = await File(picked.path).length();
+    final file = File(picked.path);
+    final fileSize = await file.length();
     if (fileSize > _maxPhotoBytes) {
       throw Exception(
         'Ukuran foto terlalu besar (${(fileSize / 1024 / 1024).toStringAsFixed(1)} MB). '
         'Maksimum 10 MB. Silakan ambil foto ulang.',
       );
     }
+
+    // Enhance gambar secara lokal menggunakan ImagePreprocessor (contrast & sharpen)
+    final rawBytes = await file.readAsBytes();
+    final enhancedBytes = ImagePreprocessor.enhance(rawBytes);
+
     final dir = await getApplicationDocumentsDirectory();
     final id = const Uuid().v4();
     final ext = picked.path.split('.').last;
     final dest = File('${dir.path}/pending_foto/$id.$ext');
     await dest.parent.create(recursive: true);
-    await File(picked.path).copy(dest.path);
+    await dest.writeAsBytes(enhancedBytes);
 
     return dest.path;
   }
@@ -185,6 +194,23 @@ class LocalObservationNotifier
       if (longitude != null) updateData['longitude'] = longitude;
       if (waktuPengamatan != null) updateData['waktu_pengamatan'] = waktuPengamatan.toIso8601String();
       if (localFotoPath.isNotEmpty) {
+        // Hapus file foto lama jika diganti untuk mencegah kebocoran penyimpanan
+        try {
+          final db = await sqliteService.database;
+          final res = await db.query('data_observasi', columns: ['local_foto_path'], where: 'id = ?', whereArgs: [id]);
+          if (res.isNotEmpty) {
+            final oldPath = res.first['local_foto_path'] as String?;
+            if (oldPath != null && oldPath.isNotEmpty && oldPath != localFotoPath) {
+              final oldFile = File(oldPath);
+              if (await oldFile.exists()) {
+                await oldFile.delete();
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Gagal menghapus file lama saat updateObservation: $e');
+        }
+
         updateData['local_foto_path'] = localFotoPath;
         updateData['foto_url'] = '';
       } else if (existingFotoUrl.isNotEmpty) {
@@ -224,6 +250,24 @@ class LocalObservationNotifier
   Future<void> deleteObservation(String id) async {
     state = await AsyncValue.guard(() async {
       final sqliteService = ref.read(sqliteServiceProvider);
+
+      // Hapus file foto lokal terlebih dahulu jika ada
+      try {
+        final db = await sqliteService.database;
+        final res = await db.query('data_observasi', columns: ['local_foto_path'], where: 'id = ?', whereArgs: [id]);
+        if (res.isNotEmpty) {
+          final localPath = res.first['local_foto_path'] as String?;
+          if (localPath != null && localPath.isNotEmpty) {
+            final file = File(localPath);
+            if (await file.exists()) {
+              await file.delete();
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Gagal menghapus file lokal saat deleteObservation: $e');
+      }
+
       await sqliteService.deleteObservasi(id);
 
       try {

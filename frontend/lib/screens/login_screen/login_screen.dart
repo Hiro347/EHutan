@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../screens/map_screen (homepage)/map_screen.dart';
+import '../../utils/custom_toast.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -36,6 +37,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // Update last_login
       if (authResponse.user != null) {
+        // Cek status_aktivitas dari tabel profiles
+        final profileRes = await Supabase.instance.client
+            .from('profiles')
+            .select('status_aktivitas')
+            .eq('id', authResponse.user!.id)
+            .maybeSingle();
+
+        if (profileRes != null && profileRes['status_aktivitas'] == false) {
+          // Jika tidak aktif, sign out kembali
+          await Supabase.instance.client.auth.signOut();
+          _showError('Akun Anda telah dinonaktifkan. Silakan hubungi administrator.');
+          return;
+        }
+
         await Supabase.instance.client
             .from('profiles')
             .update({'last_login': DateTime.now().toUtc().toIso8601String()})
@@ -60,9 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
-    );
+    CustomToast.show(context, message, isError: true);
   }
 
   @override
@@ -87,10 +100,12 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Logo atau Icon Aplikasi
-                const Icon(
-                  Icons.forest_rounded,
-                  size: 80,
-                  color: Color(0xFF0D5C1E),
+                Center(
+                  child: Image.asset(
+                    'lib/assets/logo_ehutan.png',
+                    height: 90,
+                    fit: BoxFit.contain,
+                  ),
                 ),
                 const SizedBox(height: 24),
 
